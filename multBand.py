@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import glob
 import struct
 import sys
+import os
 
 
 def readSnap(file):
@@ -372,6 +373,8 @@ def output_phi(Lxs, nb, eta=350, eps=0, Ly=200):
 
 
 if __name__ == "__main__":
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
+    print(os.getcwd())
     Lxs = [280, 300, 320, 340, 360, 380, 400, 420, 440]
     # Lxs = [760]
     # output_phi(Lxs, 2)
@@ -389,30 +392,30 @@ if __name__ == "__main__":
     # plt.close()
     # plt.plot()
 
-    nb = 2
-    rho_gas = np.zeros(len(Lxs))
-    Nb = np.zeros_like(rho_gas)
-    for i, Lx in enumerate(Lxs):
-        with open("snapshot\\rhox\\meanPeak_%d.%d.%d.%d_nb%d.dat" % (
-                350, 0, Lx, 200, nb)) as f:
-            lines = f.readlines()
-            rhox = np.array([float(
-                    line.replace('\n', '').split("\t")[-1]) for line in lines])
-            rho_gas[i] = np.mean(rhox[190: 220])
-            Nb[i] = np.sum(rhox[80: 190])
-    with open("snapshot\\rhox\\meanPhi_%d.%d.%d_nb%d.dat" % (
-            350, 0, 200, nb)) as f:
-        lines = f.readlines()
-    phi = np.array([float(line.split("\t")[1]) for line in lines])
-    plt.subplot(221)
-    plt.plot(Lxs, Nb, "-ro")
-    plt.plot(Lxs, Nb - rho_gas * Lxs, "-bs")
-    plt.subplot(222)
-    plt.plot(Lxs, Nb / Lxs, "-ro")
-    plt.plot(Lxs, Nb / Lxs - rho_gas, "-bs")
-    plt.subplot(223)
-    plt.plot(Lxs, rho_gas, "-bs")
-    plt.plot(Lxs, 1 - 2 * Nb / Lxs, "-ro")
-    plt.subplot(224)
-    plt.plot(Lxs, phi / (2 * Nb / Lxs), '-s')
-    plt.show()
+    # nb = 2
+    # rho_gas = np.zeros(len(Lxs))
+    # Nb = np.zeros_like(rho_gas)
+    # for i, Lx in enumerate(Lxs):
+    #     with open("snapshot\\rhox\\meanPeak_%d.%d.%d.%d_nb%d.dat" % (
+    #             350, 0, Lx, 200, nb)) as f:
+    #         lines = f.readlines()
+    #         rhox = np.array([float(
+    #                 line.replace('\n', '').split("\t")[-1]) for line in lines])
+    #         rho_gas[i] = np.mean(rhox[190: 220])
+    #         Nb[i] = np.sum(rhox[80: 190])
+    # with open("snapshot\\rhox\\meanPhi_%d.%d.%d_nb%d.dat" % (
+    #         350, 0, 200, nb)) as f:
+    #     lines = f.readlines()
+    # phi = np.array([float(line.split("\t")[1]) for line in lines])
+    # plt.subplot(221)
+    # plt.plot(Lxs, Nb, "-ro")
+    # plt.plot(Lxs, Nb - rho_gas * Lxs, "-bs")
+    # plt.subplot(222)
+    # plt.plot(Lxs, Nb / Lxs, "-ro")
+    # plt.plot(Lxs, Nb / Lxs - rho_gas, "-bs")
+    # plt.subplot(223)
+    # plt.plot(Lxs, rho_gas, "-bs")
+    # plt.plot(Lxs, 1 - 2 * Nb / Lxs, "-ro")
+    # plt.subplot(224)
+    # plt.plot(Lxs, phi / (2 * Nb / Lxs), '-s')
+    # plt.show()
