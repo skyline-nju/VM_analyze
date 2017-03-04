@@ -4,36 +4,25 @@ import struct
 import os
 
 
-def read_phi(file, ncut=0):
-    with open(file) as f:
-        lines = f.readlines()[ncut:]
-    phi = np.array([float(i.split("\t")[0]) for i in lines])
-    return phi
-
-
 def check_gap(xs, dx_min, Lx):
     """
         Check whether dx = xs[i] - xs[i-1] is larger than dx_min for
         i in range(len(xs))
 
-        Args:
+        Parameters:
         --------
-        xs: list
-
-            The list to be checked, note that
-            0 < xs[0] < xs[1] < ... < xs[n-2] < xs[n-1] < Lx
-
-        dx_min: float
-
-            The minimum distance between two nearest xs
-        Lx: float
-
-            The superior limit of x in xs
+            xs : list
+                The list to be checked, note that 
+                0 < xs[0] < xs[1] < ... < xs[n-2] < xs[n-1] < Lx.
+            dx_min : float
+                The minimum distance between two nearest xs
+            Lx : float
+                The superior limit of x in xs
 
         Returns:
         --------
-        xs: list
-            Modified list
+            xs: list
+                Modified list
 
     """
     if len(xs) <= 2:
@@ -70,6 +59,51 @@ def check_gap(xs, dx_min, Lx):
             return xs
 
 
+def locatePeak(rho_x, Lx, h=1.8):
+    """
+        Count number of peaks and find x where rho_x=h
+
+        Parameters:
+        --------
+            rho_x: 1d array
+                Density profile as a function of x
+            Lx: int
+                Length of rho_x
+            h: float
+                The slope of peak at rho_x=h should be very steep
+
+        Return:
+        --------
+            xPeak: 1d array
+                Array of x where rho_x=h
+
+    """
+    n = rho_x.size
+    x = np.arange(n) + 0.5
+    xPeak = []
+    for i in range(n):
+        if rho_x[i - 1] > h and \
+                rho_x[i] <= h and \
+                rho_x[(i + 10) % n] < h and \
+                rho_x[(i + 20) % n] < h and \
+                rho_x[(i + 30) % n] < h and \
+                rho_x[(i + 40) % n] < h:
+            if i == 0:
+                x_left = x[n - 1] - Lx
+            else:
+                x_left = x[i - 1]
+            x_right = x[i]
+            xp = x_left - (rho_x[i - 1] - h) / (rho_x[i - 1] - rho_x[i]) * (
+                x_left - x_right)
+            if xp < 0:
+                xp += Lx
+            xPeak.append(xp)
+
+    xPeak = check_gap(xPeak, 10, Lx)
+    xPeak = check_gap(xPeak, 100, Lx)
+    return np.array(xPeak)
+
+
 class Profile_x:
     # Density profile along x axis, bin_size=1
     def __init__(self, Lx, h=1.8, x_h=180):
@@ -90,20 +124,7 @@ class Profile_x:
         self.x = np.arange(Lx) + 0.5
 
     def countPeak(self, rho_x):
-        """
-            Count number of peaks and find x where rho_x=h
 
-            Parameters:
-            --------
-            rho_x: 1d array
-                Density profile as a function of x
-
-            Return:
-            --------
-            xPeak: 1d array
-                Array of x where rho_x=h
-
-        """
         n = rho_x.size
         xPeak = []
         for i in range(n):
@@ -153,21 +174,26 @@ class Profile_x:
 
 
 class TimeSerialsPeak:
-    # Time serials of number and location of peaks
-    def __init__(self, xPeaks, beg, end, ax=None):
-        self.x = xPeaks
-        self.num = np.array([x.size for x in xPeaks])
-        if ax is not None:
-            t = np.arange(beg, end) * 100
-            ax.plot(t, self.num)
+    def __init__(self, file, Lx, beg, h):
+        self.FrameSize = Lx * 4
+        self.Lx = Lx
+        self.beg = beg
+        self.end = os.path.getsize(file) // self.FrameSize
+        self.file = file
+        self.h = h
+
+    def get_serials(self):
+        f = open(self.file, "rb")
+        f.seek(self.beg * self.FrameSize)
+        self.xs = np.zeros(self.end - self.beg, dtype=object)
+        for i in range(self.end - self.beg):
+            buff = f.read(self.FrameSize)
+            rhox = np.array(struct.unpack("%df" % (self.Lx), buff))
+            self.xs[i] = locatePeak(rhox, self.Lx, self.h)
+        f.close()
+        self.num = np.array([x.size for x in self.xs])
         self.smooth()
-        if ax is not None:
-            ax.plot(t, self.num)
-        self.segment(beg)
-        if ax is not None:
-            for i in range(self.n_lin_seg.size):
-                ax.plot(self.t_lin_seg[i] * 100, [self.n_lin_seg[i]] * 2, "o")
-            ax.set_ylabel(r"$n_b$")
+        self.segment()
 
     def smooth(self, k=10):
         m = self.num
@@ -191,16 +217,17 @@ class TimeSerialsPeak:
                         if dm[-1] == 0:
                             del bp[-1]
                             del dm[-1]
-        self.num = m
+        self.num_s = m
 
-    def segment(self, beg, edge_wdt=1000):
-        nb_set = [self.num[0]]
+    def segment(self, edge_wdt=1000):
+        num = self.num_s
+        nb_set = [num[0]]
         end_point = [0]
-        for i in range(self.num.size):
-            if self.num[i] != self.num[i - 1]:
+        for i in range(num.size):
+            if num[i] != num[i - 1]:
                 end_point.append(i)
-                nb_set.append(self.num[i])
-        end_point.append(self.num.size)
+                nb_set.append(num[i])
+        end_point.append(num.size)
         half_wdt = edge_wdt // 2
         lin_seg = []
         for i in range(len(nb_set)):
@@ -215,89 +242,80 @@ class TimeSerialsPeak:
                 x2 = end_point[i + 1] - half_wdt
             if (x1 < x2):
                 lin_seg.append(np.array([x1, x2]))
-        self.n_lin_seg = np.array([self.num[t[0]] for t in lin_seg])
-        self.t_lin_seg = np.array(lin_seg) + beg
+        self.n_lin_seg = np.array([num[t[0]] for t in lin_seg])
+        self.t_lin_seg = np.array(lin_seg) + self.beg
+
+    def cumulate(self, x_h=180):
+        num_set = np.unique(self.n_lin_seg)
+        self.sum_rhox = {key: np.zeros(self.Lx) for key in num_set}
+        self.count = {key: 0 for key in num_set}
+
+        f = open(self.file, "rb")
+        for i, (t1, t2) in enumerate(self.t_lin_seg):
+            num = self.n_lin_seg[i]
+            f.seek(t1 * self.FrameSize)
+            for t in range(t1, t2):
+                if num == self.num[t - self.beg]:
+                    buff = f.read(self.FrameSize)
+                    rhox_t = np.array(struct.unpack("%df" % (self.Lx), buff))
+                    for xp in self.xs[t - self.beg]:
+                        self.sum_rhox[num] += np.roll(rhox_t, x_h - int(xp))
+                        self.count[num] += 1
+
+                else:
+                    f.seek(self.FrameSize, 1)
+        self.mean_rhox = {
+            key: self.sum_rhox[key] / self.count[num]
+            for key in num_set
+        }
+        self.num_set = num_set
 
 
 class TimeSerialsPhi:
-    def __init__(self, phi, beg, end, t_seg, ax=None):
-        self.ss = phi
-        self.get_phi_seg(t_seg)
-        if ax is not None:
-            t, phi = self.moving_average(beg, end)
-            ax.plot(t, phi)
-            for i, t in enumerate(t_seg):
-                ax.plot(t * 100, [self.phi_seg[i]] * 2)
-            ax.set_xlabel(r"$t$")
-            ax.set_ylabel(r"$\phi$")
+    def __init__(self, file, beg):
+        with open(file) as f:
+            lines = f.readlines()
+            self.phi_t = np.array([float(i.split("\t")[0]) for i in lines])
+            self.end = self.phi_t.size
+            self.beg = beg
 
     def get_phi_seg(self, t_seg):
-        self.phi_seg = np.array([self.ss[t1:t2].mean() for (t1, t2) in t_seg])
+        self.seg_mean = np.array(
+            [self.phi_t[t1:t2].mean() for (t1, t2) in t_seg])
 
-    def moving_average(self, beg, end, wdt=100):
-        i = np.arange(beg + wdt, end - wdt)
-        phi = np.array([self.ss[j - wdt:j + wdt].mean() for j in i])
+    def moving_average(self, wdt=100):
+        i = np.arange(self.beg + wdt, self.end - wdt)
+        phi = np.array([self.phi_t[j - wdt:j + wdt].mean() for j in i])
         t = i * 100
         return t, phi
 
 
-class TimeSerials:
-    def __init__(self,
-                 eta,
-                 eps,
-                 Lx,
-                 Ly,
-                 seed,
-                 beg_frame=10000,
-                 h=1.8,
-                 x_h=180,
-                 show=False):
-        self.eta = eta
-        self.eps = eps
-        self.Lx = Lx
-        self.Ly = Ly
-        self.seed = seed
-        self.beg_frame = beg_frame
-        phi = read_phi("p%d.%d.%d.%d.%d.dat" %
-                       (self.eta, self.eps, self.Lx, self.Ly, self.seed))
-        file = "rhox_%d.%d.%d.%d.%d.bin" % (self.eta, self.eps, self.Lx,
-                                            self.Ly, self.seed)
-        self.FRAME_SIZE = self.Lx * 4
-        self.end_frame = min(phi.size,
-                             os.path.getsize(file) // self.FRAME_SIZE)
-        self.tot_frames = self.end_frame - self.beg_frame
-        print("Frames: begin=%d, end=%d, total=%d" %
-              (self.beg_frame, self.end_frame, self.tot_frames))
-        xPeaks = np.zeros(self.tot_frames, dtype=object)
-        self.profile_x = Profile_x(Lx, h, x_h)
-        self.fin = open(file, "rb")
-        self.fin.seek(self.beg_frame * self.FRAME_SIZE)
-        for i in range(self.tot_frames):
-            rhox = self.read_frames()
-            xPeaks[i] = self.profile_x.countPeak(rhox)
-        self.fin.close()
-        if show:
-            fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
-        else:
-            ax1 = None
-            ax2 = None
-        self.peak = TimeSerialsPeak(
-            xPeaks, self.beg_frame, self.end_frame, ax=ax1)
-        self.phi = TimeSerialsPhi(
-            phi, self.beg_frame, self.end_frame, self.peak.t_lin_seg, ax=ax2)
-        if show:
-            plt.suptitle(
-                r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\ \rm{seed}=%d$" %
-                (eta, eps, Lx, Ly, seed))
-            plt.show()
-            plt.close()
+def get_time_serials(file_phi, file_rhox, Lx, beg=10000, h=1.8, show=False):
+    phi = TimeSerialsPhi(file_phi, beg)
+    peak = TimeSerialsPeak(file_rhox, Lx, beg, h)
+    end = min(phi.end, peak.end)
+    phi.end = end
+    peak.end = end
+    peak.get_serials()
+    phi.get_phi_seg(peak.t_lin_seg)
+    if show:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
+        t = np.arange(beg, end) * 100
+        ax1.plot(t, peak.num)
+        ax1.plot(t, peak.num_s)
+        for i in range(peak.n_lin_seg.size):
+            ax1.plot(peak.t_lin_seg[i] * 100, [peak.n_lin_seg[i]] * 2, "o")
+        ax1.set_ylabel(r"$n_b$")
 
-    def read_frames(self, n=1):
-        buff = self.fin.read(n * self.FRAME_SIZE)
-        data = np.array(struct.unpack("%df" % (n * self.Lx), buff))
-        if n > 1:
-            data = data.reshape(n, self.FRAME_SIZE)
-        return data
+        t, phi_smothed = phi.moving_average()
+        ax2.plot(t, phi_smothed)
+        for i, t in enumerate(peak.t_lin_seg):
+            ax2.plot(t * 100, [phi.seg_mean[i]] * 2)
+        ax2.set_xlabel(r"$t$")
+        ax2.set_ylabel(r"$\phi$")
+        plt.show()
+        plt.close()
+    return peak, phi
 
 
 if __name__ == "__main__":
@@ -305,7 +323,13 @@ if __name__ == "__main__":
     print(os.getcwd())
     eta = 350
     eps = 0
-    Lx = 280
+    Lx = 1000
     Ly = 200
-    seed = 214280
-    tss = TimeSerials(eta, eps, Lx, Ly, seed, show=True)
+    seed = 2141000
+    # tss = TimeSerials(eta, eps, Lx, Ly, seed, show=True)
+    file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
+    file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
+    peak, phi = get_time_serials(file_phi, file_rhox, Lx, show=True)
+    peak.cumulate()
+    plt.plot(peak.mean_rhox[peak.num_set.max()])
+    plt.show()
