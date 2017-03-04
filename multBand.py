@@ -15,16 +15,19 @@ def check_gap(xs, dx_min, Lx):
     """
         Check whether dx = xs[i] - xs[i-1] is larger than dx_min for
         i in range(len(xs))
-        !!! Remain to be improved
 
-        Parameters:
+        Args:
         --------
         xs: list
+
             The list to be checked, note that
             0 < xs[0] < xs[1] < ... < xs[n-2] < xs[n-1] < Lx
+
         dx_min: float
+
             The minimum distance between two nearest xs
         Lx: float
+
             The superior limit of x in xs
 
         Returns:
@@ -33,28 +36,38 @@ def check_gap(xs, dx_min, Lx):
             Modified list
 
     """
-
-    def loop():
-        x_pre = xs[0]
-        i = len(xs) - 1
-        while i >= 0:
-            dx = x_pre - xs[i]
-            if dx < 0:
-                dx += Lx
-            if dx < dx_min:
-                del xs[i]
+    if len(xs) <= 2:
+        return xs
+    else:
+        i_head = 0
+        is_find_head = False
+        while i_head < len(xs) - 1:
+            dx = xs[i_head + 1] - xs[i_head]
+            if dx >= dx_min:
+                is_find_head = True
+                break
             else:
-                x_pre = xs[i]
-            i -= 1
-
-    xs0 = xs.copy()
-    loop()
-    # in case of invalid x[0]
-    if len(xs) == 0 or xs[0] != xs0[0]:
-        xs = xs0.copy()
-        del xs[0]
-        loop()
-    return xs
+                i_head += 1
+        if i_head == len(xs) - 1:
+            dx = xs[0] + Lx - xs[-1]
+            if dx >= dx_min:
+                is_find_head = True
+        if not is_find_head:
+            return []
+        else:
+            xs = [xs[i + i_head - len(xs)] for i in range(len(xs))]
+            x_pre = xs[0]
+            i = len(xs) - 1
+            while i >= 0 and len(xs) > 1:
+                dx = x_pre - xs[i]
+                if dx < 0:
+                    dx += Lx
+                if dx < dx_min and len(xs) > 1:
+                    del xs[i]
+                else:
+                    x_pre = xs[i]
+                i -= 1
+            return xs
 
 
 class Profile_x:
@@ -110,10 +123,9 @@ class Profile_x:
                 if x < 0:
                     x += self.Lx
                 xPeak.append(x)
-        if len(xPeak) > 2:
-            xPeak = check_gap(xPeak, 10, self.Lx)
-        if len(xPeak) > 2:
-            xPeak = check_gap(xPeak, 100, self.Lx)
+
+        xPeak = check_gap(xPeak, 10, self.Lx)
+        xPeak = check_gap(xPeak, 100, self.Lx)
         return np.array(xPeak)
 
     def averagePeak(self, rho_x, xPeak):
@@ -275,8 +287,8 @@ class TimeSerials:
             phi, self.beg_frame, self.end_frame, self.peak.t_lin_seg, ax=ax2)
         if show:
             plt.suptitle(
-                r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\ \rm{seed}=%d$"
-                % (eta, eps, Lx, Ly, seed))
+                r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\ \rm{seed}=%d$" %
+                (eta, eps, Lx, Ly, seed))
             plt.show()
             plt.close()
 
