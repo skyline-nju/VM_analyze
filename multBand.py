@@ -10,7 +10,7 @@ def check_gap(xs, dx_min, Lx):
         Parameters:
         --------
             xs: list
-                The list to be checked, note that 
+                The list to be checked, note that
                 0 < xs[0] < xs[1] < ... < xs[n-2] < xs[n-1] < Lx.
             dx_min: float
                 The minimum distance between two nearest xs
@@ -61,7 +61,7 @@ def locatePeak(rho_x, Lx, h=1.8):
 
         Parameters:
         --------
-            rho_x: 1d array
+            rho_x: np.ndarray
                 Density profile as a function of x
             Lx: int
                 Length of rho_x
@@ -70,7 +70,7 @@ def locatePeak(rho_x, Lx, h=1.8):
 
         Return:
         --------
-            xPeak: 1d array
+            xPeak: np.ndarray
                 Array of x where rho_x=h
     """
     n = rho_x.size
@@ -100,7 +100,17 @@ def locatePeak(rho_x, Lx, h=1.8):
 
 
 class TimeSerialsPeak:
-    """ class for time serials of peaks."""
+    """ class for time serials of peaks.
+
+        Instance variables:
+        --------
+            self.xs: np.ndarray
+                Time serials of locations of peaks.
+            self.num_raw: np.ndarray
+                Raw time serials of peak numbers.
+            self.num_smoothed: np.ndarray
+                Smoothed time serials of peak numbers.
+    """
 
     def __init__(self, file, Lx, beg, h):
         """ Initialize class
@@ -125,15 +135,8 @@ class TimeSerialsPeak:
         self.h = h
 
     def get_serials(self):
-        """ Calculate time serials of number and location of peaks.
+        """ Calculate time serials of number and location of peaks."""
 
-            Variables:
-            --------
-                self.num: 1d array
-                    Time serials of number of peaks.
-                self.xs: 2d array
-                    Time serials of locations of peaks.
-        """
         f = open(self.file, "rb")
         f.seek(self.beg * self.FrameSize)
         self.xs = np.zeros(self.end - self.beg, dtype=object)
@@ -142,7 +145,7 @@ class TimeSerialsPeak:
             rhox = np.array(struct.unpack("%df" % (self.Lx), buff))
             self.xs[i] = locatePeak(rhox, self.Lx, self.h)
         f.close()
-        self.num = np.array([x.size for x in self.xs])
+        self.num_raw = np.array([x.size for x in self.xs])
 
     def smooth(self, k=10):
         """ Smooth time serials of number of peaks.
@@ -152,12 +155,8 @@ class TimeSerialsPeak:
                 k: int
                     Minimum gap between two valid breaking points.
 
-            Variables:
-            --------
-                self.num_s: 1d array
-                    Smoothed time serials of peak numbers.
         """
-        m = self.num
+        m = self.num_raw
         bp = []  # list for breaking points
         dm = []
         for i in range(1, m.size):
@@ -178,25 +177,28 @@ class TimeSerialsPeak:
                         if dm[-1] == 0:
                             del bp[-1]
                             del dm[-1]
-        self.num_s = m
+        self.num_smoothed = m
 
-    def segment(self, edge_wdt=1000):
+    def segment(self, num, edge_wdt=1000):
         """ Cut time serials of peak numbers into segments.
 
             Parameters:
             --------
+                num: np.ndarray
+                    Time serials of peak numbers.
                 edge_wdt: int
                     Time serials within half of edge_wdt around
                     breaking point are removed.
 
-            Variables:
+            Returns:
             --------
-                self.n_lin_seg: 1d array
-                    Number of peaks for each segment.
-                self.t_lin_seg: 2d array
-                    End points for each segment.
+                seg_num: np.ndarray
+                    Divide the time serials into sgements by number of peaks.
+                seg_beg: np.ndarray
+                    Beginning point of each segement.
+                seg_end: np.ndarray
+                    End point of each segement.
         """
-        num = self.num_s
         nb_set = [num[0]]
         end_point = [0]
         for i in range(num.size):
@@ -205,7 +207,8 @@ class TimeSerialsPeak:
                 nb_set.append(num[i])
         end_point.append(num.size)
         half_wdt = edge_wdt // 2
-        lin_seg = []
+        seg_beg = []
+        seg_end = []
         for i in range(len(nb_set)):
             if i == 0:
                 x1 = end_point[i]
@@ -217,56 +220,71 @@ class TimeSerialsPeak:
                 x1 = end_point[i] + half_wdt
                 x2 = end_point[i + 1] - half_wdt
             if (x1 < x2):
-                lin_seg.append(np.array([x1, x2]))
-        self.n_lin_seg = np.array([num[t[0]] for t in lin_seg])
-        self.t_lin_seg = np.array(lin_seg) + self.beg
+                seg_beg.append(x1)
+                seg_end.append(x2)
+        seg_beg = np.array(seg_beg)
+        seg_end = np.array(seg_end)
+        seg_num = np.array([num[t] for t in seg_beg])
+        return seg_num, seg_beg, seg_end
 
-    def cumulate(self, x_h=180):
+    def cumulate(self, seg_num, seg_beg, seg_end, x_h=180):
         """ Calculate time-averaged rho_x
 
             Parameters:
             --------
+                seg_num: np.ndarray
+                    Number of peaks of each segment.
+                seg_beg: np.ndarray
+                    First index of each segment.
+                seg_end: np.ndarray
+                    Last index of each segment.
                 x_h: int
                     Roll the array of rho_x so that rho_x=h at x=x_h.
 
-            Variables:
+            Returns:
             --------
-                self.num_set: 1d array
-                    Set of number of peaks.
-                self.sum_rhox: dir
-                    Sum of rhox over time for varied peak num.
-                self.count: dir
-                    Count of each peak number.
-                self.mean_rhox: dir
-                    Time average of rhox.
+                num_set: np.ndarray
+                    Set of number of peak.
+                sum_rhox: np.ndarray
+                    Sum of rho_x over time, array shape (num_set.size, Lx).
+                count_rhox: np.ndarray
+                    Count of frames for different number of peak.
         """
-        num_set = np.unique(self.n_lin_seg)
-        self.sum_rhox = {key: np.zeros(self.Lx) for key in num_set}
-        self.count = {key: 0 for key in num_set}
+        num_set = np.unique(seg_num)
+        sum_rhox = {key: np.zeros(self.Lx) for key in num_set}
+        count_rhox = {key: 0 for key in num_set}
 
         f = open(self.file, "rb")
-        for i, (t1, t2) in enumerate(self.t_lin_seg):
-            num = self.n_lin_seg[i]
+        for i in range(seg_num.size):
+            num = seg_num[i]
+            t1 = seg_beg[i]
+            t2 = seg_end[i]
             f.seek(t1 * self.FrameSize)
             for t in range(t1, t2):
-                if num == self.num[t - self.beg]:
+                if num == self.num_raw[t - self.beg]:
                     buff = f.read(self.FrameSize)
                     rhox_t = np.array(struct.unpack("%df" % (self.Lx), buff))
                     for xp in self.xs[t - self.beg]:
-                        self.sum_rhox[num] += np.roll(rhox_t, x_h - int(xp))
-                        self.count[num] += 1
-
+                        sum_rhox[num] += np.roll(rhox_t, x_h - int(xp))
+                        count_rhox[num] += 1
                 else:
                     f.seek(self.FrameSize, 1)
-        self.mean_rhox = {
-            key: self.sum_rhox[key] / self.count[num]
-            for key in num_set
-        }
-        self.num_set = num_set
+
+        sum_rhox = np.array([sum_rhox[key] for key in num_set])
+        count_rhox = np.array([count_rhox[key] for key in num_set])
+        return num_set, sum_rhox, count_rhox
 
 
 class TimeSerialsPhi:
-    """ Time serials of order parameters."""
+    """ Time serials of order parameters.
+
+        Variables:
+        --------
+            self.phi_t: np.ndarray
+                Time serials of order parameters.
+            self.seg_mean: np.ndarray
+                Mean order parameters of each segment.
+    """
 
     def __init__(self, file, beg):
         """ Initialize.
@@ -277,12 +295,6 @@ class TimeSerialsPhi:
                     Name of .dat file.
                 beg: int
                     Time step that the system begin become steady.
-
-            Variables:
-            --------
-                self.phi_t: 1d array
-                    Time serials of order parameters.
-
         """
         with open(file) as f:
             lines = f.readlines()
@@ -290,21 +302,26 @@ class TimeSerialsPhi:
             self.end = self.phi_t.size
             self.beg = beg
 
-    def get_phi_seg(self, t_seg):
-        """ Cut serials of phi into segements according peak numbers.
+    def segment(self, seg_beg, seg_end):
+        """ Divide serials of phi into segements by peak numbers.
 
             Parameters:
             --------
-                t_seg: 2d array
-                    End points of each segment.
-
-            Variables:
+                seg_beg: np.ndarray
+                    Starting point of each segment.
+                seg_end: np.ndarray
+                    End point of each segment.
+            Returns:
             --------
-                self.seg_mean: 1d array
-                    Mean order parameters of each segment.
+                seg_phi: np.ndarray
+                    Mean order parameter of each segment.
         """
-        self.seg_mean = np.array(
-            [self.phi_t[t1:t2].mean() for (t1, t2) in t_seg])
+        seg_phi = np.zeros(seg_beg.size)
+        for i in range(seg_beg.size):
+            beg_idx = seg_beg[i] + self.beg
+            end_idx = seg_end[i] + self.end
+            seg_phi[i] = np.mean(self.phi_t[beg_idx:end_idx])
+        return seg_phi
 
     def moving_average(self, wdt=100):
         """ Moving average for phi.
@@ -316,43 +333,27 @@ class TimeSerialsPhi:
 
             Returns:
             --------
-                t: 1d array
-                    Time serials, the same shape as phi below.
-                phi: 1d array
+                beg_mov_ave: int
+                    First index for moving average.
+                end_mov_ave: int
+                    Last index for moving average.
+                phi_mov_ave: np.ndarray
                     Order parameters after moving average.
         """
-        i = np.arange(self.beg + wdt, self.end - wdt)
-        phi = np.array([self.phi_t[j - wdt:j + wdt].mean() for j in i])
-        t = i * 100
-        return t, phi
+        beg_mov_ave = self.beg + wdt
+        end_mov_ave = self.end - wdt
+        i = np.arange(beg_mov_ave, end_mov_ave)
+        phi_mov_ave = np.array([self.phi_t[j - wdt:j + wdt].mean() for j in i])
+        return beg_mov_ave, end_mov_ave, phi_mov_ave
 
 
-def get_time_serials(file_phi, file_rhox, Lx, beg=10000, h=1.8, show=False):
+def get_time_serials(eta, eps, Lx, Ly, seed, beg=10000, h=1.8, show=False):
     """ Get time serials of number and location of peak and order parameters.
-
-        Parameters:
-        --------
-            file_phi: str
-                File name for order parameters.
-            file_rhox: str
-                File name for rho_x
-            Lx: int
-                Size of rho_x
-            beg: int
-                Time step that the system begin become steady.
-            h: float
-                Used to detect peak of rho_x, the slope of peak
-                at rho_x=h is steep.
-            show: bool
-                Whether to show time serials of peak number and phi.
-
-        Return:
-        --------
-            peak: TimeSerialsPeak
-                Class of peak
-            phi: TimeSerialsPhi
-                Class of phi
+        Get time average of peaks.
     """
+
+    file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
+    file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
     phi = TimeSerialsPhi(file_phi, beg)
     peak = TimeSerialsPeak(file_rhox, Lx, beg, h)
     end = min(phi.end, peak.end)
@@ -360,40 +361,68 @@ def get_time_serials(file_phi, file_rhox, Lx, beg=10000, h=1.8, show=False):
     peak.end = end
     peak.get_serials()
     peak.smooth()
-    peak.segment()
-    phi.get_phi_seg(peak.t_lin_seg)
+    seg_num, seg_beg, seg_end = peak.segment(peak.num_smoothed)
+    seg_phi = phi.segment(seg_beg, seg_end)
+    beg_movAve, end_movAve, phi_movAve = phi.moving_average()
+    num_set, sum_rhox, count_rhox = peak.cumulate(seg_num, seg_beg, seg_end)
+    para = [eta / 1000, eps / 1000, Lx, Ly, seed]
     if show:
-        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
-        t = np.arange(beg, end) * 100
-        ax1.plot(t, peak.num)
-        ax1.plot(t, peak.num_s)
-        for i in range(peak.n_lin_seg.size):
-            ax1.plot(peak.t_lin_seg[i] * 100, [peak.n_lin_seg[i]] * 2, "o")
-        ax1.set_ylabel(r"$n_b$")
+        plot_serials(para, beg, end, peak.num_raw, peak.num_smoothed, seg_num,
+                     seg_beg, seg_end, seg_phi, beg_movAve, end_movAve,
+                     phi_movAve)
 
-        t, phi_smothed = phi.moving_average()
-        ax2.plot(t, phi_smothed)
-        for i, t in enumerate(peak.t_lin_seg):
-            ax2.plot(t * 100, [phi.seg_mean[i]] * 2)
-        ax2.set_xlabel(r"$t$")
-        ax2.set_ylabel(r"$\phi$")
-        plt.show()
-        plt.close()
-    return peak, phi
+
+def plot_serials(para: list,
+                 beg: int,
+                 end: int,
+                 num_raw: np.ndarray,
+                 num_smoothed: np.ndarray,
+                 seg_num: np.ndarray,
+                 seg_beg: np.ndarray,
+                 seg_end: np.ndarray,
+                 seg_phi: np.ndarray,
+                 beg_movAve: np.ndarray,
+                 end_movAve: np.ndarray,
+                 phi_movAve: np.ndarray):
+    """ Plot time serials of peak number and phi."""
+
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=2, ncols=1, sharex=True, figsize=(10, 6))
+    t = np.arange(beg, end) * 100
+    ax1.plot(t, num_raw)
+    ax1.plot(t, num_smoothed)
+    for i in range(seg_num.size):
+        ax1.plot((seg_beg[i] + beg) * 100, seg_num[i], "o")
+        ax1.plot((seg_end[i] + beg) * 100, seg_num[i], "s")
+    ax1.set_ylabel(r"$n_b$")
+
+    ax2.plot(np.arange(beg_movAve, end_movAve) * 100, phi_movAve)
+    for i in range(seg_num.size):
+        ax2.plot([(seg_beg[i] + beg) * 100, (seg_end[i] + beg) * 100],
+                 [seg_phi[i]] * 2)
+    ax2.set_xlabel(r"$t$")
+    ax2.set_ylabel(r"$\phi$")
+
+    ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
+                  (para[0], para[1], para[2], para[3], para[4]))
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
+def output(peak: TimeSerialsPeak, phi: TimeSerialsPhi, eta, eps, Lx, Ly, seed):
+    """ Output time-averaged phi and peak profile for varied num_peak"""
+    file = "mb_%d.%d.%d.%d.%d.npz" % (eta, eps, Lx, Ly, seed)
+    return file
 
 
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     print(os.getcwd())
     eta = 350
-    eps = 20
-    Lx = 920
+    eps = 0
+    Lx = 280
     Ly = 200
-    seed = 214920
+    seed = 214280
     # tss = TimeSerials(eta, eps, Lx, Ly, seed, show=True)
-    file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
-    file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
-    peak, phi = get_time_serials(file_phi, file_rhox, Lx, show=True)
-    peak.cumulate()
-    plt.plot(peak.mean_rhox[peak.num_set.max()])
-    plt.show()
+    peak, phi = get_time_serials(eta, eps, Lx, Ly, seed, show=True)
