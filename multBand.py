@@ -349,26 +349,36 @@ class TimeSerialsPhi:
         return beg_mov_ave, end_mov_ave, phi_mov_ave
 
 
-def get_time_serials(eta: int,
-                     eps: int,
-                     Lx: int,
-                     Ly: int,
-                     seed: int,
-                     beg: int=10000,
-                     h: float=1.8,
-                     show_serials: bool=False,
-                     show_rhox_mean: bool=False):
-    """ Get time serials of number and location of peak and order parameters.
-        Get time average of peaks.
-    """
+def main(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
+    """ Handle the data for given parameters."""
+
+    def output():
+        """ Output time-averaged phi and peak profile for varied num_peak"""
+        file = "mb_%d.%d.%d.%d.%d.npz" % (eta, eps, Lx, Ly, seed)
+        np.savez(
+            file,
+            t_beg_end=np.array([t_beg, t_end]),
+            num_raw=peak.num_raw,
+            num_smoothed=peak.num_smoothed,
+            seg_num=seg_num,
+            seg_idx0=seg_idx0,
+            seg_idx1=seg_idx1,
+            seg_phi=seg_phi,
+            beg_movAve=beg_movAve,
+            end_movAve=end_movAve,
+            phi_movAve=phi_movAve,
+            num_set=num_set,
+            sum_rhox=sum_rhox,
+            count_rhox=count_rhox)
+        file.seek(0)
 
     file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
     file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
-    phi = TimeSerialsPhi(file_phi, beg)
-    peak = TimeSerialsPeak(file_rhox, Lx, beg, h)
-    end = min(phi.end, peak.end)
-    phi.end = end
-    peak.end = end
+    phi = TimeSerialsPhi(file_phi, t_beg)
+    peak = TimeSerialsPeak(file_rhox, Lx, t_beg, h)
+    t_end = min(phi.end, peak.end)
+    phi.end = t_end
+    peak.end = t_end
     peak.get_serials()
     peak.smooth()
     seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
@@ -376,17 +386,18 @@ def get_time_serials(eta: int,
     beg_movAve, end_movAve, phi_movAve = phi.moving_average()
     num_set, sum_rhox, count_rhox = peak.cumulate(seg_num, seg_idx0, seg_idx1)
     para = [eta / 1000, eps / 1000, Lx, Ly, seed]
-    if show_serials:
-        plot_serials(para, beg, end, peak.num_raw, peak.num_smoothed, seg_num,
-                     seg_idx0, seg_idx1, seg_phi, beg_movAve, end_movAve,
-                     phi_movAve)
-    if show_rhox_mean:
+    if show:
+        plot_serials(para, t_beg, t_end, peak.num_raw, peak.num_smoothed,
+                     seg_num, seg_idx0, seg_idx1, seg_phi, beg_movAve,
+                     end_movAve, phi_movAve)
         plot_rhox_mean(para, num_set, sum_rhox, count_rhox)
+    if out:
+        output()
 
 
 def plot_serials(para: list,
-                 beg: int,
-                 end: int,
+                 t_beg: int,
+                 t_end: int,
                  num_raw: np.ndarray,
                  num_smoothed: np.ndarray,
                  seg_num: np.ndarray,
@@ -400,17 +411,17 @@ def plot_serials(para: list,
 
     fig, (ax1, ax2) = plt.subplots(
         nrows=2, ncols=1, sharex=True, figsize=(10, 6))
-    t = np.arange(beg, end) * 100
+    t = np.arange(t_beg, t_end) * 100
     ax1.plot(t, num_raw)
     ax1.plot(t, num_smoothed)
     for i in range(seg_num.size):
-        ax1.plot((seg_idx0[i] + beg) * 100, seg_num[i], "o")
-        ax1.plot((seg_idx1[i] + beg) * 100, seg_num[i], "s")
+        ax1.plot((seg_idx0[i] + t_beg) * 100, seg_num[i], "o")
+        ax1.plot((seg_idx1[i] + t_beg) * 100, seg_num[i], "s")
     ax1.set_ylabel(r"$n_b$")
 
     ax2.plot(np.arange(beg_movAve, end_movAve) * 100, phi_movAve)
     for i in range(seg_num.size):
-        ax2.plot([(seg_idx0[i] + beg) * 100, (seg_idx1[i] + beg) * 100],
+        ax2.plot([(seg_idx0[i] + t_beg) * 100, (seg_idx1[i] + t_beg) * 100],
                  [seg_phi[i]] * 2)
     ax2.set_xlabel(r"$t$")
     ax2.set_ylabel(r"$\phi$")
@@ -448,12 +459,6 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, **kwargs):
     plt.close()
 
 
-def output(peak: TimeSerialsPeak, phi: TimeSerialsPhi, eta, eps, Lx, Ly, seed):
-    """ Output time-averaged phi and peak profile for varied num_peak"""
-    file = "mb_%d.%d.%d.%d.%d.npz" % (eta, eps, Lx, Ly, seed)
-    return file
-
-
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     print(os.getcwd())
@@ -463,4 +468,4 @@ if __name__ == "__main__":
     Ly = 200
     seed = 214280
     # tss = TimeSerials(eta, eps, Lx, Ly, seed, show=True)
-    get_time_serials(eta, eps, Lx, Ly, seed, show_serials=True, show_rhox_mean=True)
+    main(eta, eps, Lx, Ly, seed, show=True, out=True)
