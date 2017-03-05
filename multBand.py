@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import struct
+import glob
 import os
+import sys
 
 
 def check_gap(xs, dx_min, Lx):
@@ -349,52 +351,6 @@ class TimeSerialsPhi:
         return beg_mov_ave, end_mov_ave, phi_mov_ave
 
 
-def main(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
-    """ Handle the data for given parameters."""
-
-    def output():
-        """ Output time-averaged phi and peak profile for varied num_peak"""
-        file = "mb_%d.%d.%d.%d.%d.npz" % (eta, eps, Lx, Ly, seed)
-        np.savez(
-            file,
-            t_beg_end=np.array([t_beg, t_end]),
-            num_raw=peak.num_raw,
-            num_smoothed=peak.num_smoothed,
-            seg_num=seg_num,
-            seg_idx0=seg_idx0,
-            seg_idx1=seg_idx1,
-            seg_phi=seg_phi,
-            beg_movAve=beg_movAve,
-            end_movAve=end_movAve,
-            phi_movAve=phi_movAve,
-            num_set=num_set,
-            sum_rhox=sum_rhox,
-            count_rhox=count_rhox)
-        file.seek(0)
-
-    file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
-    file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
-    phi = TimeSerialsPhi(file_phi, t_beg)
-    peak = TimeSerialsPeak(file_rhox, Lx, t_beg, h)
-    t_end = min(phi.end, peak.end)
-    phi.end = t_end
-    peak.end = t_end
-    peak.get_serials()
-    peak.smooth()
-    seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
-    seg_phi = phi.segment(seg_idx0, seg_idx1)
-    beg_movAve, end_movAve, phi_movAve = phi.moving_average()
-    num_set, sum_rhox, count_rhox = peak.cumulate(seg_num, seg_idx0, seg_idx1)
-    para = [eta / 1000, eps / 1000, Lx, Ly, seed]
-    if show:
-        plot_serials(para, t_beg, t_end, peak.num_raw, peak.num_smoothed,
-                     seg_num, seg_idx0, seg_idx1, seg_phi, beg_movAve,
-                     end_movAve, phi_movAve)
-        plot_rhox_mean(para, num_set, sum_rhox, count_rhox)
-    if out:
-        output()
-
-
 def plot_serials(para: list,
                  t_beg: int,
                  t_end: int,
@@ -433,7 +389,7 @@ def plot_serials(para: list,
     plt.close()
 
 
-def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, **kwargs):
+def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, xlim=None, ylim=None):
     """ Plot time-averaged density profile rho_x.
 
         Parameters:
@@ -446,7 +402,12 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, **kwargs):
                 Sum of rhox over time for each peak number, respectively.
             count_rhox: np.ndarray
                 Count of rhox with the same peak number.
+            xlim: tuple
+                (xmin, xmax)
+            ylim: tuple
+                (ylim, ymax)
     """
+
     eta, eps, Lx, Ly, seed = para
     x = np.arange(Lx) + 0.5
     for i in range(num_set.size):
@@ -455,17 +416,119 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, **kwargs):
     plt.title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
               (eta, eps, Lx, Ly, seed))
     plt.legend(loc="best")
+    if xlim is not None:
+        plt.xlim(xlim)
+    if ylim is not None:
+        plt.ylim(ylim)
     plt.show()
     plt.close()
 
 
+def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
+    """ Handle the data for given parameters.
+
+        Parameters:
+        --------
+            eta: int
+            eps: int
+            Lx: int
+            Ly: int
+            Seed: int
+            t_beg: int
+                Time step that the system become equilibrium.
+            h: float
+            show: bool
+                Whether to show the plot of results.
+            out: bool
+                Whether to output results.
+    """
+
+    def output():
+        """ Output time-averaged phi and peak profile for varied num_peak"""
+        file = "mb_%d.%d.%d.%d.%d.npz" % (eta, eps, Lx, Ly, seed)
+        np.savez(
+            file,
+            t_beg_end=np.array([t_beg, t_end]),
+            num_raw=peak.num_raw,
+            num_smoothed=peak.num_smoothed,
+            seg_num=seg_num,
+            seg_idx0=seg_idx0,
+            seg_idx1=seg_idx1,
+            seg_phi=seg_phi,
+            beg_movAve=beg_movAve,
+            end_movAve=end_movAve,
+            phi_movAve=phi_movAve,
+            num_set=num_set,
+            sum_rhox=sum_rhox,
+            count_rhox=count_rhox)
+
+    file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
+    file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
+    phi = TimeSerialsPhi(file_phi, t_beg)
+    peak = TimeSerialsPeak(file_rhox, Lx, t_beg, h)
+    t_end = min(phi.end, peak.end)
+    phi.end = t_end
+    peak.end = t_end
+    peak.get_serials()
+    peak.smooth()
+    seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
+    seg_phi = phi.segment(seg_idx0, seg_idx1)
+    beg_movAve, end_movAve, phi_movAve = phi.moving_average()
+    num_set, sum_rhox, count_rhox = peak.cumulate(seg_num, seg_idx0, seg_idx1)
+    para = [eta / 1000, eps / 1000, Lx, Ly, seed]
+    if show:
+        plot_serials(para, t_beg, t_end, peak.num_raw, peak.num_smoothed,
+                     seg_num, seg_idx0, seg_idx1, seg_phi, beg_movAve,
+                     end_movAve, phi_movAve)
+        plot_rhox_mean(para, num_set, sum_rhox, count_rhox)
+    if out:
+        output()
+
+
+def get_para(file):
+    """ Get parameters from filename.
+
+        Parameters:
+        --------
+            file: str
+                Name of input file.
+
+        Returns:
+        --------
+            para: list
+                eta, eps, Lx, Ly, seed
+    """
+    strList = file.replace("rhox_", "").replace(".bin", "").split(".")
+    para = [int(i) for i in strList]
+    return para
+
+
+def all_file():
+    """ Handle all files in the target path."""
+
+    files = glob.glob("rhox_*.bin")
+    for file in files:
+        eta, eps, Lx, Ly, seed = get_para(file)
+        handle(eta, eps, Lx, Ly, seed, out=True)
+        print("Success for %s" % file)
+        # try:
+        #     handle(eta, eps, Lx, Ly, seed, out=True)
+        #     print("Success for %s" % file)
+        # except:
+        #     print("Error when handling %s" % file)
+
+
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
-    print(os.getcwd())
-    eta = 350
-    eps = 0
-    Lx = 280
-    Ly = 200
-    seed = 214280
-    # tss = TimeSerials(eta, eps, Lx, Ly, seed, show=True)
-    main(eta, eps, Lx, Ly, seed, show=True, out=True)
+    if len(sys.argv) == 2 and sys.argv[1] == "all":
+        all_file()
+    elif len(sys.argv) == 6:
+        eta = int(sys.argv[1])
+        eps = int(sys.argv[2])
+        Lx = int(sys.argv[3])
+        Ly = int(sys.argv[4])
+        seed = int(sys.argv[5])
+        handle(eta, eps, Lx, Ly, seed, show=True)
+    else:
+        print("Error, wrong args!")
+        sys.exit()
