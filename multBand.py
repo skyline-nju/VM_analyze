@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import struct
 import glob
 import os
@@ -362,9 +361,10 @@ def plot_serials(para: list,
                  seg_phi: np.ndarray,
                  beg_movAve: np.ndarray,
                  end_movAve: np.ndarray,
-                 phi_movAve: np.ndarray):
+                 phi_movAve: np.ndarray,
+                 outfile=None):
     """ Plot time serials of peak number and phi."""
-
+    import matplotlib.pyplot as plt
     fig, (ax1, ax2) = plt.subplots(
         nrows=2, ncols=1, sharex=True, figsize=(10, 6))
     t = np.arange(t_beg, t_end) * 100
@@ -385,7 +385,10 @@ def plot_serials(para: list,
     ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
                   (para[0], para[1], para[2], para[3], para[4]))
     plt.tight_layout()
-    plt.show()
+    if outfile is None:
+        plt.show()
+    else:
+        plt.savefig(outfile)
     plt.close()
 
 
@@ -407,7 +410,7 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, xlim=None, ylim=None):
             ylim: tuple
                 (ylim, ymax)
     """
-
+    import matplotlib.pyplot as plt
     eta, eps, Lx, Ly, seed = para
     x = np.arange(Lx) + 0.5
     for i in range(num_set.size):
@@ -467,6 +470,9 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
     phi = TimeSerialsPhi(file_phi, t_beg)
     peak = TimeSerialsPeak(file_rhox, Lx, t_beg, h)
     t_end = min(phi.end, peak.end)
+    if t_end <= t_beg:
+        print("Error, t_beg is larger than t_end!")
+        return
     phi.end = t_end
     peak.end = t_end
     peak.get_serials()
