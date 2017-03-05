@@ -413,7 +413,7 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, xlim=None, ylim=None):
     for i in range(num_set.size):
         rhox = sum_rhox[i] / count_rhox[i]
         plt.plot(x, rhox, label=r"$n_b=%d$" % num_set[i])
-    plt.title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
+    plt.title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, \rm{seed}=%d$" %
               (eta, eps, Lx, Ly, seed))
     plt.legend(loc="best")
     if xlim is not None:
@@ -498,8 +498,8 @@ def get_para(file):
             para: list
                 eta, eps, Lx, Ly, seed
     """
-    strList = file.replace("rhox_", "").replace(".bin", "").split(".")
-    para = [int(i) for i in strList]
+    strList = (file.split("_")[1]).split(".")
+    para = [int(i) for i in strList[:-1]]
     return para
 
 
