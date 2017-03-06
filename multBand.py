@@ -383,7 +383,7 @@ def plot_serials(para: list,
     ax2.set_ylabel(r"$\phi$")
 
     ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
-                  (para[0], para[1], para[2], para[3], para[4]))
+                  (para[0]/1000, para[1]/1000, para[2], para[3], para[4]))
     plt.tight_layout()
     if outfile is None:
         plt.show()
@@ -417,7 +417,7 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, xlim=None, ylim=None):
         rhox = sum_rhox[i] / count_rhox[i]
         plt.plot(x, rhox, label=r"$n_b=%d$" % num_set[i])
     plt.title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, \rm{seed}=%d$" %
-              (eta, eps, Lx, Ly, seed))
+              (eta/1000, eps/1000, Lx, Ly, seed))
     plt.legend(loc="best")
     if xlim is not None:
         plt.xlim(xlim)

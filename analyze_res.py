@@ -1,11 +1,12 @@
 import numpy as np
 import os
 import glob
+import matplotlib.pyplot as plt
 import multBand as mb
 
 
-def plot_all_serials():
-    files = glob.glob("mb_*.npz")
+def plot_serials(eta, eps):
+    files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
     for file in files:
         bf = np.load(file)
         para = mb.get_para(file)
@@ -28,6 +29,40 @@ def plot_all_serials():
             outfile=outfile)
 
 
+def plot_peak(eta, eps):
+    files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
+    for file in files:
+        bf = np.load(file)
+        para = mb.get_para(file)
+        mb.plot_rhox_mean(para, bf["num_set"], bf["sum_rhox"],
+                          bf["count_rhox"])
+
+
+def plot_phi(eta, eps):
+    files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
+    for file in files:
+        bf = np.load(file)
+        para = mb.get_para(file)
+        Lx = para[2]
+        phi = {key: 0 for key in bf["num_set"] if key > 0}
+        count = {key: 0 for key in phi}
+        for i in range(bf["seg_num"].size):
+            k = bf["seg_num"][i]
+            if k > 0:
+                dt = bf["seg_idx1"][i] - bf["seg_idx0"][i]
+                phi[k] += bf["seg_phi"][i] * dt
+                count[k] += dt
+        tot = sum([count[k] for k in count])
+        for k in phi:
+            mean = phi[k] / count[k]
+            p = count[k] / tot
+            if p > 0.2:
+                plt.scatter(Lx, mean, s=4, c=p)
+    plt.colorbar()
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     # file = "mb_350.0.740.200.214740.npz"
@@ -35,4 +70,4 @@ if __name__ == "__main__":
     # para = mb.get_para(file)
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
-    plot_all_serials()
+    plot_phi(350, 20)
