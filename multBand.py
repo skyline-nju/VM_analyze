@@ -157,7 +157,7 @@ class TimeSerialsPeak:
                     Minimum gap between two valid breaking points.
 
         """
-        m = self.num_raw
+        m = self.num_raw.copy()
         bp = []  # list for breaking points
         dm = []
         for i in range(1, m.size):
