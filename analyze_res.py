@@ -63,6 +63,19 @@ def plot_phi(eta, eps):
     plt.close()
 
 
+def plot_nb(eta, eps):
+    files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
+    for file in files:
+        bf = np.load(file)
+        para = mb.get_para(file)
+        Lx = para[2]
+        for nb in bf["num_set"]:
+            if nb > 0:
+                plt.plot(1/Lx, nb/Lx, "o")
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     # file = "mb_350.0.740.200.214740.npz"
@@ -70,4 +83,4 @@ if __name__ == "__main__":
     # para = mb.get_para(file)
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
-    plot_phi(350, 20)
+    plot_nb(350, 20)
