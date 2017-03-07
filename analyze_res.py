@@ -38,9 +38,7 @@ def plot_peak(eta, eps):
                           bf["count_rhox"])
 
 
-def get_dict_phi_count(seg_nb: np.ndarray,
-                       seg_len: np.ndarray,
-                       seg_phi: np.ndarray):
+def get_dict_sum(seg_nb: np.ndarray, seg_len: np.ndarray, seg_phi: np.ndarray):
     """ Transform array of phi into dict type with key nb.
 
         Parameters:
@@ -54,16 +52,55 @@ def get_dict_phi_count(seg_nb: np.ndarray,
 
         Returns:
         --------
-            sum_phi_count: dict
-                Key = nb, value = [\sum_nb seg_phi*seg_len, \sum_nb seg_len]
+            Dict: dict
+                Key = nb, value is also a dict with key sum_phi and count.
     """
     n_set = np.unique(seg_nb)
-    sum_phi_count = {key: [0, 0] for key in n_set if key > 0}
+    dict_nb = {nb: {"sum_phi": 0, "count": 0} for nb in n_set if nb > 0}
     for i, nb in enumerate(seg_nb):
         if nb > 0:
-            sum_phi_count[nb][0] += seg_len[i] * seg_phi[i]
-            sum_phi_count[nb][1] += seg_len[i]
-    return sum_phi_count
+            dict_nb[nb]["sum_phi"] += seg_len[i] * seg_phi[i]
+            dict_nb[nb]["count"] += seg_len[i]
+    return dict_nb
+
+
+def get_dict_mean(dict0: dict, layer: int) -> dict:
+    """ Get time (and sample) average of phi.
+
+        Parameters:
+        --------
+            dict0: dict
+                Sum of phi and count, with key seed or nb.
+            level: int
+                Layer of dict.
+        Returns:
+        --------
+            dict1: dict
+                Averaged phi and corresponding ratio.
+    """
+    dict1 = {}
+    if layer == 2:
+        tot = sum([dict0[nb]["count"] for nb in dict0])
+        for nb in dict0:
+            dict1[nb] = {nb: {"mean_phi": 0, "rate_phi": 0}}
+            dict1[nb]["mean_phi"] = dict0[nb]["sum_phi"] / dict0[nb]["count"]
+            dict1[nb]["rate_phi"] = dict0[nb]["count"] / tot
+    elif layer == 3:
+        tot = 0  # key = nb
+        dict1 = {}  # key = nb
+        for seed in dict0:
+            for nb in dict0[seed]:
+                if nb in tot:
+                    dict1[nb]["mean_phi"] += dict0[seed][nb]["sum_phi"]
+                    dict1[nb]["rate_phi"] += dict0[seed][nb]["count"]
+                else:
+                    dict1[nb]["mean_phi"] = dict0[seed][nb]["sum_phi"]
+                    dict1[nb]["rate_phi"] = dict0[seed][nb]["count"]
+                tot += dict0[seed][nb]["count"]
+        for nb in tot:
+            dict1[nb]["mean_phi"] /= tot
+            dict1[nb]["rate_phi"] /= tot
+    return dict1
 
 
 def plot_phi(eta, eps):
@@ -72,14 +109,13 @@ def plot_phi(eta, eps):
         bf = np.load(file)
         para = mb.get_para(file)
         Lx = para[2]
-        sum_phi_count = get_dict_phi_count(
+        dict_sum = get_dict_sum(
             bf["seg_num"], bf["seg_idx1"] - bf["seg_idx0"], bf["seg_phi"])
-        tot = sum([sum_phi_count[key][1] for key in sum_phi_count])
-        for k in sum_phi_count:
-            mean = sum_phi_count[k][0] / sum_phi_count[k][1]
-            p = sum_phi_count[k][1] / tot
-            if p > 0.2:
-                plt.scatter(Lx, mean, s=4, c=p)
+        dict_mean = get_dict_mean(dict_sum, 2)
+        for nb in dict_mean:
+            rate = dict_mean[nb]["rate_phi"]
+            if rate > 0.2:
+                plt.scatter(Lx, dict_mean[nb]["mean_phi"], s=4, c=rate)
     plt.colorbar()
     plt.show()
     plt.close()
