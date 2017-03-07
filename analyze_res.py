@@ -38,24 +38,46 @@ def plot_peak(eta, eps):
                           bf["count_rhox"])
 
 
+def get_dict_phi_count(seg_nb: np.ndarray,
+                       seg_len: np.ndarray,
+                       seg_phi: np.ndarray):
+    """ Transform array of phi into dict type with key nb.
+
+        Parameters:
+        --------
+            seg_nb: np.ndarray
+                Number of bands for each segment.
+            seg_len: np.ndarray
+                Length of each segment of time serials.
+            seg_phi: np.ndarray
+                Mean order parameter of each segment.
+
+        Returns:
+        --------
+            sum_phi_count: dict
+                Key = nb, value = [\sum_nb seg_phi*seg_len, \sum_nb seg_len]
+    """
+    n_set = np.unique(seg_nb)
+    sum_phi_count = {key: [0, 0] for key in n_set if key > 0}
+    for i, nb in enumerate(seg_nb):
+        if nb > 0:
+            sum_phi_count[nb][0] += seg_len[i] * seg_phi[i]
+            sum_phi_count[nb][1] += seg_len[i]
+    return sum_phi_count
+
+
 def plot_phi(eta, eps):
     files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
     for file in files:
         bf = np.load(file)
         para = mb.get_para(file)
         Lx = para[2]
-        phi = {key: 0 for key in bf["num_set"] if key > 0}
-        count = {key: 0 for key in phi}
-        for i in range(bf["seg_num"].size):
-            k = bf["seg_num"][i]
-            if k > 0:
-                dt = bf["seg_idx1"][i] - bf["seg_idx0"][i]
-                phi[k] += bf["seg_phi"][i] * dt
-                count[k] += dt
-        tot = sum([count[k] for k in count])
-        for k in phi:
-            mean = phi[k] / count[k]
-            p = count[k] / tot
+        sum_phi_count = get_dict_phi_count(
+            bf["seg_num"], bf["seg_idx1"] - bf["seg_idx0"], bf["seg_phi"])
+        tot = sum([sum_phi_count[key][1] for key in sum_phi_count])
+        for k in sum_phi_count:
+            mean = sum_phi_count[k][0] / sum_phi_count[k][1]
+            p = sum_phi_count[k][1] / tot
             if p > 0.2:
                 plt.scatter(Lx, mean, s=4, c=p)
     plt.colorbar()
@@ -71,7 +93,7 @@ def plot_nb(eta, eps):
         Lx = para[2]
         for nb in bf["num_set"]:
             if nb > 0:
-                plt.plot(1/Lx, nb/Lx, "o")
+                plt.plot(1 / Lx, nb / Lx, "o")
     plt.show()
     plt.close()
 
@@ -83,4 +105,4 @@ if __name__ == "__main__":
     # para = mb.get_para(file)
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
-    plot_nb(350, 20)
+    plot_phi(350, 0)

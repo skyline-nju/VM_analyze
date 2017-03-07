@@ -180,7 +180,7 @@ class TimeSerialsPeak:
                             del dm[-1]
         self.num_smoothed = m
 
-    def segment(self, num, edge_wdt=1000):
+    def segment(self, num, edge_wdt=2000):
         """ Cut time serials of peak numbers into segments.
 
             Parameters:
