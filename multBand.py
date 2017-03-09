@@ -3,6 +3,10 @@ import struct
 import glob
 import os
 import sys
+import platform
+import matplotlib
+if platform.system() is not "Windows":
+    matplotlib.use("Agg")
 
 
 def check_gap(xs, dx_min, Lx):
@@ -113,7 +117,7 @@ class TimeSerialsPeak:
                 Smoothed time serials of peak numbers.
     """
 
-    def __init__(self, file, Lx, beg, h):
+    def __init__(self, file, Lx, beg=10000, h=1.8):
         """ Initialize class
 
             Parameters:
@@ -147,6 +151,17 @@ class TimeSerialsPeak:
             self.xs[i] = locatePeak(rhox, self.Lx, self.h)
         f.close()
         self.num_raw = np.array([x.size for x in self.xs])
+
+    def get_one_frame(self, t):
+        """ Get rho_x and number of peaks at t. """
+
+        f = open(self.file, "rb")
+        f.seek(t * self.FrameSize)
+        buff = f.read(self.FrameSize)
+        f.close()
+        rhox = np.array(struct.unpack("%df" % (self.Lx), buff))
+        xPeak = locatePeak(rhox, self.Lx, self.h)
+        return rhox, xPeak
 
     def smooth(self, k=10):
         """ Smooth time serials of number of peaks.
@@ -383,7 +398,7 @@ def plot_serials(para: list,
     ax2.set_ylabel(r"$\phi$")
 
     ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
-                  (para[0]/1000, para[1]/1000, para[2], para[3], para[4]))
+                  (para[0] / 1000, para[1] / 1000, para[2], para[3], para[4]))
     plt.tight_layout()
     if outfile is None:
         plt.show()
@@ -417,7 +432,7 @@ def plot_rhox_mean(para, num_set, sum_rhox, count_rhox, xlim=None, ylim=None):
         rhox = sum_rhox[i] / count_rhox[i]
         plt.plot(x, rhox, label=r"$n_b=%d$" % num_set[i])
     plt.title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, \rm{seed}=%d$" %
-              (eta/1000, eps/1000, Lx, Ly, seed))
+              (eta / 1000, eps / 1000, Lx, Ly, seed))
     plt.legend(loc="best")
     if xlim is not None:
         plt.xlim(xlim)
@@ -524,10 +539,75 @@ def all_file():
         #     print("Error when handling %s" % file)
 
 
+def show_snap(dt, para):
+    """ Show snapshot of rho_x every dt frame. """
+    import matplotlib.pyplot as plt
+    pat = list2str(para, "eta", "eps", "Lx", "Ly", "seed")
+    files = glob.glob("rhox_%s.bin" % pat)
+    for file in files:
+        eta, eps, Lx, Ly, seed = get_para(file)
+        x = np.arange(Lx) + 0.5
+        peak = TimeSerialsPeak(file, Lx)
+        for i in range(peak.end // dt):
+            idx = i * dt
+            rhox, xPeak = peak.get_one_frame(idx)
+            plt.plot(x, rhox)
+            plt.axhline(1.8, c="r")
+            for xp in xPeak:
+                plt.axvline(xp, c="g")
+            plt.title(
+                r"$\eta=%g,\epsilon=%g,L_x=%d,L_y=%d,seed=%d,n_b=%d,t=%d$" %
+                (eta / 1000, eps / 1000, Lx, Ly, seed, xPeak.size, idx * 100))
+            plt.show()
+            plt.close()
+
+
+def list2str(list0, *args, sep='.'):
+    """ Transform list0 into a string seperated by sep by the order of args.
+
+        Parameters:
+        --------
+            list0: list
+                List with form like: key1, value1, key2, value2...
+            *args: list
+                List of keys.
+            sep: str
+                Seperator betwwen two numbers in target string.
+
+        Returns:
+        --------
+            res: str
+                String seperated by sep.
+    """
+    if len(list0) % 2 != 0:
+        print("Length of input list should be even")
+        sys.exit()
+    res = ""
+    for arg in args:
+        if arg in list0 or "-%s" % arg in list0:
+            idx = list0.index(arg)
+            if len(res) == 0:
+                res = "%s" % (list0[idx + 1])
+            else:
+                res += "%s%s" % (sep, list0[idx + 1])
+        else:
+            if len(res) == 0:
+                res = "*"
+            else:
+                res += "%s*" % (sep)
+    return res
+
+
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot")
     if len(sys.argv) == 2 and sys.argv[1] == "all":
         all_file()
+    elif len(sys.argv) >= 3 and sys.argv[1] == "snap":
+        if len(sys.argv) == 3:
+            show_snap(int(sys.argv[2]))
+        else:
+            print(len(sys.argv[3:]))
+            show_snap(int(sys.argv[2]), sys.argv[3:])
     elif len(sys.argv) == 6:
         eta = int(sys.argv[1])
         eps = int(sys.argv[2])

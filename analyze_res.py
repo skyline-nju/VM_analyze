@@ -211,18 +211,20 @@ def plot_phi(eta, eps, SampleAve=False, rate_m=0.2):
         for Lx in ave_t:
             for seed in ave_t[Lx]:
                 for nb in ave_t[Lx][seed]:
-                    rate = ave_t[Lx][seed][nb]["rate"]
-                    if rate > rate_m:
-                        phi = ave_t[Lx][seed][nb]["mean_phi"]
-                        plt.scatter(Lx, phi, s=4, c=rate)
+                    if nb == 2:
+                        rate = ave_t[Lx][seed][nb]["rate"]
+                        if rate > rate_m:
+                            phi = ave_t[Lx][seed][nb]["mean_phi"]
+                            plt.scatter(Lx, phi, s=4, c=rate)
     else:
         ave_s = sample_ave(sum_t)
         for Lx in ave_s:
             for nb in ave_s[Lx]:
-                rate = ave_s[Lx][nb]["rate"]
-                if rate > rate_m:
-                    phi = ave_s[Lx][nb]["mean_phi"]
-                    plt.scatter(Lx/(nb*200)-1, phi, s=4, c=rate)
+                if nb == 2:
+                    rate = ave_s[Lx][nb]["rate"]
+                    if rate > rate_m:
+                        phi = ave_s[Lx][nb]["mean_phi"]
+                        plt.scatter(Lx, phi, s=4, c=rate)
     plt.colorbar()
     plt.show()
     plt.close()
@@ -242,10 +244,11 @@ def plot_nb(eta, eps):
 
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\tmp")
     # file = "mb_350.0.740.200.214740.npz"
     # buff = np.load(file)
     # para = mb.get_para(file)
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
-    plot_phi(350, 20, True, 0.3)
+    plot_phi(350, 20, True, 0)
+    # plot_serials(350, 20)
