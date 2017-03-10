@@ -579,9 +579,6 @@ def list2str(list0, *args, sep='.'):
             res: str
                 String seperated by sep.
     """
-    if len(list0) % 2 != 0:
-        print("Length of input list should be even")
-        sys.exit()
     res = ""
     for arg in args:
         if arg in list0 or "-%s" % arg in list0:

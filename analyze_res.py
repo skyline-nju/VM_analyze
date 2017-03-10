@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import glob
+import sys
 import matplotlib.pyplot as plt
 import multBand as mb
 
@@ -106,9 +107,10 @@ def get_dict_mean(dict0: dict, layer: int) -> dict:
     return dict1
 
 
-def sum_over_time(eta: float, eps: float) -> dict:
+def sum_over_time(para: list) -> dict:
     """ sum phi over time for each nb, respectively."""
-    files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
+    pat = mb.list2str(para, "eta", "eps", "Lx", "Ly", "seed")
+    files = glob.glob("mb_%s.npz" % (pat))
     res = {}
     for file in files:
         bf = np.load(file)
@@ -203,28 +205,24 @@ def sample_ave(dict0: dict) -> dict:
     return res
 
 
-def plot_phi(eta, eps, SampleAve=False, rate_m=0.2):
-    sum_t = sum_over_time(eta, eps)
-
+def plot_phi(sum_t: dict, SampleAve=False, rate_m=0.2):
     if SampleAve is False:
         ave_t = time_ave(sum_t)
         for Lx in ave_t:
             for seed in ave_t[Lx]:
                 for nb in ave_t[Lx][seed]:
-                    if nb == 2:
-                        rate = ave_t[Lx][seed][nb]["rate"]
-                        if rate > rate_m:
-                            phi = ave_t[Lx][seed][nb]["mean_phi"]
-                            plt.scatter(Lx, phi, s=4, c=rate)
+                    rate = ave_t[Lx][seed][nb]["rate"]
+                    if rate > rate_m:
+                        phi = ave_t[Lx][seed][nb]["mean_phi"]
+                        plt.scatter(Lx, phi, s=4, c=rate)
     else:
         ave_s = sample_ave(sum_t)
         for Lx in ave_s:
             for nb in ave_s[Lx]:
-                if nb == 2:
-                    rate = ave_s[Lx][nb]["rate"]
-                    if rate > rate_m:
-                        phi = ave_s[Lx][nb]["mean_phi"]
-                        plt.scatter(Lx, phi, s=4, c=rate)
+                rate = ave_s[Lx][nb]["rate"]
+                if rate > rate_m:
+                    phi = ave_s[Lx][nb]["mean_phi"]
+                    plt.scatter(Lx, phi, s=4, c=rate)
     plt.colorbar()
     plt.show()
     plt.close()
@@ -243,12 +241,53 @@ def plot_nb(eta, eps):
     plt.close()
 
 
+def plot_time_ave_peak(sum_t, Lx):
+    """ Plot time-averaged peak. """
+    ave_t = time_ave(sum_t)
+    data = swap_key(ave_t[Lx])
+    x = np.arange(Lx) + 0.5
+    for nb in data:
+        for seed in data[nb]:
+            plt.plot(
+                x,
+                data[nb][seed]["mean_rhox"],
+                label=r"$\rm{seed}=%d, \phi=%f$" %
+                (seed, data[nb][seed]["mean_phi"]))
+        plt.legend(loc="best")
+        plt.title(r"$L_x=%d, n_b=%d$" % (Lx, nb))
+        plt.show()
+        plt.close()
+
+
+def swap_key(dict0):
+    """ Swap keys of a nested dict.
+
+        Parameters:
+        --------
+        dict0: dict
+            A dict that is at least dually nested.
+
+        Returns:
+        dict1: dict
+            By swaping keys in the first and second layer of dict0.
+    """
+    dict1 = {}
+    for key1 in dict0:
+        for key2 in dict0[key1]:
+            if key2 in dict1:
+                dict1[key2][key1] = dict0[key1][key2]
+            else:
+                dict1[key2] = {key1: dict0[key1][key2]}
+    return dict1
+
+
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\tmp")
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     # file = "mb_350.0.740.200.214740.npz"
     # buff = np.load(file)
     # para = mb.get_para(file)
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
-    plot_phi(350, 20, True, 0)
     # plot_serials(350, 20)
+    sum_t = sum_over_time(sys.argv[1:])
+    plot_time_ave_peak(sum_t, 360)
