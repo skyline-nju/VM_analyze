@@ -39,76 +39,44 @@ def plot_peak(eta, eps):
                           bf["count_rhox"])
 
 
-def get_dict_sum(seg_nb: np.ndarray,
-                 seg_len: np.ndarray,
-                 seg_phi: np.ndarray,
-                 dict0: dict):
-    """ Transform array of phi into dict type with key nb.
+def sum_over_time(para: list) -> dict:
+    """ Genereate a dict with keys following the order of
+        Lx->seed->nb->(sum_phi, count_phi, sum_rhox, count_rhox).
 
         Parameters:
         --------
-            seg_nb: np.ndarray
-                Number of bands for each segment.
-            seg_len: np.ndarray
-                Length of each segment of time serials.
-            seg_phi: np.ndarray
-                Mean order parameter of each segment.
-            dict0: dict
-                Dict as input and output
-    """
-    for i, nb in enumerate(seg_nb):
-        if nb > 0:
-            sum_phi = seg_len[i] * seg_phi[i]
-            count = seg_len[i]
-            if nb in dict0:
-                dict0[nb]["sum_phi"] += sum_phi
-                dict0[nb]["count_phi"] += count
-            else:
-                dict0[nb] = {"sum_phi": sum_phi, "count_phi": count}
+            para: list
+                List of parameters such as "eta", eta, "eps", eps...
 
-
-def get_dict_mean(dict0: dict, layer: int) -> dict:
-    """ Get time (and sample) average of phi.
-
-        Parameters:
-        --------
-            dict0: dict
-                Dually or triply nested
-            level: int
-                Layer of dict0.
         Returns:
         --------
-            dict1: dict
-                Averaged phi and corresponding ratio.
+            res: list
+                A dict with form {Lx:{seed:{nb:{"sum_phi": sum_phi,...}}}}
     """
-    dict1 = {}
-    if layer == 2:
-        tot = sum([dict0[nb]["count_phi"] for nb in dict0])
-        for nb in dict0:
-            dict1[nb] = {nb: {"mean_phi": 0, "rate_phi": 0}}
-            dict1[nb]["mean_phi"] = dict0[nb]["sum_phi"] / dict0[nb][
-                "count_phi"]
-            dict1[nb]["rate_phi"] = dict0[nb]["count_phi"] / tot
-    elif layer == 3:
-        tot = 0  # key = nb
-        dict1 = {}  # key = nb
-        for seed in dict0:
-            for nb in dict0[seed]:
-                if nb in tot:
-                    dict1[nb]["mean_phi"] += dict0[seed][nb]["sum_phi"]
-                    dict1[nb]["rate_phi"] += dict0[seed][nb]["count_phi"]
+
+    def list2dict(dict0: dict, nbs: list, phis: list, lens: list):
+        """ Transform an array into a dict.
+
+            Parameters:
+            --------
+                dict0: dict
+                    Input dict, also as output.
+                nbs: list
+                    List of number of bands, as keys of dict0
+                phis: list
+                    List of order parameters of each segements.
+                lens: list
+                    Lengths of each segements.
+        """
+        for i, nb in enumerate(nbs):
+            if nb > 0:
+                sum_phi = lens[i] * phis[i]
+                if nb in dict0:
+                    dict0[nb]["sum_phi"] += sum_phi
+                    dict0[nb]["count_phi"] += lens[i]
                 else:
-                    dict1[nb]["mean_phi"] = dict0[seed][nb]["sum_phi"]
-                    dict1[nb]["rate_phi"] = dict0[seed][nb]["count_phi"]
-                tot += dict0[seed][nb]["count_phi"]
-        for nb in tot:
-            dict1[nb]["mean_phi"] /= tot
-            dict1[nb]["rate_phi"] /= tot
-    return dict1
+                    dict0[nb] = {"sum_phi": sum_phi, "count_phi": lens[i]}
 
-
-def sum_over_time(para: list) -> dict:
-    """ sum phi over time for each nb, respectively."""
     pat = mb.list2str(para, "eta", "eps", "Lx", "Ly", "seed")
     files = glob.glob("mb_%s.npz" % (pat))
     res = {}
@@ -121,8 +89,8 @@ def sum_over_time(para: list) -> dict:
             res[Lx] = {seed: {}}
         elif Lx in res and seed not in res[Lx]:
             res[Lx][seed] = {}
-        get_dict_sum(bf["seg_num"], bf["seg_idx1"] - bf["seg_idx0"],
-                     bf["seg_phi"], res[Lx][seed])
+        list2dict(res[Lx][seed], bf["seg_num"], bf["seg_phi"],
+                  bf["seg_idx1"] - bf["seg_idx0"])
         for i, nb in enumerate(bf["num_set"]):
             if nb > 0:
                 res[Lx][seed][nb]["sum_rhox"] = bf["sum_rhox"][i]
@@ -281,6 +249,55 @@ def swap_key(dict0):
     return dict1
 
 
+def diff_peak(Lx, eta=350, Ly=200):
+    """ Making a comparision betwwen time-averaged peaks of varied eps."""
+    eps1 = 0
+    eps2 = 20
+    sum_t_1 = sum_over_time(["eta", eta, "eps", eps1, "Lx", Lx, "Ly", Ly])
+    sum_t_2 = sum_over_time(["eta", eta, "eps", eps2, "Lx", Lx, "Ly", Ly])
+    ave_t_1 = swap_key(time_ave(sum_t_1)[Lx])
+    ave_t_2 = swap_key(time_ave(sum_t_2)[Lx])
+    x = np.arange(Lx) + 0.5
+    for nb in ave_t_1:
+        if nb in ave_t_2:
+            for sd1 in ave_t_1[nb]:
+                plt.plot(
+                    x,
+                    ave_t_1[nb][sd1]["mean_rhox"],
+                    "-",
+                    label=r"$\epsilon=%g, \rm{seed}=%d, \phi=%f$" %
+                    (eps1 / 1000, sd1, ave_t_1[nb][sd1]["mean_phi"]))
+            for sd2 in ave_t_2[nb]:
+                plt.plot(
+                    x,
+                    ave_t_2[nb][sd2]["mean_rhox"],
+                    "--",
+                    label=r"$\epsilon=%g, \rm{seed}=%d, \phi=%f$" %
+                    (eps2 / 1000, sd2, ave_t_2[nb][sd2]["mean_phi"]))
+            plt.legend(loc="best")
+            plt.title(r"$L_x=%d, L_y=%d, n_b=%d$" % (Lx, Ly, nb))
+            plt.xlabel(r"$x$")
+            plt.ylabel(r"$\overline{\rho}_y(x)$")
+            plt.show()
+            plt.close()
+
+
+def phi_nb1_vs_phi_nb2(Lx, nb1, nb2, eta=350, eps=20, Ly=200):
+    """"""
+    sum_t = sum_over_time(["eta", eta, "eps", eps, "Lx", Lx, "Ly", Ly])
+    ave_t = time_ave(sum_t)[Lx]
+    for seed in ave_t:
+        if nb1 in ave_t[seed] and nb2 in ave_t[seed]:
+            plt.plot(
+                ave_t[seed][nb1]["mean_phi"],
+                ave_t[seed][nb2]["mean_phi"],
+                "o",
+                label="seed=%d" % (seed))
+    plt.legend()
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     # file = "mb_350.0.740.200.214740.npz"
@@ -289,5 +306,7 @@ if __name__ == "__main__":
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
     # plot_serials(350, 20)
-    sum_t = sum_over_time(sys.argv[1:])
-    plot_time_ave_peak(sum_t, 360)
+    # sum_t = sum_over_time(sys.argv[1:])
+    # plot_time_ave_peak(sum_t, 360)
+    # diff_peak(int(sys.argv[1]))
+    phi_nb1_vs_phi_nb2(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[2])+1)
