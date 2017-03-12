@@ -506,6 +506,14 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
         output()
 
 
+def handle_files(files, out=True, show=False):
+    """ Handle all matched files. """
+    for file in files:
+        eta, eps, Lx, Ly, seed = get_para(file)
+        handle(eta, eps, Lx, Ly, seed, out=out)
+        print("Success for %s" % file)
+
+
 def get_para(file):
     """ Get parameters from filename.
 
@@ -524,27 +532,13 @@ def get_para(file):
     return para
 
 
-def all_file():
-    """ Handle all files in the target path."""
-
-    files = glob.glob("rhox_*.bin")
-    for file in files:
-        eta, eps, Lx, Ly, seed = get_para(file)
-        handle(eta, eps, Lx, Ly, seed, out=True)
-        print("Success for %s" % file)
-        # try:
-        #     handle(eta, eps, Lx, Ly, seed, out=True)
-        #     print("Success for %s" % file)
-        # except:
-        #     print("Error when handling %s" % file)
-
-
 def show_snap(dt, para):
     """ Show snapshot of rho_x every dt frame. """
     import matplotlib.pyplot as plt
     pat = list2str(para, "eta", "eps", "Lx", "Ly", "seed")
     files = glob.glob("rhox_%s.bin" % pat)
     for file in files:
+        print(file)
         eta, eps, Lx, Ly, seed = get_para(file)
         x = np.arange(Lx) + 0.5
         peak = TimeSerialsPeak(file, Lx)
@@ -558,7 +552,12 @@ def show_snap(dt, para):
             plt.title(
                 r"$\eta=%g,\epsilon=%g,L_x=%d,L_y=%d,seed=%d,n_b=%d,t=%d$" %
                 (eta / 1000, eps / 1000, Lx, Ly, seed, xPeak.size, idx * 100))
-            plt.show()
+            if platform.system() is "Windows":
+                plt.show()
+            else:
+                file = "snap_%d.%d.%d.%d.%d.%08d.png" % (eta, eps, Lx, Ly,
+                                                         seed, idx * 100)
+                plt.savefig(file)
             plt.close()
 
 
@@ -597,21 +596,14 @@ def list2str(list0, *args, sep='.'):
 
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot")
-    if len(sys.argv) == 2 and sys.argv[1] == "all":
-        all_file()
-    elif len(sys.argv) >= 3 and sys.argv[1] == "snap":
-        if len(sys.argv) == 3:
-            show_snap(int(sys.argv[2]))
-        else:
-            print(len(sys.argv[3:]))
+    print(os.getcwd())
+    try:
+        if sys.argv[1] == "handle":
+            handle_files(sys.argv[2:])
+        elif sys.argv[1] == "snap":
+            print(sys.argv[3:])
             show_snap(int(sys.argv[2]), sys.argv[3:])
-    elif len(sys.argv) == 6:
-        eta = int(sys.argv[1])
-        eps = int(sys.argv[2])
-        Lx = int(sys.argv[3])
-        Ly = int(sys.argv[4])
-        seed = int(sys.argv[5])
-        handle(eta, eps, Lx, Ly, seed, show=True)
-    else:
-        print("Error, wrong args!")
-        sys.exit()
+    except:
+        print("Wrong args! Should be")
+        print("(1) handle eta 350 eps 20 ...")
+        print("(2) snap dt eta 350 eps 20 ...")
