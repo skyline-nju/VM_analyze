@@ -179,10 +179,11 @@ def plot_phi(sum_t: dict, SampleAve=False, rate_m=0.2):
         for Lx in ave_t:
             for seed in ave_t[Lx]:
                 for nb in ave_t[Lx][seed]:
-                    rate = ave_t[Lx][seed][nb]["rate"]
-                    if rate > rate_m:
-                        phi = ave_t[Lx][seed][nb]["mean_phi"]
-                        plt.scatter(Lx, phi, s=4, c=rate)
+                    if nb == 2:
+                        rate = ave_t[Lx][seed][nb]["rate"]
+                        if rate > rate_m:
+                            phi = ave_t[Lx][seed][nb]["mean_phi"]
+                            plt.scatter(Lx, phi, s=4, c=rate)
     else:
         ave_s = sample_ave(sum_t)
         for Lx in ave_s:
@@ -288,25 +289,26 @@ def phi_nb1_vs_phi_nb2(Lx, nb1, nb2, eta=350, eps=20, Ly=200):
     ave_t = time_ave(sum_t)[Lx]
     for seed in ave_t:
         if nb1 in ave_t[seed] and nb2 in ave_t[seed]:
-            plt.plot(
-                ave_t[seed][nb1]["mean_phi"],
-                ave_t[seed][nb2]["mean_phi"],
-                "o",
-                label="seed=%d" % (seed))
+            x = ave_t[seed][nb1]["mean_phi"]
+            y = ave_t[seed][nb2]["mean_phi"]
+            plt.plot(x, y, "o", label="seed=%d" % (seed))
+            print("%f\t%f" % (x, y))
     plt.legend()
     plt.show()
     plt.close()
 
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\tmp")
     # file = "mb_350.0.740.200.214740.npz"
     # buff = np.load(file)
     # para = mb.get_para(file)
     # mb.plot_rhox_mean(para, buff["num_set"], buff["sum_rhox"],
     #                   buff["count_rhox"])
     # plot_serials(350, 20)
-    # sum_t = sum_over_time(sys.argv[1:])
+    sum_t = sum_over_time(sys.argv[1:])
+    plot_phi(sum_t, False)
     # plot_time_ave_peak(sum_t, 360)
     # diff_peak(int(sys.argv[1]))
-    phi_nb1_vs_phi_nb2(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[2])+1)
+    # phi_nb1_vs_phi_nb2(
+    #     int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[2]) + 1)
