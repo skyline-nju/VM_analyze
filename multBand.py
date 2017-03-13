@@ -218,7 +218,7 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
     seg_phi = phi.segment(seg_idx0, seg_idx1)
     beg_movAve, end_movAve, phi_movAve = phi.moving_average()
     num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
-        seg_num, seg_idx0, seg_idx1)
+        seg_num, seg_idx0, seg_idx1, interp="cubic")
     para = [eta / 1000, eps / 1000, Lx, Ly, seed]
     if show:
         plot_serials(para, t_beg, t_end, peak.num_raw, peak.num_smoothed,

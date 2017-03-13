@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import struct
+from scipy import interpolate
 
 
 def get_std_gap(xp: np.ndarray, Lx: int) -> float:
@@ -122,7 +123,7 @@ def locatePeak(rho_x, Lx, h=1.8):
     return np.array(xPeak)
 
 
-def get_ave_peak(rhox0, Lx, xPeak, xc, interp=True):
+def get_ave_peak(rhox0, Lx, xPeak, xc, interp=None):
     """ Average peaks of rhox.
 
         Parameters:
@@ -135,8 +136,8 @@ def get_ave_peak(rhox0, Lx, xPeak, xc, interp=True):
                 Locations of x where rho_x=h.
             xc: float
                 Shift all x in xPeak to xc.
-            interp: bool
-                Shift with interpolation.
+            interp: str
+                Method of interpolation.
 
         Returns:
         -------
@@ -144,8 +145,27 @@ def get_ave_peak(rhox0, Lx, xPeak, xc, interp=True):
                 Average of peaks.
 
     """
+    mean_rhox = np.zeros(Lx)
 
-    pass
+    if interp is None:
+        for xp in xPeak:
+            mean_rhox += np.roll(rhox0, xc - int(xp))
+    else:
+        d = 5
+        rhox_tmp = np.zeros(Lx + 2 * d)
+        rhox_tmp[:d] = rhox0[Lx - d:]
+        rhox_tmp[d:Lx + d] = rhox0
+        rhox_tmp[Lx + d:] = rhox0[:d]
+        x_tmp = np.arange(-d, Lx + d) + 0.5
+        x0 = np.arange(Lx) + 0.5
+        f = interpolate.interp1d(x_tmp, rhox_tmp, kind=interp)
+        for xp in xPeak:
+            x_new = x0 - xc + xp
+            x_new[x_new < 0] += Lx
+            x_new[x_new >= Lx] -= Lx
+            mean_rhox += f(x_new)
+    mean_rhox /= xPeak.size
+    return mean_rhox
 
 
 class TimeSerialsPeak:
@@ -287,7 +307,7 @@ class TimeSerialsPeak:
         seg_num = np.array([num[t] for t in seg_idx0])
         return seg_num, seg_idx0, seg_idx1
 
-    def cumulate(self, seg_num, seg_idx0, seg_idx1, x_h=180):
+    def cumulate(self, seg_num, seg_idx0, seg_idx1, x_h=180, interp=None):
         """ Calculate time-averaged rho_x
 
             Parameters:
@@ -327,10 +347,10 @@ class TimeSerialsPeak:
                 if num == self.num_raw[idx]:
                     buff = f.read(self.FrameSize)
                     rhox_t = np.array(struct.unpack("%df" % (self.Lx), buff))
-                    for xp in self.xs[idx]:
-                        sum_rhox[num] += np.roll(rhox_t, x_h - int(xp))
-                        count_rhox[num] += 1
+                    sum_rhox[num] += get_ave_peak(
+                        rhox_t, self.Lx, self.xs[idx], x_h, interp=interp)
                     sum_std_gap[num] += get_std_gap(self.xs[idx], self.Lx)
+                    count_rhox[num] += 1
                 else:
                     f.seek(self.FrameSize, 1)
 
@@ -410,3 +430,49 @@ class TimeSerialsPhi:
         i = np.arange(beg_mov_ave, end_mov_ave)
         phi_mov_ave = np.array([self.phi_t[j - wdt:j + wdt].mean() for j in i])
         return beg_mov_ave, end_mov_ave, phi_mov_ave
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
+    eta = 350
+    eps = 0
+    Lx = 360
+    Ly = 200
+    seed = 215360
+    file = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
+    peak = TimeSerialsPeak(file, Lx)
+    rhox, xPeak = peak.get_one_frame(50000)
+    # x = np.arange(Lx) + 0.5
+    # plt.plot(x, rhox, "k")
+    # rhox1 = get_ave_peak(rhox, Lx, xPeak, 180)
+    # plt.plot(x, rhox1, "b")
+    # rhox2 = get_ave_peak(rhox, Lx, xPeak, 180, interp="linear")
+    # plt.plot(x, rhox2, "g")
+    # rhox3 = get_ave_peak(rhox, Lx, xPeak, 180, interp="cubic")
+    # plt.plot(x, rhox3, "k")
+    # plt.axhline(1.8, c="r")
+    # plt.axvline(180, c="r")
+    # plt.axvline(xPeak[0], c="r")
+    # plt.show()
+
+    peak.get_serials()
+    peak.smooth()
+    x = np.arange(Lx) + 0.5
+    seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
+    print(seg_num)
+    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+        seg_num, seg_idx0, seg_idx1, interp=None)
+    rhox1 = sum_rhox[0] / count_rhox[0]
+    plt.plot(x, rhox1, "r")
+    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+        seg_num, seg_idx0, seg_idx1, interp="linear")
+    rhox2 = sum_rhox[0] / count_rhox[0]
+    plt.plot(x, rhox2, "g")
+    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+        seg_num, seg_idx0, seg_idx1, interp="cubic")
+    rhox3 = sum_rhox[0] / count_rhox[0]
+    plt.plot(x, rhox3, "b")
+    plt.axhline(1.8, c="k")
+    plt.axvline(180, c="k")
+    plt.show()
