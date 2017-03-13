@@ -9,6 +9,103 @@ if platform.system() is not "Windows":
     matplotlib.use("Agg")
 
 
+def swap_key(dict0):
+    """ Swap keys of a nested dict.
+
+        Parameters:
+        --------
+        dict0: dict
+            A dict with two layer keys: {A:{B:object}}
+
+        Returns:
+        dict1: dict
+            A dict with two layer keys: {B:{A:object}}
+    """
+    dict1 = {}
+    for key1 in dict0:
+        for key2 in dict0[key1]:
+            if key2 in dict1:
+                dict1[key2][key1] = dict0[key1][key2]
+            else:
+                dict1[key2] = {key1: dict0[key1][key2]}
+    return dict1
+
+
+def list2str(list0, *args, sep='.'):
+    """ Transform list0 into a string seperated by sep by the order of args.
+
+        Parameters:
+        --------
+            list0: list
+                List with form like: key1, value1, key2, value2...
+            *args: list
+                List of keys.
+            sep: str
+                Seperator betwwen two numbers in target string.
+
+        Returns:
+        --------
+            res: str
+                String seperated by sep.
+    """
+    res = ""
+    for arg in args:
+        if arg in list0 or "-%s" % arg in list0:
+            idx = list0.index(arg)
+            if len(res) == 0:
+                res = "%s" % (list0[idx + 1])
+            else:
+                res += "%s%s" % (sep, list0[idx + 1])
+        else:
+            if len(res) == 0:
+                res = "*"
+            else:
+                res += "%s*" % (sep)
+    return res
+
+
+def get_para(file):
+    """ Get parameters from filename.
+
+        Parameters:
+        --------
+            file: str
+                Name of input file.
+
+        Returns:
+        --------
+            para: list
+                eta, eps, Lx, Ly, seed
+    """
+    strList = (file.split("_")[1]).split(".")
+    para = [int(i) for i in strList[:-1]]
+    return para
+
+
+def get_std_gap(xp: np.ndarray, Lx: int) -> float:
+    """ Calculate std of gaps between nearest peeks.
+
+        Parameters:
+        --------
+            xp: np.ndarray
+                Location of peaks.
+            Lx: int
+                Box size in x direction.
+
+        Returns:
+        --------
+            std_gap: float
+                Std of gaps betwwen nearest peaks.
+    """
+    if xp.size <= 1:
+        std_gap = 0
+    else:
+        dx = np.array([xp[i] - xp[i - 1] for i in range(xp.size)])
+        dx[dx < 0] += Lx
+        std_gap = dx.std()
+    return std_gap
+
+
 def check_gap(xs, dx_min, Lx):
     """ Check whether dx = xs[i] - xs[i-1] > dx_min.
 
@@ -268,6 +365,7 @@ class TimeSerialsPeak:
         """
         num_set = np.unique(seg_num)
         sum_rhox = {key: np.zeros(self.Lx) for key in num_set}
+        sum_std_gap = {key: 0 for key in num_set}
         count_rhox = {key: 0 for key in num_set}
 
         f = open(self.file, "rb")
@@ -285,12 +383,14 @@ class TimeSerialsPeak:
                     for xp in self.xs[idx]:
                         sum_rhox[num] += np.roll(rhox_t, x_h - int(xp))
                         count_rhox[num] += 1
+                    sum_std_gap[num] += get_std_gap(self.xs[idx], self.Lx)
                 else:
                     f.seek(self.FrameSize, 1)
 
         sum_rhox = np.array([sum_rhox[key] for key in num_set])
+        sum_std_gap = np.array([sum_std_gap[key] for key in num_set])
         count_rhox = np.array([count_rhox[key] for key in num_set])
-        return num_set, sum_rhox, count_rhox
+        return num_set, sum_rhox, sum_std_gap, count_rhox
 
 
 class TimeSerialsPhi:
@@ -478,6 +578,7 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
             phi_movAve=phi_movAve,
             num_set=num_set,
             sum_rhox=sum_rhox,
+            sum_std_gap=sum_std_gap,
             count_rhox=count_rhox)
 
     file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
@@ -495,7 +596,8 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
     seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
     seg_phi = phi.segment(seg_idx0, seg_idx1)
     beg_movAve, end_movAve, phi_movAve = phi.moving_average()
-    num_set, sum_rhox, count_rhox = peak.cumulate(seg_num, seg_idx0, seg_idx1)
+    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+        seg_num, seg_idx0, seg_idx1)
     para = [eta / 1000, eps / 1000, Lx, Ly, seed]
     if show:
         plot_serials(para, t_beg, t_end, peak.num_raw, peak.num_smoothed,
@@ -506,30 +608,17 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
         output()
 
 
-def handle_files(files, out=True, show=False):
+def handle_files(para, t_beg=10000, out=True, show=False):
     """ Handle all matched files. """
-    for file in files:
+    pat = list2str(para, "eta", "eps", "Lx", "Ly", "seed")
+    files = glob.glob("rhox_%s.bin" % pat)
+    for i, file in enumerate(files):
         eta, eps, Lx, Ly, seed = get_para(file)
-        handle(eta, eps, Lx, Ly, seed, out=out)
-        print("Success for %s" % file)
-
-
-def get_para(file):
-    """ Get parameters from filename.
-
-        Parameters:
-        --------
-            file: str
-                Name of input file.
-
-        Returns:
-        --------
-            para: list
-                eta, eps, Lx, Ly, seed
-    """
-    strList = (file.split("_")[1]).split(".")
-    para = [int(i) for i in strList[:-1]]
-    return para
+        try:
+            handle(eta, eps, Lx, Ly, seed, out=out, t_beg=t_beg)
+            print("Success: %d of %d" % (i, len(files)))
+        except:
+            print("Error for %s" % file)
 
 
 def show_snap(dt, para):
@@ -561,45 +650,12 @@ def show_snap(dt, para):
             plt.close()
 
 
-def list2str(list0, *args, sep='.'):
-    """ Transform list0 into a string seperated by sep by the order of args.
-
-        Parameters:
-        --------
-            list0: list
-                List with form like: key1, value1, key2, value2...
-            *args: list
-                List of keys.
-            sep: str
-                Seperator betwwen two numbers in target string.
-
-        Returns:
-        --------
-            res: str
-                String seperated by sep.
-    """
-    res = ""
-    for arg in args:
-        if arg in list0 or "-%s" % arg in list0:
-            idx = list0.index(arg)
-            if len(res) == 0:
-                res = "%s" % (list0[idx + 1])
-            else:
-                res += "%s%s" % (sep, list0[idx + 1])
-        else:
-            if len(res) == 0:
-                res = "*"
-            else:
-                res += "%s*" % (sep)
-    return res
-
-
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot")
     print(os.getcwd())
     try:
         if sys.argv[1] == "handle":
-            handle_files(sys.argv[2:])
+            handle_files(sys.argv[2:], t_beg=5000)
         elif sys.argv[1] == "snap":
             print(sys.argv[3:])
             show_snap(int(sys.argv[2]), sys.argv[3:])

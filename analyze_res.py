@@ -213,7 +213,7 @@ def plot_nb(eta, eps):
 def plot_time_ave_peak(sum_t, Lx):
     """ Plot time-averaged peak. """
     ave_t = time_ave(sum_t)
-    data = swap_key(ave_t[Lx])
+    data = mb.swap_key(ave_t[Lx])
     x = np.arange(Lx) + 0.5
     for nb in data:
         for seed in data[nb]:
@@ -228,36 +228,14 @@ def plot_time_ave_peak(sum_t, Lx):
         plt.close()
 
 
-def swap_key(dict0):
-    """ Swap keys of a nested dict.
-
-        Parameters:
-        --------
-        dict0: dict
-            A dict that is at least dually nested.
-
-        Returns:
-        dict1: dict
-            By swaping keys in the first and second layer of dict0.
-    """
-    dict1 = {}
-    for key1 in dict0:
-        for key2 in dict0[key1]:
-            if key2 in dict1:
-                dict1[key2][key1] = dict0[key1][key2]
-            else:
-                dict1[key2] = {key1: dict0[key1][key2]}
-    return dict1
-
-
 def diff_peak(Lx, eta=350, Ly=200):
     """ Making a comparision betwwen time-averaged peaks of varied eps."""
     eps1 = 0
     eps2 = 20
     sum_t_1 = sum_over_time(["eta", eta, "eps", eps1, "Lx", Lx, "Ly", Ly])
     sum_t_2 = sum_over_time(["eta", eta, "eps", eps2, "Lx", Lx, "Ly", Ly])
-    ave_t_1 = swap_key(time_ave(sum_t_1)[Lx])
-    ave_t_2 = swap_key(time_ave(sum_t_2)[Lx])
+    ave_t_1 = mb.swap_key(time_ave(sum_t_1)[Lx])
+    ave_t_2 = mb.swap_key(time_ave(sum_t_2)[Lx])
     x = np.arange(Lx) + 0.5
     for nb in ave_t_1:
         if nb in ave_t_2:
