@@ -63,13 +63,32 @@ def get_dict_Lx_seed_nb(para: list) -> dict:
     return res
 
 
-def get_dict_nb_Lx_seed(dict0: dict) -> dict:
-    """ Get dict with key: nb->Lx->seed. """
-    res = {Lx: {} for Lx in dict0}
-    for Lx in dict0:
-        res[Lx] = mb.swap_key(dict0[Lx])
-    res = mb.swap_key(res)
-    return res
+def get_dict_nb_Lx_seed(para=None, dict_LSN=None) -> dict:
+    """ Get dict with key: nb->Lx->seed.
+
+        Parameters:
+        --------
+            para: list
+                List of parameters: eta, $eta, eps, $eps...
+            dict_LSN: dict
+                 A dict with keys: Lx->seed->nb
+
+        Returns:
+        --------
+            dict_NLS: dict
+                A dict with keys: nb->Lx->seed
+    """
+    if dict_LSN is None:
+        if para is None:
+            print("Error, no input data!")
+            sys.exit()
+        else:
+            dict_LSN = get_dict_Lx_seed_nb(para)
+    dict_NLS = {Lx: {} for Lx in dict_LSN}
+    for Lx in dict_LSN:
+        dict_NLS[Lx] = mb.swap_key(dict_LSN[Lx])
+    dict_NLS = mb.swap_key(dict_NLS)
+    return dict_NLS
 
 
 def phi_vs_Lx(nb, para=None, dict_LSN=None, dict_NLS=None, ax=None):
@@ -89,13 +108,7 @@ def phi_vs_Lx(nb, para=None, dict_LSN=None, dict_NLS=None, ax=None):
                 Axes of matplotlib
     """
     if dict_NLS is None:
-        if dict_LSN is None:
-            if para is None:
-                print("Error, no input data!")
-                sys.exit()
-            else:
-                dict_LSN = get_dict_Lx_seed_nb(para)
-        dict_NLS = get_dict_nb_Lx_seed(dict_LSN)
+        dict_NLS = get_dict_nb_Lx_seed(para, dict_LSN)
     dict_LS = dict_NLS[nb]
     phi_dict = {Lx: [] for Lx in dict_LS}
     for Lx in dict_LS:
@@ -139,13 +152,7 @@ def phi_vs_std_gap(nb, Lx, para=None, dict_LSN=None, dict_NLS=None, ax=None):
                 Axes of matplotlib
     """
     if dict_NLS is None:
-        if dict_LSN is None:
-            if para is None:
-                print("Error, no input data!")
-                sys.exit()
-            else:
-                dict_LSN = get_dict_Lx_seed_nb(para)
-        dict_NLS = get_dict_nb_Lx_seed(dict_LSN)
+        dict_NLS = get_dict_nb_Lx_seed(para, dict_LSN)
 
     dict_S = dict_NLS[nb][Lx]
     phi = []
@@ -165,7 +172,91 @@ def phi_vs_std_gap(nb, Lx, para=None, dict_LSN=None, dict_NLS=None, ax=None):
         plt.close()
 
 
+def phi_nb1_vs_phi_nb2(Lx, nb1, nb2=None, para=None, dict_LSN=None, ax=None):
+    """ Plot phi(nb1) vs phi(nb2) at given Lx.
+
+        Parameters:
+        --------
+            Lx: int
+                Box size in x direction.
+            nb1: int
+                Number of bands at Lx.
+            nb2: int
+                Number of bands at Lx.
+            para: list
+                List of parameters: eta, $eta, eps, $eps...
+            dict_LSN: dict
+                A dict with keys: Lx->seed->nb
+            ax: matplotlib.axes
+                Axes of matplotlib
+    """
+    if nb2 is None:
+        nb2 = nb1 + 1
+    if dict_LSN is None:
+        dict_LSN = get_dict_Lx_seed_nb(para)
+    dict_SN = dict_LSN[Lx]
+
+    phi_nb1 = []
+    phi_nb2 = []
+    for seed in dict_SN:
+        if nb1 in dict_SN[seed] and nb2 in dict_SN[seed]:
+            phi_nb1.append(dict_SN[seed][nb1]["mean_phi"])
+            phi_nb2.append(dict_SN[seed][nb2]["mean_phi"])
+
+    flag_show = False
+    if ax is None:
+        ax = plt.subplot(111)
+        flag_show = True
+    ax.plot(phi_nb1, phi_nb2, "o")
+
+    if flag_show:
+        ax.set_xlabel(r"$\langle \phi \rangle_t(n_b=%d)$" % nb1)
+        ax.set_ylabel(r"$\langle \phi \rangle_t(n_b=%d)$" % nb2)
+        plt.show()
+        plt.close()
+
+
+def plot_peak_varied_sample(nb, eta, eps, Lx, Ly=200, dict_LSN=None, ax=None):
+    """ Plot peaks of differernt samples at given nb, eta, eps, Lx, Ly. """
+
+    if dict_LSN is None:
+        para = ["eta", str(eta), "eps", str(eps), "Lx", str(Lx), "Ly", str(Ly)]
+        dict_LSN = get_dict_Lx_seed_nb(para)
+    dict_SN = dict_LSN[Lx]
+
+    flag_show = False
+    if ax is None:
+        ax = plt.subplot(111)
+        flag_show = True
+
+    peak_list = []
+    phi_list = []
+    for seed in dict_SN:
+        if nb in dict_SN[seed]:
+            peak_list.append(dict_SN[seed][nb]["ave_peak"])
+            phi_list.append(dict_SN[seed][nb]["mean_phi"])
+
+    phi_m = min(phi_list)
+    d_phi = max(phi_list) - phi_m
+    color_list = plt.cm.jet([(phi - phi_m) / d_phi for phi in phi_list])
+
+    x = np.arange(Lx) + 0.5
+    for i, peak in enumerate(peak_list):
+        ax.plot(x, peak, c=color_list[i])
+
+    if flag_show:
+        ax.set_title(
+            r"$\eta=%g, \epsilon=%g, \rho_0=1, L_x=%d, L_y=%d, n_b=%d$" %
+            (eta / 1000, eps / 1000, Lx, Ly, nb))
+        ax.set_xlabel(r"$x$")
+        ax.set_ylabel(r"$\overline{\rho}_y(x)$")
+        plt.show()
+        plt.close()
+
+
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\tmp")
     # phi_vs_Lx(2, para=sys.argv[1:])
-    phi_vs_std_gap(2, 460, para=sys.argv[1:])
+    # phi_vs_std_gap(2, 480, para=sys.argv[1:])
+    # phi_nb1_vs_phi_nb2(980, 4, para=sys.argv[1:])
+    plot_peak_varied_sample(2, 350, 20, 420)

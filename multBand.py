@@ -49,18 +49,21 @@ def list2str(list0, *args, sep='.'):
                 String seperated by sep.
     """
     res = ""
-    for arg in args:
-        if arg in list0 or "-%s" % arg in list0:
-            idx = list0.index(arg)
-            if len(res) == 0:
-                res = "%s" % (list0[idx + 1])
+    if len(list0) == 0:
+        res = "*"
+    else:
+        for arg in args:
+            if arg in list0 or "-%s" % arg in list0:
+                idx = list0.index(arg)
+                if len(res) == 0:
+                    res = "%s" % (list0[idx + 1])
+                else:
+                    res += "%s%s" % (sep, list0[idx + 1])
             else:
-                res += "%s%s" % (sep, list0[idx + 1])
-        else:
-            if len(res) == 0:
-                res = "*"
-            else:
-                res += "%s*" % (sep)
+                if len(res) == 0:
+                    res = "*"
+                else:
+                    res += "%s*" % (sep)
     return res
 
 
@@ -580,6 +583,7 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
             sum_rhox=sum_rhox,
             sum_std_gap=sum_std_gap,
             count_rhox=count_rhox)
+        return file
 
     file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
     file_rhox = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
@@ -605,18 +609,21 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, show=False, out=False):
                      end_movAve, phi_movAve)
         plot_rhox_mean(para, num_set, sum_rhox, count_rhox)
     if out:
-        output()
+        outfile = output()
+        return outfile
 
 
 def handle_files(para, t_beg=10000, out=True, show=False):
     """ Handle all matched files. """
     pat = list2str(para, "eta", "eps", "Lx", "Ly", "seed")
+    print(pat)
     files = glob.glob("rhox_%s.bin" % pat)
     for i, file in enumerate(files):
         eta, eps, Lx, Ly, seed = get_para(file)
         try:
-            handle(eta, eps, Lx, Ly, seed, out=out, t_beg=t_beg)
-            print("Success: %d of %d" % (i, len(files)))
+            outfile = handle(
+                eta, eps, Lx, Ly, seed, out=out, t_beg=t_beg, show=show)
+            print("%d of %d: %s" % (i + 1, len(files), outfile))
         except:
             print("Error for %s" % file)
 
