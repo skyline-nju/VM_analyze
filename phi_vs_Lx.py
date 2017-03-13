@@ -255,8 +255,8 @@ def plot_peak_varied_sample(nb, eta, eps, Lx, Ly=200, dict_LSN=None, ax=None):
 
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\tmp")
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
     # phi_vs_Lx(2, para=sys.argv[1:])
     # phi_vs_std_gap(2, 480, para=sys.argv[1:])
     # phi_nb1_vs_phi_nb2(980, 4, para=sys.argv[1:])
-    plot_peak_varied_sample(2, 350, 20, 420)
+    plot_peak_varied_sample(3, 350, 20, 680)
