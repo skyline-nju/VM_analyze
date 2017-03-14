@@ -150,7 +150,7 @@ def get_ave_peak(rhox0, Lx, xPeak, xc, interp=None):
     if interp is None:
         for xp in xPeak:
             mean_rhox += np.roll(rhox0, xc - int(xp))
-    else:
+    elif interp == "linear" or interp == "cubic":
         d = 5
         rhox_tmp = np.zeros(Lx + 2 * d)
         rhox_tmp[:d] = rhox0[Lx - d:]
@@ -164,6 +164,14 @@ def get_ave_peak(rhox0, Lx, xPeak, xc, interp=None):
             x_new[x_new < 0] += Lx
             x_new[x_new >= Lx] -= Lx
             mean_rhox += f(x_new)
+
+    elif interp == "nplin":
+        x0 = np.arange(Lx) + 0.5
+        mean_rhox = np.zeros_like(rhox0)
+        for xp in xPeak:
+            x_new = x0 - xc + xp
+            mean_rhox += np.interp(x_new, x0, rhox0, period=Lx)
+
     mean_rhox /= xPeak.size
     return mean_rhox
 
@@ -434,12 +442,12 @@ class TimeSerialsPhi:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\rhox")
+    os.chdir("E:\\tmp")
     eta = 350
-    eps = 0
-    Lx = 360
+    eps = 20
+    Lx = 1000
     Ly = 200
-    seed = 215360
+    seed = 2171000
     file = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
     peak = TimeSerialsPeak(file, Lx)
     rhox, xPeak = peak.get_one_frame(50000)
@@ -468,11 +476,15 @@ if __name__ == "__main__":
     num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
         seg_num, seg_idx0, seg_idx1, interp="linear")
     rhox2 = sum_rhox[0] / count_rhox[0]
-    plt.plot(x, rhox2, "g")
+    plt.plot(x, rhox2, "--g")
+    # num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+    #     seg_num, seg_idx0, seg_idx1, interp="cubic")
+    # rhox3 = sum_rhox[0] / count_rhox[0]
+    # plt.plot(x, rhox3, "b")
     num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
-        seg_num, seg_idx0, seg_idx1, interp="cubic")
-    rhox3 = sum_rhox[0] / count_rhox[0]
-    plt.plot(x, rhox3, "b")
+        seg_num, seg_idx0, seg_idx1, interp="nplin")
+    rhox4 = sum_rhox[0] / count_rhox[0]
+    plt.plot(x, rhox4, "y")
     plt.axhline(1.8, c="k")
     plt.axvline(180, c="k")
     plt.show()

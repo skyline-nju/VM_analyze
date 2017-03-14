@@ -47,7 +47,6 @@ def plot_serials(para: list,
     ax2.set_ylabel(r"$\phi$")
     ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
                   (eta / 1000, eps / 1000, Lx, Ly, seed))
-    plt.tight_layout()
     if show:
         plt.show()
     else:
@@ -165,7 +164,7 @@ if __name__ == "__main__":
         else:
             t_beg = 5000
 
-        handle_files(argv, t_beg, show=False, interp="cubic")
+        handle_files(argv, t_beg, show=False, interp="nplin")
 
     else:
         print("Wrong args! Should be")
