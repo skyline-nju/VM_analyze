@@ -74,4 +74,3 @@ if __name__ == "__main__":
     else:
         print("Wrong args! Should be")
         print("path $path dt $dt eta $eta eps $eps...")
-

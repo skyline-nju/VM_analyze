@@ -2,8 +2,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import sys
-import multBand as mb
 import glob
+import common
+
+
+def plot_serials(eta, eps):
+    """ Plot time serials of number of bands and order parameters. """
+
+    import handle
+
+    files = glob.glob("mb_%d.%d.*.npz" % (eta, eps))
+    for file in files:
+        bf = np.load(file)
+        para = common.get_para(file)
+        outfile = "ts_%d.%d.%d.%d.%d.png" % (para[0], para[1], para[2],
+                                             para[3], para[4])
+        t_beg, t_end = bf["t_beg_end"]
+        handle.plot_serials(
+            para,
+            t_beg,
+            t_end,
+            bf["num_raw"],
+            bf["num_smoothed"],
+            bf["seg_num"],
+            bf["seg_idx0"],
+            bf["seg_idx1"],
+            bf["seg_phi"],
+            bf["beg_movAve"],
+            bf["end_movAve"],
+            bf["phi_movAve"],
+            outfile=outfile)
 
 
 def get_dict_nb(buff) -> dict:
@@ -47,12 +75,12 @@ def get_dict_nb(buff) -> dict:
 
 def get_dict_Lx_seed_nb(para: list) -> dict:
     """ Get dict with key: Lx->Seed->nb. """
-    pat = mb.list2str(para, "eta", "eps", "Lx", "Ly", "seed")
+    pat = common.list2str(para, "eta", "eps", "Lx", "Ly", "seed")
     files = glob.glob("mb_%s.npz" % (pat))
     res = {}
     for file in files:
         buff = np.load(file)
-        para = mb.get_para(file)
+        para = common.get_para(file)
         Lx = para[2]
         seed = para[4]
         if Lx not in res:
@@ -86,8 +114,8 @@ def get_dict_nb_Lx_seed(para=None, dict_LSN=None) -> dict:
             dict_LSN = get_dict_Lx_seed_nb(para)
     dict_NLS = {Lx: {} for Lx in dict_LSN}
     for Lx in dict_LSN:
-        dict_NLS[Lx] = mb.swap_key(dict_LSN[Lx])
-    dict_NLS = mb.swap_key(dict_NLS)
+        dict_NLS[Lx] = common.swap_key(dict_LSN[Lx])
+    dict_NLS = common.swap_key(dict_NLS)
     return dict_NLS
 
 
