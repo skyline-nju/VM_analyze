@@ -145,35 +145,35 @@ def get_ave_peak(rhox0, Lx, xPeak, xc, interp=None):
                 Average of peaks.
 
     """
-    mean_rhox = np.zeros(Lx)
-
-    if interp is None:
-        for xp in xPeak:
-            mean_rhox += np.roll(rhox0, xc - int(xp))
-    elif interp == "linear" or interp == "cubic":
-        d = 5
-        rhox_tmp = np.zeros(Lx + 2 * d)
-        rhox_tmp[:d] = rhox0[Lx - d:]
-        rhox_tmp[d:Lx + d] = rhox0
-        rhox_tmp[Lx + d:] = rhox0[:d]
-        x_tmp = np.arange(-d, Lx + d) + 0.5
-        x0 = np.arange(Lx) + 0.5
-        f = interpolate.interp1d(x_tmp, rhox_tmp, kind=interp)
-        for xp in xPeak:
-            x_new = x0 - xc + xp
-            x_new[x_new < 0] += Lx
-            x_new[x_new >= Lx] -= Lx
-            mean_rhox += f(x_new)
-
-    elif interp == "nplin":
-        x0 = np.arange(Lx) + 0.5
-        mean_rhox = np.zeros_like(rhox0)
-        for xp in xPeak:
-            x_new = x0 - xc + xp
-            mean_rhox += np.interp(x_new, x0, rhox0, period=Lx)
-
-    mean_rhox /= xPeak.size
-    return mean_rhox
+    if xPeak.size > 0:
+        mean_rhox = np.zeros(Lx)
+        if interp == "nplin":
+            x0 = np.arange(Lx) + 0.5
+            mean_rhox = np.zeros_like(rhox0)
+            for xp in xPeak:
+                x_new = x0 - xc + xp
+                mean_rhox += np.interp(x_new, x0, rhox0, period=Lx)
+        elif interp is None:
+            for xp in xPeak:
+                mean_rhox += np.roll(rhox0, xc - int(xp))
+        elif interp == "linear" or interp == "cubic":
+            d = 5
+            rhox_tmp = np.zeros(Lx + 2 * d)
+            rhox_tmp[:d] = rhox0[Lx - d:]
+            rhox_tmp[d:Lx + d] = rhox0
+            rhox_tmp[Lx + d:] = rhox0[:d]
+            x_tmp = np.arange(-d, Lx + d) + 0.5
+            x0 = np.arange(Lx) + 0.5
+            f = interpolate.interp1d(x_tmp, rhox_tmp, kind=interp)
+            for xp in xPeak:
+                x_new = x0 - xc + xp
+                x_new[x_new < 0] += Lx
+                x_new[x_new >= Lx] -= Lx
+                mean_rhox += f(x_new)
+        mean_rhox /= xPeak.size
+        return mean_rhox
+    else:
+        return rhox0
 
 
 class TimeSerialsPeak:

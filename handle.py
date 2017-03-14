@@ -35,8 +35,8 @@ def plot_serials(para: list,
     ax1.plot(t, num_raw)
     ax1.plot(t, num_smoothed)
     for i in range(seg_num.size):
-        ax1.plot((seg_idx0[i] + t_beg) * 100, seg_num[i], "o")
-        ax1.plot((seg_idx1[i] + t_beg) * 100, seg_num[i], "s")
+        ax1.plot((seg_idx0[i] + t_beg) * 100, seg_num[i], "k>")
+        ax1.plot((seg_idx1[i] + t_beg) * 100, seg_num[i], "k<")
     ax1.set_ylabel(r"$n_b$")
 
     ax2.plot(np.arange(beg_movAve, end_movAve) * 100, phi_movAve)
@@ -97,7 +97,7 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, interp=None,
     beg_movAve, end_movAve, phi_movAve = phi.moving_average()
     num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
         seg_num, seg_idx0, seg_idx1, interp=interp)
-    para = [eta / 1000, eps / 1000, Lx, Ly, seed]
+    para = [eta, eps, Lx, Ly, seed]
     plot_serials(
         para,
         t_beg,
@@ -136,14 +136,7 @@ def handle_files(para_dict, t_beg=10000, out=True, show=False, interp=None):
 
 
 if __name__ == "__main__":
-    path0 = "E:\\data\\random_torque\\bands\\Lx\\snapshot"
-
-    if len(sys.argv) == 1:
-        os.chdir(path0)
-        print(os.getcwd())
-        handle_files()
-
-    elif len(sys.argv) % 2 == 1:
+    if len(sys.argv) % 2 == 1:
         argv = {
             sys.argv[i]: sys.argv[i + 1]
             for i in range(1, len(sys.argv), 2)
@@ -154,15 +147,13 @@ if __name__ == "__main__":
         if "path" in argv:
             os.chdir(argv["path"])
             del argv["path"]
-        else:
-            os.chidr(path0)
         print(os.getcwd())
 
         if "t_beg" in argv:
             t_beg = int(argv["t_beg"])
             del argv["t_beg"]
         else:
-            t_beg = 5000
+            t_beg = 10000
 
         handle_files(argv, t_beg, show=False, interp="nplin")
 
