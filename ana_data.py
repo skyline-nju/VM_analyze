@@ -49,10 +49,10 @@ def get_dict_nb(buff) -> dict:
     """
     sum_phi = {}
     count = {}
-    tot = 0
     nbs = buff["seg_num"]
     phis = buff["seg_phi"]
     lens = buff["seg_idx1"] - buff["seg_idx0"]
+    tot = buff["seg_idx1"][-1] - buff["seg_idx0"][0]
     for i, nb in enumerate(nbs):
         if nb > 0:
             if nb in sum_phi:
@@ -61,7 +61,7 @@ def get_dict_nb(buff) -> dict:
             else:
                 sum_phi[nb] = phis[i] * lens[i]
                 count[nb] = lens[i]
-        tot += lens[i]
+        # tot += lens[i]
     res = {nb: {} for nb in sum_phi}
     for i, nb in enumerate(buff["num_set"]):
         if nb > 0:
@@ -72,8 +72,10 @@ def get_dict_nb(buff) -> dict:
     return res
 
 
-def get_dict_Lx_seed_nb(para: list) -> dict:
+def get_dict_Lx_seed_nb(para: list=None) -> dict:
     """ Get dict with key: Lx->Seed->nb. """
+    if para is None:
+        para = []
     pat = common.list2str(para, "eta", "eps", "Lx", "Ly", "seed")
     files = glob.glob("mb_%s.npz" % (pat))
     res = {}
@@ -143,26 +145,48 @@ def phi_vs_Lx(nb, para=None, dict_LSN=None, dict_NLS=None, ax=None):
         for seed in dict_LS[Lx]:
             rate = dict_LS[Lx][seed]["rate"]
             phi = dict_LS[Lx][seed]["mean_phi"]
+            if Lx == 480 and seed == 251480:
+                print(rate)
             if rate > 0.3:
                 phi_dict[Lx].append(phi)
                 rate_dict[Lx].append(rate)
+
+    rate_all = []
+    for Lx in rate_dict:
+        rate_all += rate_dict[Lx]
+
+    flag_show = False
+    if ax is None:
+        ax = plt.subplot(111)
+        flag_show = True
+
     for Lx in phi_dict:
         phi_dict[Lx] = np.array(phi_dict[Lx])
         rate_dict[Lx] = np.array(rate_dict[Lx])
         for i, phi in enumerate(phi_dict[Lx]):
-            plt.scatter(Lx, phi, c=rate_dict[Lx][i])
+            sca = ax.scatter(
+                Lx,
+                phi,
+                c=rate_dict[Lx][i],
+                vmin=min(rate_all),
+                vmax=1)
     Lxs = sorted(dict_LS.keys())
+    for Lx in Lxs:
+        print("%d: min=%g, max=%g" %
+              (Lx, rate_dict[Lx].min(), rate_dict[Lx].max()))
     mean_phi = [phi_dict[Lx].mean() for Lx in Lxs]
     std_phi = [phi_dict[Lx].std() for Lx in Lxs]
-    # plt.plot(Lxs, mean_phi, "s")
-    plt.errorbar(Lxs, mean_phi, std_phi, fmt="--rs")
-    plt.colorbar()
-    plt.xlabel(r"$L_x$")
-    plt.ylabel(r"$\langle \phi \rangle_t$")
-    plt.title(r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_y=200$")
-    plt.tight_layout()
-    plt.show()
-    plt.close()
+
+    if flag_show:
+        plt.errorbar(Lxs, mean_phi, std_phi, fmt="--rs")
+        cbar = plt.colorbar(sca, ax=ax)
+        cbar.set_label("Probability")
+        plt.xlabel(r"$L_x$")
+        plt.ylabel(r"$\langle \phi \rangle_t$")
+        plt.title(r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_y=200$")
+        plt.tight_layout()
+        plt.show()
+        plt.close()
 
 
 def phi_vs_std_gap(nb, Lx, para=None, dict_LSN=None, dict_NLS=None, ax=None):
@@ -211,7 +235,12 @@ def phi_vs_std_gap(nb, Lx, para=None, dict_LSN=None, dict_NLS=None, ax=None):
         plt.close()
 
 
-def phi_nb1_vs_phi_nb2(Lx, nb1, nb2=None, para=None, dict_LSN=None, ax=None):
+def phi_nb1_vs_phi_nb2(Lx,
+                       nb1=None,
+                       nb2=None,
+                       para=None,
+                       dict_LSN=None,
+                       ax=None):
     """ Plot phi(nb1) vs phi(nb2) at given Lx.
 
         Parameters:
@@ -230,27 +259,36 @@ def phi_nb1_vs_phi_nb2(Lx, nb1, nb2=None, para=None, dict_LSN=None, ax=None):
                 Axes of matplotlib
     """
     if nb2 is None:
+        if nb1 is None:
+            nb1 = Lx // 220
         nb2 = nb1 + 1
     if dict_LSN is None:
+        if para is None:
+            para = ["Lx", Lx]
         dict_LSN = get_dict_Lx_seed_nb(para)
     dict_SN = dict_LSN[Lx]
 
     phi_nb1 = []
     phi_nb2 = []
+    rate = []
     for seed in dict_SN:
         if nb1 in dict_SN[seed] and nb2 in dict_SN[seed]:
             phi_nb1.append(dict_SN[seed][nb1]["mean_phi"])
             phi_nb2.append(dict_SN[seed][nb2]["mean_phi"])
+            rate.append(dict_SN[seed][nb2]["rate"] /
+                        dict_SN[seed][nb1]["rate"])
 
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
         flag_show = True
-    ax.plot(phi_nb1, phi_nb2, "o")
+    sca = ax.scatter(phi_nb1, phi_nb2, c=rate, cmap="jet")
 
     if flag_show:
+        plt.colorbar(sca)
         ax.set_xlabel(r"$\langle \phi \rangle_t(n_b=%d)$" % nb1)
         ax.set_ylabel(r"$\langle \phi \rangle_t(n_b=%d)$" % nb2)
+        ax.set_title(r"$L_x=%d$" % (Lx))
         plt.show()
         plt.close()
 
@@ -296,8 +334,8 @@ def plot_peak_varied_sample(nb, eta, eps, Lx, Ly=200, dict_LSN=None, ax=None):
 
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
-    phi_vs_Lx(2, para=sys.argv[1:])
-    # phi_nb1_vs_phi_nb2(980, 4, para=sys.argv[1:])
-    # plot_peak_varied_sample(3, 350, 0, 460)
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
+    # phi_vs_Lx(2, para=sys.argv[1:])
+    phi_nb1_vs_phi_nb2(int(sys.argv[1]))
     # phi_vs_std_gap(2, int(sys.argv[1]))
+    # plot_peak_varied_sample(2, 350, 20, 420)
