@@ -1,16 +1,15 @@
-# plot time-averaged density profile for epsilon=0 cases.
+''' plot time-averaged density profile for epsilon=0 cases. '''
 
 import numpy as np
 import sys
 import os
 import matplotlib
+import matplotlib.pyplot as plt
 from fractions import Fraction
 sys.path.append("../")
-# matplotlib.use("PS")
-print(matplotlib.get_backend())
+
 try:
     import ana_data
-    import matplotlib.pyplot as plt
 except:
     raise
 
@@ -110,8 +109,8 @@ def four_panel():
     equal_nb(2, axes[1][1])
     plt.suptitle(r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200$")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    # plt.show()
-    plt.savefig(r"E:\report\quenched_disorder\report\figave_peak0.eps")
+    plt.show()
+    # plt.savefig(r"E:\report\quenched_disorder\report\figave_peak0.eps")
     plt.close()
 
 

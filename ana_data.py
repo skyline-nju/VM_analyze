@@ -165,11 +165,7 @@ def phi_vs_Lx(nb, para=None, dict_LSN=None, dict_NLS=None, ax=None):
         rate_dict[Lx] = np.array(rate_dict[Lx])
         for i, phi in enumerate(phi_dict[Lx]):
             sca = ax.scatter(
-                Lx,
-                phi,
-                c=rate_dict[Lx][i],
-                vmin=min(rate_all),
-                vmax=1)
+                Lx, phi, c=rate_dict[Lx][i], vmin=min(rate_all), vmax=1)
     Lxs = sorted(dict_LS.keys())
     for Lx in Lxs:
         print("%d: min=%g, max=%g" %
@@ -282,7 +278,10 @@ def phi_nb1_vs_phi_nb2(Lx,
     if ax is None:
         ax = plt.subplot(111)
         flag_show = True
-    sca = ax.scatter(phi_nb1, phi_nb2, c=rate, cmap="jet")
+
+    phi_nb1 = np.array(phi_nb1)
+    phi_nb2 = np.array(phi_nb2)
+    sca = ax.scatter(phi_nb1, phi_nb2 - phi_nb1, c=rate, cmap="jet")
 
     if flag_show:
         plt.colorbar(sca)
@@ -292,8 +291,36 @@ def phi_nb1_vs_phi_nb2(Lx,
         plt.show()
         plt.close()
 
+    for i in range(len(phi_nb1)):
+        print("%f\t%f\t%f" % (phi_nb1[i], phi_nb2[i], rate[i]))
 
-def plot_peak_varied_sample(nb, eta, eps, Lx, Ly=200, dict_LSN=None, ax=None):
+
+def get_peaks(nb, eta, eps, Lx, Ly=200, dict_LSN=None):
+    """ Get list of peak, phi and rho_gas. """
+
+    if dict_LSN is None:
+        para = ["eta", str(eta), "eps", str(eps), "Lx", str(Lx), "Ly", str(Ly)]
+        dict_LSN = get_dict_Lx_seed_nb(para)
+    dict_SN = dict_LSN[Lx]
+
+    peak_list = []
+    phi_list = []
+    for seed in dict_SN:
+        if nb in dict_SN[seed]:
+            peak_list.append(dict_SN[seed][nb]["ave_peak"])
+            phi_list.append(dict_SN[seed][nb]["mean_phi"])
+    rho_gas = np.array([np.mean(peak[190:195]) for peak in peak_list])
+    return peak_list, phi_list, rho_gas
+
+
+def plot_peak_varied_sample(nb,
+                            eta,
+                            eps,
+                            Lx,
+                            Ly=200,
+                            dict_LSN=None,
+                            ax=None,
+                            ax_phi=None):
     """ Plot peaks of differernt samples at given nb, eta, eps, Lx, Ly. """
 
     if dict_LSN is None:
@@ -321,21 +348,29 @@ def plot_peak_varied_sample(nb, eta, eps, Lx, Ly=200, dict_LSN=None, ax=None):
     for i, peak in enumerate(peak_list):
         ax.plot(x, peak, c=color_list[i])
 
+    ax.set_xlabel(r"$x$")
+    ax.set_ylabel(r"$\overline{\rho}_y(x)$")
+
     if flag_show:
         plt.axvline(180)
         plt.axhline(1.8)
         ax.set_title(
             r"$\eta=%g, \epsilon=%g, \rho_0=1, L_x=%d, L_y=%d, n_b=%d$" %
             (eta / 1000, eps / 1000, Lx, Ly, nb))
-        ax.set_xlabel(r"$x$")
-        ax.set_ylabel(r"$\overline{\rho}_y(x)$")
         plt.show()
         plt.close()
 
+    if ax_phi is not None:
+        rho_gas = [np.mean(peak[190:195]) for peak in peak_list]
+        sca = ax_phi.scatter(rho_gas, phi_list, c=phi_list, cmap="jet")
+        ax_phi.set_xlabel(r"$\rho_{\rm{gas}}$")
+        ax_phi.set_ylabel(r"$\langle \phi \rangle_t$")
+        return sca
+
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
     # phi_vs_Lx(2, para=sys.argv[1:])
-    phi_nb1_vs_phi_nb2(int(sys.argv[1]))
+    # phi_nb1_vs_phi_nb2(int(sys.argv[1]))
     # phi_vs_std_gap(2, int(sys.argv[1]))
-    # plot_peak_varied_sample(2, 350, 20, 420)
+    plot_peak_varied_sample(2, 350, 20, int(sys.argv[1]))
