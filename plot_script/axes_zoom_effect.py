@@ -110,19 +110,77 @@ def zoom_effect02(ax1, ax2, **kwargs):
     return c1, c2, bbox_patch1, bbox_patch2, p
 
 
+def zoom_effect03(ax1, ax2, xmin, xmax, ymin=0, ymax=1, loc="upward",
+                  **kwargs):
+    """
+    ax1 : the main axes
+    ax1 : the zoomed axes
+    (xmin,xmax) : the limits of the colored area in both plot axes.
+
+    connect ax1 & ax2. The x-range of (xmin, xmax) in both axes will
+    be marked.  The keywords parameters will be used ti create
+    patches.
+
+    """
+
+    bbox = Bbox.from_extents(xmin, ymin, xmax, ymax)
+
+    if loc == "upward" or loc == "downward":
+        trans1 = blended_transform_factory(ax1.transData, ax1.transAxes)
+        mybbox1 = TransformedBbox(bbox, trans1)
+    else:
+        mybbox1 = ax1.bbox
+    trans2 = blended_transform_factory(ax2.transData, ax2.transAxes)
+    mybbox2 = TransformedBbox(bbox, trans2)
+
+    prop_patches = kwargs.copy()
+    prop_patches["ec"] = "none"
+    prop_patches["alpha"] = 0.2
+
+    if loc == "upward":
+        loc1a, loc2a, loc1b, loc2b = 3, 2, 4, 1
+    elif loc == "downward":
+        loc1a, loc2a, loc1b, loc2b = 2, 3, 1, 4
+    elif loc == "leftward":
+        loc1a, loc2a, loc1b, loc2b = 4, 3, 1, 2
+    else:
+        loc1a, loc2a, loc1b, loc2b = 2, 1, 3, 4
+    c1, c2, bbox_patch1, bbox_patch2, p = \
+        connect_bbox(mybbox1, mybbox2,
+                     loc1a=loc1a, loc2a=loc2a, loc1b=loc1b, loc2b=loc2b,
+                     prop_lines=kwargs, prop_patches=prop_patches)
+
+    ax1.add_patch(bbox_patch1)
+    ax2.add_patch(bbox_patch2)
+    ax2.add_patch(c1)
+    ax2.add_patch(c2)
+    ax2.add_patch(p)
+
+    return c1, c2, bbox_patch1, bbox_patch2, p
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    plt.figure(1, figsize=(5, 5))
-    ax1 = plt.subplot(221)
-    ax2 = plt.subplot(212)
-    ax2.set_xlim(0, 1)
-    ax2.set_xlim(0, 5)
-    zoom_effect01(ax1, ax2, 0.2, 0.8)
+    # plt.figure(1, figsize=(5, 5))
+    # ax1 = plt.subplot(221)
+    # ax2 = plt.subplot(212)
+    # ax2.set_xlim(0, 1)
+    # ax2.set_xlim(0, 5)
+    # zoom_effect01(ax1, ax2, 0.2, 0.8)
 
-    ax1 = plt.subplot(222)
+    # ax1 = plt.subplot(222)
+    # ax1.set_xlim(2, 3)
+    # ax2.set_xlim(0, 5)
+    # zoom_effect02(ax1, ax2)
+
+    plt.figure()
+    ax1 = plt.subplot(122)
+    ax2 = plt.subplot(121)
     ax1.set_xlim(2, 3)
     ax2.set_xlim(0, 5)
-    zoom_effect02(ax1, ax2)
+    ax1.set_ylim(0, 2)
+    ax2.set_ylim(0, 2)
+    zoom_effect03(ax1, ax2, 2, 3, ymin=0.2, ymax=0.5, loc="rightward")
 
     plt.show()

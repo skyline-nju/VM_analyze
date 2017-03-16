@@ -34,13 +34,15 @@ def plot_serials(eta, eps):
             outfile=outfile)
 
 
-def get_dict_nb(buff) -> dict:
+def get_dict_nb(buff, rate_min=0.3) -> dict:
     """ Get a dict with key nb from data buff
 
         Parameters:
         --------
             buff: dict
                 Data read from npz file.
+            rate_min: float
+                Minimal rate to accept.
 
         Returns:
         --------
@@ -62,13 +64,19 @@ def get_dict_nb(buff) -> dict:
                 sum_phi[nb] = phis[i] * lens[i]
                 count[nb] = lens[i]
         # tot += lens[i]
-    res = {nb: {} for nb in sum_phi}
+    res = {}
     for i, nb in enumerate(buff["num_set"]):
         if nb > 0:
-            res[nb]["mean_phi"] = sum_phi[nb] / count[nb]
-            res[nb]["rate"] = count[nb] / tot
-            res[nb]["std_gap"] = buff["sum_std_gap"][i] / buff["count_rhox"][i]
-            res[nb]["ave_peak"] = buff["sum_rhox"][i] / buff["count_rhox"][i]
+            rate = count[nb] / tot
+            if rate > rate_min:
+                if nb not in res:
+                    res[nb] = {}
+                res[nb]["mean_phi"] = sum_phi[nb] / count[nb]
+                res[nb]["rate"] = rate
+                res[nb]["std_gap"] = buff["sum_std_gap"][i] / buff[
+                    "count_rhox"][i]
+                res[nb]["ave_peak"] = buff["sum_rhox"][i] / buff["count_rhox"][
+                    i]
     return res
 
 
@@ -109,80 +117,13 @@ def get_dict_nb_Lx_seed(para=None, dict_LSN=None) -> dict:
     """
     if dict_LSN is None:
         if para is None:
-            print("Error, no input data!")
-            sys.exit()
-        else:
-            dict_LSN = get_dict_Lx_seed_nb(para)
+            para = []
+        dict_LSN = get_dict_Lx_seed_nb(para)
     dict_NLS = {Lx: {} for Lx in dict_LSN}
     for Lx in dict_LSN:
         dict_NLS[Lx] = common.swap_key(dict_LSN[Lx])
     dict_NLS = common.swap_key(dict_NLS)
     return dict_NLS
-
-
-def phi_vs_Lx(nb, para=None, dict_LSN=None, dict_NLS=None, ax=None):
-    """ Plot phi against Lx at given nb.
-
-        Parameters:
-        --------
-            nb: int
-                Number of bands.
-            Para: list
-                List of parameters: eta, $eta, eps, $eps...
-            dict_LSN: dict
-                A dict with keys: Lx->seed->nb
-            dict_NLS: dict
-                A dict with keys: nb->Lx->seed
-            ax: matplotlib.axes
-                Axes of matplotlib
-    """
-    if dict_NLS is None:
-        dict_NLS = get_dict_nb_Lx_seed(para, dict_LSN)
-    dict_LS = dict_NLS[nb]
-    phi_dict = {Lx: [] for Lx in dict_LS}
-    rate_dict = {Lx: [] for Lx in dict_LS}
-    for Lx in dict_LS:
-        for seed in dict_LS[Lx]:
-            rate = dict_LS[Lx][seed]["rate"]
-            phi = dict_LS[Lx][seed]["mean_phi"]
-            if Lx == 480 and seed == 251480:
-                print(rate)
-            if rate > 0.3:
-                phi_dict[Lx].append(phi)
-                rate_dict[Lx].append(rate)
-
-    rate_all = []
-    for Lx in rate_dict:
-        rate_all += rate_dict[Lx]
-
-    flag_show = False
-    if ax is None:
-        ax = plt.subplot(111)
-        flag_show = True
-
-    for Lx in phi_dict:
-        phi_dict[Lx] = np.array(phi_dict[Lx])
-        rate_dict[Lx] = np.array(rate_dict[Lx])
-        for i, phi in enumerate(phi_dict[Lx]):
-            sca = ax.scatter(
-                Lx, phi, c=rate_dict[Lx][i], vmin=min(rate_all), vmax=1)
-    Lxs = sorted(dict_LS.keys())
-    for Lx in Lxs:
-        print("%d: min=%g, max=%g" %
-              (Lx, rate_dict[Lx].min(), rate_dict[Lx].max()))
-    mean_phi = [phi_dict[Lx].mean() for Lx in Lxs]
-    std_phi = [phi_dict[Lx].std() for Lx in Lxs]
-
-    if flag_show:
-        plt.errorbar(Lxs, mean_phi, std_phi, fmt="--rs")
-        cbar = plt.colorbar(sca, ax=ax)
-        cbar.set_label("Probability")
-        plt.xlabel(r"$L_x$")
-        plt.ylabel(r"$\langle \phi \rangle_t$")
-        plt.title(r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_y=200$")
-        plt.tight_layout()
-        plt.show()
-        plt.close()
 
 
 def phi_vs_std_gap(nb, Lx, para=None, dict_LSN=None, dict_NLS=None, ax=None):
@@ -370,7 +311,6 @@ def plot_peak_varied_sample(nb,
 
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
-    # phi_vs_Lx(2, para=sys.argv[1:])
     # phi_nb1_vs_phi_nb2(int(sys.argv[1]))
     # phi_vs_std_gap(2, int(sys.argv[1]))
-    plot_peak_varied_sample(2, 350, 20, int(sys.argv[1]))
+    # plot_peak_varied_sample(2, 350, 20, int(sys.argv[1]))

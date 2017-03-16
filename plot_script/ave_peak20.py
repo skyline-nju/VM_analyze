@@ -2,9 +2,8 @@
 
 import sys
 import os
-import numpy as np
 import matplotlib.pyplot as plt
-from axes_zoom_effect import zoom_effect02
+from axes_zoom_effect import zoom_effect03
 sys.path.append("../")
 
 try:
@@ -21,9 +20,9 @@ def plot_peaks():
     eps = 20
     Lx = 460
     fig = plt.figure(1, figsize=(7, 7))
-    ax1 = plt.subplot(221)
-    ax2 = plt.subplot(222)
-    ax3 = plt.subplot(212)
+    ax1 = plt.subplot(223)
+    ax2 = plt.subplot(224)
+    ax3 = plt.subplot(211)
 
     ana_data.plot_peak_varied_sample(nb, eta, eps, Lx, ax=ax2)
     sca = ana_data.plot_peak_varied_sample(
@@ -34,11 +33,11 @@ def plot_peaks():
     ax2.set_xlim(188, 196)
     ax2.set_ylim(0.45, 0.5)
     ax3.set_xlim(80, 200)
-    zoom_effect02(ax2, ax3)
+    zoom_effect03(ax2, ax3, 188, 196, loc="downward")
 
-    ax1.set_title(r"$(a)$")
-    ax2.set_title(r"$(b)$")
-    ax3.set_title(r"$(c)$")
+    ax1.set_title(r"$(b)$")
+    ax2.set_title(r"$(c)$")
+    ax3.set_title(r"$(a)$")
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(r"$\eta=%g,\epsilon=%g, \rho_0=1, L_x=%d, L_y=200, n_b=%d$" %
