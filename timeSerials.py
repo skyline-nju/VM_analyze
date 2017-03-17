@@ -211,29 +211,57 @@ class TimeSerialsPeak:
         self.file = file
         self.h = h
 
+    def gene_frame(self, beg_idx, end_idx=None, skip=None):
+        """ Generator of rhox.
+
+            Parameters:
+            --------
+                beg_idx: int
+                    First frame
+                end_idx: int
+                    Last frame
+                skip: np.ndarray
+                    Bool array, skip ith frame if skip[i] is False.
+
+            Returns:
+            --------
+                rhox: np.ndarray
+                    Density profile along x axis.
+                idx: int
+                    Index of current frame, return when skip is not None.
+        """
+        def read_one_frame():
+            buff = f.read(self.FrameSize)
+            rhox = np.array(struct.unpack("%df" % self.Lx, buff))
+            return rhox
+
+        with open(self.file, "rb") as f:
+            f.seek(beg_idx * self.FrameSize)
+            if end_idx is not None:
+                if skip is None:
+                    for i in range(beg_idx, end_idx):
+                        rhox = read_one_frame()
+                        yield rhox
+                else:
+                    for i, flag in enumerate(skip):
+                        if flag:
+                            rhox = read_one_frame()
+                            idx_cur = i + beg_idx
+                            yield rhox, idx_cur
+                        else:
+                            f.seek(self.FrameSize, 1)
+            else:
+                rhox = read_one_frame()
+                return rhox
+
     def get_serials(self):
         """ Calculate time serials of number and location of peaks."""
 
-        f = open(self.file, "rb")
-        f.seek(self.beg * self.FrameSize)
-        self.xs = np.zeros(self.end - self.beg, dtype=object)
-        for i in range(self.end - self.beg):
-            buff = f.read(self.FrameSize)
-            rhox = np.array(struct.unpack("%df" % (self.Lx), buff))
-            self.xs[i] = locatePeak(rhox, self.Lx, self.h)
-        f.close()
-        self.num_raw = np.array([x.size for x in self.xs])
-
-    def get_one_frame(self, t):
-        """ Get rho_x and number of peaks at t. """
-
-        f = open(self.file, "rb")
-        f.seek(t * self.FrameSize)
-        buff = f.read(self.FrameSize)
-        f.close()
-        rhox = np.array(struct.unpack("%df" % (self.Lx), buff))
-        xPeak = locatePeak(rhox, self.Lx, self.h)
-        return rhox, xPeak
+        rhoxs = self.gene_frame(self.beg, self.end)
+        self.xs = np.array(
+            [locatePeak(rhox, self.Lx, self.h) for rhox in rhoxs])
+        self.num_raw = np.array([xs.size for xs in self.xs])
+        self.smooth()
 
     def smooth(self, k=10):
         """ Smooth time serials of number of peaks.
@@ -343,24 +371,19 @@ class TimeSerialsPeak:
         sum_std_gap = {key: 0 for key in num_set}
         count_rhox = {key: 0 for key in num_set}
 
-        f = open(self.file, "rb")
-
         for i in range(seg_idx0.size):
-            num = seg_num[i]
-            t1 = seg_idx0[i] + self.beg
-            t2 = seg_idx1[i] + self.beg
-            f.seek(t1 * self.FrameSize)
-            for t in range(t1, t2):
-                idx = t - self.beg
-                if num == self.num_raw[idx]:
-                    buff = f.read(self.FrameSize)
-                    rhox_t = np.array(struct.unpack("%df" % (self.Lx), buff))
-                    sum_rhox[num] += get_ave_peak(
-                        rhox_t, self.Lx, self.xs[idx], x_h, interp=interp)
-                    sum_std_gap[num] += get_std_gap(self.xs[idx], self.Lx)
-                    count_rhox[num] += 1
-                else:
-                    f.seek(self.FrameSize, 1)
+            nb = seg_num[i]
+            idx0 = seg_idx0[i]
+            idx1 = seg_idx1[i]
+            skip = self.num_raw[idx0:idx1] == nb
+            gene_rhoxs = self.gene_frame(idx0 + self.beg, idx1 + self.end,
+                                         skip)
+            for rhox, idx in gene_rhoxs:
+                xPeak = self.xs[idx - self.beg]
+                sum_rhox[nb] += get_ave_peak(
+                    rhox, self.Lx, xPeak, x_h, interp=interp)
+                sum_std_gap[nb] += get_std_gap(xPeak, self.Lx)
+                count_rhox[nb] += 1
 
         sum_rhox = np.array([sum_rhox[key] for key in num_set])
         sum_std_gap = np.array([sum_std_gap[key] for key in num_set])
@@ -442,15 +465,15 @@ class TimeSerialsPhi:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    os.chdir("E:\\tmp")
+    os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\eps0")
     eta = 350
-    eps = 20
-    Lx = 1000
+    eps = 0
+    Lx = 400
     Ly = 200
-    seed = 2171000
+    seed = 214400
     file = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
     peak = TimeSerialsPeak(file, Lx)
-    rhox, xPeak = peak.get_one_frame(50000)
+    # rhox, xPeak = peak.get_one_frame(50000)
     # x = np.arange(Lx) + 0.5
     # plt.plot(x, rhox, "k")
     # rhox1 = get_ave_peak(rhox, Lx, xPeak, 180)
@@ -465,7 +488,6 @@ if __name__ == "__main__":
     # plt.show()
 
     peak.get_serials()
-    peak.smooth()
     x = np.arange(Lx) + 0.5
     seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
     print(seg_num)

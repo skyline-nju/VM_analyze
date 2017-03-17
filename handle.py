@@ -91,7 +91,6 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, interp=None,
     phi.end = t_end
     peak.end = t_end
     peak.get_serials()
-    peak.smooth()
     seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
     seg_phi = phi.segment(seg_idx0, seg_idx1)
     beg_movAve, end_movAve, phi_movAve = phi.moving_average()
