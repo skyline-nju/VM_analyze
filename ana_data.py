@@ -301,6 +301,7 @@ def plot_peak_varied_sample(nb,
         plt.close()
 
     if ax_phi is not None:
+        ax_phi.axis("auto")
         rho_gas = [np.mean(peak[190:195]) for peak in peak_list]
         sca = ax_phi.scatter(rho_gas, phi_list, c=phi_list, cmap="jet")
         ax_phi.set_xlabel(r"$\rho_{\rm{gas}}$")

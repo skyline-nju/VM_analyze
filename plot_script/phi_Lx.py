@@ -17,6 +17,7 @@ def phi_Lx_const_nb(nb,
                     para=None,
                     dict_LSN=None,
                     dict_NLS=None,
+                    fit=None,
                     vlim=None,
                     ax=None):
     """ Plot phi against Lx at given nb.
@@ -31,6 +32,8 @@ def phi_Lx_const_nb(nb,
                 A dict with keys: Lx->seed->nb
             dict_NLS: dict
                 A dict with keys: nb->Lx->seed
+            fit: str
+                Method to fit the plot of sample-averaged order parameters.
             vlim: list
                 The limitation of color list.
             ax: matplotlib.axes
@@ -72,13 +75,22 @@ def phi_Lx_const_nb(nb,
         rate_dict[Lx] = np.array(rate_dict[Lx])
         for i, phi in enumerate(phi_dict[Lx]):
             sca = ax.scatter(Lx, phi, c=rate_dict[Lx][i], vmin=vmin, vmax=vmax)
-    Lxs = sorted(dict_LS.keys())
+    Lxs = np.array(sorted(dict_LS.keys()))
     for Lx in Lxs:
         print("%d: min=%g, max=%g" %
               (Lx, rate_dict[Lx].min(), rate_dict[Lx].max()))
-    mean_phi = [phi_dict[Lx].mean() for Lx in Lxs]
-    std_phi = [phi_dict[Lx].std() for Lx in Lxs]
-    ax.errorbar(Lxs, mean_phi, std_phi, fmt="--rs")
+    mean_phi = np.array([phi_dict[Lx].mean() for Lx in Lxs])
+    std_phi = np.array([phi_dict[Lx].std() for Lx in Lxs])
+
+    if fit == "linear":
+        ax.errorbar(Lxs, mean_phi, std_phi, fmt="rs")
+        z = np.polyfit(Lxs, mean_phi, 1)
+        print("z = ", z)
+        x = np.linspace(Lxs[0]-10, Lxs[-1]+10, 50)
+        y = z[1] + z[0]*x
+        ax.plot(x, y, "--r")
+    else:
+        ax.errorbar(Lxs, mean_phi, std_phi, fmt="--rs")
 
     if flag_show:
         cbar = plt.colorbar(sca, ax=ax)
@@ -100,22 +112,24 @@ def two_panel():
     nb = 2
     fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
 
+    ymin = 0.427
+    ymax = 0.452
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
     sca, vlim = phi_Lx_const_nb(nb, ax=ax1)
-    ax1.set_ylim(ymax=0.46)
+    ax1.set_ylim(0.425, 0.4565)
 
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
-    phi_Lx_const_nb(nb, ax=ax2, vlim=vlim)
-    ax2.set_ylim(ymax=0.455)
+    phi_Lx_const_nb(nb, ax=ax2, vlim=vlim, fit="linear")
+    ax2.set_ylim(ymin, ymax)
 
-    zoom_effect03(ax2, ax1, 390, 490, ymin=0.15, ymax=0.6, loc="rightward")
+    zoom_effect03(ax2, ax1, 390, 490, ymin=ymin, ymax=ymax, loc="rightward")
 
     # set label and title
     ax1.set_xlabel(r"$L_x$")
     ax2.set_xlabel(r"$L_x$")
     ax1.set_ylabel(r"$\langle \phi \rangle_t$")
-    ax1.set_title("(a) several samples per Lx")
-    ax2.set_title("(b) around 50 samples per Lx")
+    ax1.set_title(r"(a) several samples per $L_x$")
+    ax2.set_title(r"(b) around 50 samples per $L_x$")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0.02, \rho_0=1, L_y=200, n_b=%d$" % (nb),

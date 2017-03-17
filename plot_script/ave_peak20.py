@@ -19,7 +19,7 @@ def plot_peaks():
     eta = 350
     eps = 20
     Lx = 460
-    fig = plt.figure(1, figsize=(7, 7))
+    fig = plt.figure(1, figsize=(7, 6))
     ax1 = plt.subplot(223)
     ax2 = plt.subplot(224)
     ax3 = plt.subplot(211)
@@ -28,8 +28,8 @@ def plot_peaks():
     sca = ana_data.plot_peak_varied_sample(
         nb, eta, eps, Lx, ax=ax3, ax_phi=ax1)
 
-    ax1.set_xlim(0.45, 0.49)
-    ax1.set_ylim(0.42, 0.45)
+    # ax1.set_xlim(0.45, 0.49)
+    # ax1.set_ylim(0.42, 0.45)
     ax2.set_xlim(188, 196)
     ax2.set_ylim(0.45, 0.5)
     ax3.set_xlim(80, 200)
@@ -42,8 +42,8 @@ def plot_peaks():
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(r"$\eta=%g,\epsilon=%g, \rho_0=1, L_x=%d, L_y=200, n_b=%d$" %
                  (eta / 1000, eps / 1000, Lx, nb))
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.82, 0.11, 0.05, 0.75])
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.85, 0.10, 0.03, 0.78])
     cb = fig.colorbar(sca, cax=cbar_ax)
     cb.set_label(r"$\langle \phi \rangle_t$")
 

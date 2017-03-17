@@ -128,10 +128,12 @@ def zoom_effect03(ax1, ax2, xmin, xmax, ymin=0, ymax=1, loc="upward",
     if loc == "upward" or loc == "downward":
         trans1 = blended_transform_factory(ax1.transData, ax1.transAxes)
         mybbox1 = TransformedBbox(bbox, trans1)
+        trans2 = blended_transform_factory(ax2.transData, ax2.transAxes)
+        mybbox2 = TransformedBbox(bbox, trans2)
     else:
         mybbox1 = ax1.bbox
-    trans2 = blended_transform_factory(ax2.transData, ax2.transAxes)
-    mybbox2 = TransformedBbox(bbox, trans2)
+        trans2 = blended_transform_factory(ax2.transData, ax2.transData)
+        mybbox2 = TransformedBbox(bbox, trans2)
 
     prop_patches = kwargs.copy()
     prop_patches["ec"] = "none"
@@ -179,8 +181,8 @@ if __name__ == "__main__":
     ax2 = plt.subplot(121)
     ax1.set_xlim(2, 3)
     ax2.set_xlim(0, 5)
-    ax1.set_ylim(0, 2)
+    ax1.set_ylim(0.25, 0.5)
     ax2.set_ylim(0, 2)
-    zoom_effect03(ax1, ax2, 2, 3, ymin=0.2, ymax=0.5, loc="rightward")
+    zoom_effect03(ax1, ax2, 2, 3, ymin=0.25, ymax=0.5, loc="rightward")
 
     plt.show()
