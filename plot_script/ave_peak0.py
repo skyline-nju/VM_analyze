@@ -1,36 +1,29 @@
 ''' plot time-averaged density profile for epsilon=0 cases. '''
 
 import numpy as np
-import sys
 import os
 import matplotlib
 import matplotlib.pyplot as plt
 from fractions import Fraction
-sys.path.append("../")
-
-try:
-    import ana_data
-except:
-    raise
+from read_npz import read_matched_file, fixed_para
 
 
-def equal_Lr_over_nb(ratio: Fraction, ax: matplotlib.axes=None,
-                     lambd: int=180):
+def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
+                            ax: matplotlib.axes=None,
+                            lamb: int=180):
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
         flag_show = True
 
-    for Lx in dict_LSN:
-        for seed in dict_LSN[Lx]:
-            for nb in dict_LSN[Lx][seed]:
-                Lr = Lx - nb * lambd
-                if ratio * nb * lambd == Lr:
-                    ax.plot(
-                        np.arange(Lx) + 0.5,
-                        dict_LSN[Lx][seed][nb]["ave_peak"],
-                        label=r"$L_x=%d,n_b=%d$" % (Lx, nb),
-                        lw=0.5)
+    for peak, phi, Lx, nb in fixed_para(
+            "ave_peak",
+            "mean_phi",
+            lamb=lamb,
+            Lr_over_nb_lambda=ratio,
+            dictLSN=dict_LSN):
+        x = np.arange(Lx) + 0.5
+        ax.plot(x, peak, label=r"$L_x=%d,n_b=%d$" % (Lx, nb), lw=0.5)
 
     ax.set_xlim(80, 200)
     ax.set_ylim(0, 4.5)
@@ -42,7 +35,7 @@ def equal_Lr_over_nb(ratio: Fraction, ax: matplotlib.axes=None,
         plt.close()
 
 
-def equal_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
+def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
@@ -80,9 +73,9 @@ def equal_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
 def eq_ratio3():
     fig, (ax1, ax2, ax3) = plt.subplots(
         ncols=3, nrows=1, figsize=(14, 5), sharey=True)
-    equal_Lr_over_nb(Fraction(-1, 18), ax1)
-    equal_Lr_over_nb(Fraction(0, 18), ax2)
-    equal_Lr_over_nb(Fraction(1, 18), ax3)
+    plot_eq_Lr_over_nb_lamb(Fraction(-1, 18), ax1)
+    plot_eq_Lr_over_nb_lamb(Fraction(0, 18), ax2)
+    plot_eq_Lr_over_nb_lamb(Fraction(1, 18), ax3)
     plt.tight_layout()
     # plt.suptitle(r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200$")
     plt.show()
@@ -92,9 +85,9 @@ def eq_ratio3():
 def eq_nb3():
     fig, (ax1, ax2, ax3) = plt.subplots(
         ncols=3, nrows=1, figsize=(14, 5), sharey=True)
-    equal_nb(2, ax1)
-    equal_nb(3, ax2)
-    equal_nb(4, ax3)
+    plot_eq_nb(2, ax1)
+    plot_eq_nb(3, ax2)
+    plot_eq_nb(4, ax3)
     plt.tight_layout()
     # plt.suptitle(r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200$")
     plt.show()
@@ -103,10 +96,10 @@ def eq_nb3():
 
 def four_panel():
     fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(10, 7))
-    equal_Lr_over_nb(Fraction(0, 18), axes[0][0])
-    equal_Lr_over_nb(Fraction(-1, 18), axes[0][1])
-    equal_Lr_over_nb(Fraction(1, 18), axes[1][0])
-    equal_nb(2, axes[1][1])
+    plot_eq_Lr_over_nb_lamb(Fraction(0, 18), axes[0][0])
+    plot_eq_Lr_over_nb_lamb(Fraction(-1, 18), axes[0][1])
+    plot_eq_Lr_over_nb_lamb(Fraction(1, 18), axes[1][0])
+    plot_eq_nb(2, axes[1][1])
     plt.suptitle(r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200$")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
@@ -116,7 +109,7 @@ def four_panel():
 
 if __name__ == "__main__":
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps0")
-    dict_LSN = ana_data.get_dict_Lx_seed_nb()
+    dict_LSN = read_matched_file()
     # equal_Lr_over_nb(Fraction(sys.argv[1]))
     # equal_nb(2)
     four_panel()

@@ -43,7 +43,8 @@ def dict2str(dict0, *args, sep='.'):
         strList = []
         for arg in args:
             if arg in dict0:
-                strList.append(dict0[arg])
+                str_cur = str(dict0[arg])
+                strList.append(str_cur)
             else:
                 strList.append("*")
         res = sep.join(strList)

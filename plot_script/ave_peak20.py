@@ -1,44 +1,45 @@
 ''' plot time-averaged density profile for epsilon=0.02 cases. '''
 
-import sys
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 from axes_zoom_effect import zoom_effect03
-sys.path.append("../")
-
-try:
-    import ana_data
-except:
-    raise
+from read_npz import read_matched_file, eq_Lx_and_nb
 
 
-def plot_peaks():
+def plot_peak(Lx, nb, eta=350, eps=20):
+    """ Plot time-averaged peaks for differernt samples with zoom effect."""
+
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
 
-    nb = 2
-    eta = 350
-    eps = 20
-    Lx = 460
-    fig = plt.figure(1, figsize=(7, 6))
-    ax1 = plt.subplot(223)
-    ax2 = plt.subplot(224)
-    ax3 = plt.subplot(211)
+    fig = plt.figure(1, figsize=(7, 6), dpi=200)
+    ax1 = plt.subplot(211)
+    ax2 = plt.subplot(223)
+    ax3 = plt.subplot(224)
 
-    ana_data.plot_peak_varied_sample(nb, eta, eps, Lx, ax=ax2)
-    sca = ana_data.plot_peak_varied_sample(
-        nb, eta, eps, Lx, ax=ax3, ax_phi=ax1)
+    ax1.set_xlim(80, 200)
+    ax3.set_xlim(188, 196)
+    ax3.set_ylim(0.45, 0.5)
+    zoom_effect03(ax3, ax1, 188, 196, loc="downward")
 
-    # ax1.set_xlim(0.45, 0.49)
-    # ax1.set_ylim(0.42, 0.45)
-    ax2.set_xlim(188, 196)
-    ax2.set_ylim(0.45, 0.5)
-    ax3.set_xlim(80, 200)
-    zoom_effect03(ax2, ax3, 188, 196, loc="downward")
+    dictLSN = read_matched_file({"Lx": Lx, "eta": eta, "eps": eps})
+    phi = np.array(
+        [i for i in eq_Lx_and_nb(Lx, nb, "mean_phi", dictLSN=dictLSN)])
+    color_list = plt.cm.jet(
+        [(i - phi.min()) / (phi.max() - phi.min()) for i in phi])
 
-    ax1.set_title(r"$(b)$")
-    ax2.set_title(r"$(c)$")
-    ax3.set_title(r"$(a)$")
+    x = np.arange(Lx) + 0.5
+    rho_gas = np.zeros_like(phi)
+    for i, peak in enumerate(eq_Lx_and_nb(Lx, nb, "ave_peak")):
+        ax1.plot(x, peak, c=color_list[i], lw=0.8)
+        ax3.plot(x, peak, c=color_list[i])
+        rho_gas[i] = np.mean(peak[190:195])
+    ax2.axis("auto")
+    sca = ax2.scatter(rho_gas, phi, c=phi, cmap="jet")
 
+    ax1.set_title(r"$(a)$")
+    ax2.set_title(r"$(b)$")
+    ax3.set_title(r"$(c)$")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(r"$\eta=%g,\epsilon=%g, \rho_0=1, L_x=%d, L_y=200, n_b=%d$" %
                  (eta / 1000, eps / 1000, Lx, nb))
@@ -47,11 +48,10 @@ def plot_peaks():
     cb = fig.colorbar(sca, cax=cbar_ax)
     cb.set_label(r"$\langle \phi \rangle_t$")
 
-    # plt.show()
-    plt.savefig(
-        r"E:\report\quenched_disorder\report\fig\ave_peak20.png", dpi=200)
+    plt.show()
+    # plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak20.png")
     plt.close()
 
 
 if __name__ == "__main__":
-    plot_peaks()
+    plot_peak(460, 2)

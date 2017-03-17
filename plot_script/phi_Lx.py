@@ -1,25 +1,19 @@
 """ Plot phi against Lx. """
 
 import numpy as np
-import sys
 import os
 import matplotlib.pyplot as plt
 from axes_zoom_effect import zoom_effect03
-sys.path.append("../")
-
-try:
-    import ana_data
-except:
-    raise
+from read_npz import get_dict_NLS
 
 
-def phi_Lx_const_nb(nb,
-                    para=None,
-                    dict_LSN=None,
-                    dict_NLS=None,
-                    fit=None,
-                    vlim=None,
-                    ax=None):
+def plot_phi_Lx_const_nb(nb,
+                         para={},
+                         dict_LSN=None,
+                         dict_NLS=None,
+                         fit=None,
+                         vlim=None,
+                         ax=None):
     """ Plot phi against Lx at given nb.
 
         Parameters:
@@ -45,7 +39,7 @@ def phi_Lx_const_nb(nb,
                 Scatter plot.
     """
     if dict_NLS is None:
-        dict_NLS = ana_data.get_dict_nb_Lx_seed(para, dict_LSN)
+        dict_NLS = get_dict_NLS(para, dict_LSN)
     dict_LS = dict_NLS[nb]
     phi_dict = {Lx: [] for Lx in dict_LS}
     rate_dict = {Lx: [] for Lx in dict_LS}
@@ -86,8 +80,8 @@ def phi_Lx_const_nb(nb,
         ax.errorbar(Lxs, mean_phi, std_phi, fmt="rs")
         z = np.polyfit(Lxs, mean_phi, 1)
         print("z = ", z)
-        x = np.linspace(Lxs[0]-10, Lxs[-1]+10, 50)
-        y = z[1] + z[0]*x
+        x = np.linspace(Lxs[0] - 10, Lxs[-1] + 10, 50)
+        y = z[1] + z[0] * x
         ax.plot(x, y, "--r")
     else:
         ax.errorbar(Lxs, mean_phi, std_phi, fmt="--rs")
@@ -115,11 +109,11 @@ def two_panel():
     ymin = 0.427
     ymax = 0.452
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
-    sca, vlim = phi_Lx_const_nb(nb, ax=ax1)
+    sca, vlim = plot_phi_Lx_const_nb(nb, ax=ax1)
     ax1.set_ylim(0.425, 0.4565)
 
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
-    phi_Lx_const_nb(nb, ax=ax2, vlim=vlim, fit="linear")
+    plot_phi_Lx_const_nb(nb, ax=ax2, vlim=vlim, fit="linear")
     ax2.set_ylim(ymin, ymax)
 
     zoom_effect03(ax2, ax1, 390, 490, ymin=ymin, ymax=ymax, loc="rightward")
@@ -141,8 +135,8 @@ def two_panel():
     cb = fig.colorbar(sca, cax=cbar_ax)
     cb.set_label("Probability")
 
-    # plt.show()
-    plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.png")
+    plt.show()
+    # plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.png")
     plt.close()
 
 
