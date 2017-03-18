@@ -4,6 +4,86 @@ import struct
 from scipy import interpolate
 
 
+def cal_dx(x1, x2, Lx, dxm=50):
+    """ Calculate the displacement of bands.
+
+        Parameters:
+        --------
+            x1: np.ndarray
+                Location of peaks at t1
+            x2: np.ndarray
+                Location of peaks at t2
+            Lx: int
+                System size along x direction
+            dxm: int
+                Max possible displacement
+
+        Returns:
+        --------
+            dx.mean(): float
+                Mean of displacements of each band
+    """
+
+    if x1.size != x2.size:
+        print("Error, size of x1 should be equal to size of x2")
+        return None
+    elif x1.size == 0:
+        print("Error, sizes of x1 and x2 should be nonzero")
+        return None
+    else:
+        n = x1.size
+
+    if n == 1:
+        dx = x2 - x1
+    elif x2[0] - x1[0] < dxm and x2[0] - x1[0] > 0:
+        dx = x2 - x1
+    elif x2[0] + Lx - x1[-1] < dxm:
+        dx = np.array([x2[i] - x1[i - 1] for i in range(n)])
+    else:
+        print("Exception when calculating dx")
+        print("x1", x1)
+        print("x2", x2)
+        return None
+
+    dx[dx < 0] += Lx
+    return dx.mean()
+
+
+def cal_v(xs: np.ndarray, valid: np.ndarray, Lx: int, dxm: int=50,
+          dt: int=100):
+    """ Calculate velocity from the time serials of location of bands.
+
+        Parameters:
+        --------
+            xs: np.ndarray
+                Time serials of location of bands
+            valid: np.ndarray
+                Whether a frame is valid
+            Lx: int
+                System size in x direction
+            dxm: int
+                Max possible displacement betwwen two nearest frames
+            dt: int
+                Time interval of two nearest frames
+
+        Returns:
+        --------
+            sum_v: float
+                Sum of velocity among valid frames
+            count: int
+                Count of valid frames
+    """
+    sum_v = 0
+    count = 0
+    for i in range(1, valid.size):
+        if valid[i - 1] and valid[i]:
+            dx = cal_dx(xs[i - 1], xs[i], Lx, dxm)
+            if dx is not None:
+                sum_v += dx / dt
+                count += 1
+    return sum_v, count
+
+
 def get_std_gap(xp: np.ndarray, Lx: int) -> float:
     """ Calculate std of gaps between nearest peeks.
 
@@ -120,7 +200,7 @@ def locatePeak(rho_x, Lx, h=1.8):
 
     xPeak = check_gap(xPeak, 10, Lx)
     xPeak = check_gap(xPeak, 100, Lx)
-    return np.array(xPeak)
+    return np.array(sorted(xPeak))
 
 
 def get_ave_peak(rhox0, Lx, xPeak, xc, interp=None):
@@ -211,7 +291,7 @@ class TimeSerialsPeak:
         self.file = file
         self.h = h
 
-    def gene_frame(self, beg_idx, end_idx=None, skip=None):
+    def gene_frame(self, beg_idx, end_idx=None, valid=None):
         """ Generator of rhox.
 
             Parameters:
@@ -220,16 +300,17 @@ class TimeSerialsPeak:
                     First frame
                 end_idx: int
                     Last frame
-                skip: np.ndarray
-                    Bool array, skip ith frame if skip[i] is False.
+                valid: np.ndarray
+                    Bool array, invalid frame will be ignored
 
             Returns:
             --------
                 rhox: np.ndarray
                     Density profile along x axis.
                 idx: int
-                    Index of current frame, return when skip is not None.
+                    Index of current frame, return when valid is not None.
         """
+
         def read_one_frame():
             buff = f.read(self.FrameSize)
             rhox = np.array(struct.unpack("%df" % self.Lx, buff))
@@ -238,12 +319,12 @@ class TimeSerialsPeak:
         with open(self.file, "rb") as f:
             f.seek(beg_idx * self.FrameSize)
             if end_idx is not None:
-                if skip is None:
+                if valid is None:
                     for i in range(beg_idx, end_idx):
                         rhox = read_one_frame()
                         yield rhox
                 else:
-                    for i, flag in enumerate(skip):
+                    for i, flag in enumerate(valid):
                         if flag:
                             rhox = read_one_frame()
                             idx_cur = i + beg_idx
@@ -344,7 +425,7 @@ class TimeSerialsPeak:
         return seg_num, seg_idx0, seg_idx1
 
     def cumulate(self, seg_num, seg_idx0, seg_idx1, x_h=180, interp=None):
-        """ Calculate time-averaged rho_x
+        """ Handle the data of time serials of peak and cumulate results.
 
             Parameters:
             --------
@@ -359,25 +440,35 @@ class TimeSerialsPeak:
 
             Returns:
             --------
-                num_set: np.ndarray
-                    Set of number of peak.
-                sum_rhox: np.ndarray
+                nb_set: np.ndarray
+                    Set of number of peak, increasing.
+                mean_rhox: np.ndarray
                     Sum of rho_x over time, array shape (num_set.size, Lx).
-                count_rhox: np.ndarray
-                    Count of frames for different number of peak.
+                std_gap: np.ndarry
+                    Mean standard deviation of gaps for varied number of band
+                mean_v: np.ndarry
+                    Mean velocity of bands for increasing nb
         """
         num_set = np.unique(seg_num)
-        sum_rhox = {key: np.zeros(self.Lx) for key in num_set}
-        sum_std_gap = {key: 0 for key in num_set}
-        count_rhox = {key: 0 for key in num_set}
+        sum_rhox = {key: np.zeros(self.Lx) for key in num_set if key > 0}
+        sum_std_gap = {key: 0 for key in sum_rhox}
+        count_rhox = {key: 0 for key in sum_rhox}
+        sum_v = {key: 0 for key in sum_rhox}
+        count_v = {key: 0 for key in sum_rhox}
 
         for i in range(seg_idx0.size):
             nb = seg_num[i]
+            if nb == 0:
+                continue
             idx0 = seg_idx0[i]
             idx1 = seg_idx1[i]
-            skip = self.num_raw[idx0:idx1] == nb
+
+            # valid[i] == True if xs[i].size == nb
+            valid = self.num_raw[idx0:idx1] == nb
+
+            # Calculate mean rhox and standard deviation of gaps betwwen bands.
             gene_rhoxs = self.gene_frame(idx0 + self.beg, idx1 + self.end,
-                                         skip)
+                                         valid)
             for rhox, idx in gene_rhoxs:
                 xPeak = self.xs[idx - self.beg]
                 sum_rhox[nb] += get_ave_peak(
@@ -385,10 +476,16 @@ class TimeSerialsPeak:
                 sum_std_gap[nb] += get_std_gap(xPeak, self.Lx)
                 count_rhox[nb] += 1
 
-        sum_rhox = np.array([sum_rhox[key] for key in num_set])
-        sum_std_gap = np.array([sum_std_gap[key] for key in num_set])
-        count_rhox = np.array([count_rhox[key] for key in num_set])
-        return num_set, sum_rhox, sum_std_gap, count_rhox
+            # Calculate sum of velocity of bands
+            sum_v0, count_v0 = cal_v(self.xs[idx0:idx1], valid, self.Lx)
+            sum_v[nb] += sum_v0
+            count_v[nb] += count_v0
+
+        nb_set = np.array([nb for nb in sorted(sum_rhox.keys())])
+        mean_rhox = np.array([sum_rhox[nb] / count_rhox[nb] for nb in nb_set])
+        std_gap = np.array([sum_std_gap[nb] / count_rhox[nb] for nb in nb_set])
+        mean_v = np.array([sum_v[nb] / count_v[nb] for nb in nb_set])
+        return nb_set, mean_rhox, std_gap, mean_v
 
 
 class TimeSerialsPhi:
@@ -465,48 +562,25 @@ class TimeSerialsPhi:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\eps0")
+    # os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\uniband")
+    os.chdir(r"D:\tmp")
     eta = 350
-    eps = 0
-    Lx = 400
+    eps = 20
+    Lx = 460
     Ly = 200
-    seed = 214400
+    seed = 228460
     file = "rhox_%d.%d.%d.%d.%d.bin" % (eta, eps, Lx, Ly, seed)
     peak = TimeSerialsPeak(file, Lx)
-    # rhox, xPeak = peak.get_one_frame(50000)
-    # x = np.arange(Lx) + 0.5
-    # plt.plot(x, rhox, "k")
-    # rhox1 = get_ave_peak(rhox, Lx, xPeak, 180)
-    # plt.plot(x, rhox1, "b")
-    # rhox2 = get_ave_peak(rhox, Lx, xPeak, 180, interp="linear")
-    # plt.plot(x, rhox2, "g")
-    # rhox3 = get_ave_peak(rhox, Lx, xPeak, 180, interp="cubic")
-    # plt.plot(x, rhox3, "k")
-    # plt.axhline(1.8, c="r")
-    # plt.axvline(180, c="r")
-    # plt.axvline(xPeak[0], c="r")
-    # plt.show()
 
     peak.get_serials()
     x = np.arange(Lx) + 0.5
     seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
     print(seg_num)
-    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
-        seg_num, seg_idx0, seg_idx1, interp=None)
-    rhox1 = sum_rhox[0] / count_rhox[0]
-    plt.plot(x, rhox1, "r")
-    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
-        seg_num, seg_idx0, seg_idx1, interp="linear")
-    rhox2 = sum_rhox[0] / count_rhox[0]
-    plt.plot(x, rhox2, "--g")
-    # num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
-    #     seg_num, seg_idx0, seg_idx1, interp="cubic")
-    # rhox3 = sum_rhox[0] / count_rhox[0]
-    # plt.plot(x, rhox3, "b")
-    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+
+    nb_set, rhox2, std_gap, v2 = peak.cumulate(
         seg_num, seg_idx0, seg_idx1, interp="nplin")
-    rhox4 = sum_rhox[0] / count_rhox[0]
-    plt.plot(x, rhox4, "y")
+    plt.plot(x, rhox2[0], "y")
     plt.axhline(1.8, c="k")
     plt.axvline(180, c="k")
     plt.show()
+    print(v2)
