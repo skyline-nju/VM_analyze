@@ -93,5 +93,5 @@ def plot_peak(Lx, nb, eta=350, eps=20):
 
 
 if __name__ == "__main__":
-    plot_peak(460, 2)
-    # plot_rho_gas_vs_phi([440, 660, 880], [2, 3, 4])
+    # plot_peak(460, 2)
+    plot_rho_gas_vs_phi([440, 660, 880], [2, 3, 4])

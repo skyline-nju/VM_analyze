@@ -26,15 +26,16 @@ def time_average(file, rate_min=0.3):
 
     res = defaultdict(dict)
     tot = buff["seg_idx1"][-1] - buff["seg_idx0"][0]
-    for i, nb in enumerate(buff["num_set"]):
+    for i, nb in enumerate(buff["nb_set"]):
         if nb > 0:
             rate = count[nb] / tot
             if rate >= rate_min:
                 res[nb] = {
                     "mean_phi": sum_phi[nb] / count[nb],
                     "rate": rate,
-                    "ave_peak": buff["sum_rhox"][i] / buff["count_rhox"][i],
-                    "std_gap": buff["sum_std_gap"][i] / buff["count_rhox"][i]
+                    "ave_peak": buff["mean_rhox"][i],
+                    "std_gap": buff["std_gap"][i],
+                    "mean_v": buff["mean_v"][i],
                 }
     return res
 

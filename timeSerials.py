@@ -35,9 +35,9 @@ def cal_dx(x1, x2, Lx, dxm=50):
 
     if n == 1:
         dx = x2 - x1
-    elif x2[0] - x1[0] < dxm and x2[0] - x1[0] > 0:
+    elif 0 < x2[0] - x1[0] < dxm:
         dx = x2 - x1
-    elif x2[0] + Lx - x1[-1] < dxm:
+    elif 0 < x2[0] + Lx - x1[-1] < dxm:
         dx = np.array([x2[i] - x1[i - 1] for i in range(n)])
     else:
         print("Exception when calculating dx")
@@ -199,7 +199,7 @@ def locatePeak(rho_x, Lx, h=1.8):
             xPeak.append(xp)
 
     xPeak = check_gap(xPeak, 10, Lx)
-    xPeak = check_gap(xPeak, 100, Lx)
+    xPeak = check_gap(sorted(xPeak), 100, Lx)
     return np.array(sorted(xPeak))
 
 
@@ -409,7 +409,10 @@ class TimeSerialsPeak:
         for i in range(len(nb_set)):
             if i == 0:
                 x1 = end_point[i]
-                x2 = end_point[i + 1] - half_wdt
+                if len(nb_set) == 1:
+                    x2 = end_point[i + 1]
+                else:
+                    x2 = end_point[i + 1] - half_wdt
             elif i == len(nb_set) - 1:
                 x1 = end_point[i] + half_wdt
                 x2 = end_point[i + 1]
@@ -437,6 +440,8 @@ class TimeSerialsPeak:
                     Last index of each segment.
                 x_h: int
                     Roll the array of rho_x so that rho_x=h at x=x_h.
+                interp: str
+                    Method for interpolation
 
             Returns:
             --------
@@ -562,7 +567,7 @@ class TimeSerialsPhi:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    # os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\uniband")
+    # os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\eps0")
     os.chdir(r"D:\tmp")
     eta = 350
     eps = 20

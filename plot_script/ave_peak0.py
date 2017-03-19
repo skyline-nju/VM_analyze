@@ -49,7 +49,8 @@ def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
                 if nb == nb0:
                     fracs.append(Fraction(Lx - nb * lambd, nb * lambd))
                     Lxs.append(Lx)
-                    peaks.append(dict_LSN[Lx][seed][nb]["ave_peak"])
+                    peak = dict_LSN[Lx][seed][nb]["ave_peak"]
+                    peaks.append(peak)
             break  # only show one sample
 
     clist = plt.cm.viridis(np.linspace(0, 1, len(Lxs)))
@@ -112,4 +113,5 @@ if __name__ == "__main__":
     dict_LSN = read_matched_file()
     # equal_Lr_over_nb(Fraction(sys.argv[1]))
     # equal_nb(2)
-    four_panel()
+    # four_panel()
+    plot_eq_nb(2)

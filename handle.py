@@ -23,7 +23,7 @@ def plot_serials(para: list,
                  beg_movAve: np.ndarray,
                  end_movAve: np.ndarray,
                  phi_movAve: np.ndarray,
-                 show=True):
+                 show=False):
     """ Plot time serials of peak number and phi."""
 
     import matplotlib.pyplot as plt
@@ -74,10 +74,10 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, interp=None,
             beg_movAve=beg_movAve,
             end_movAve=end_movAve,
             phi_movAve=phi_movAve,
-            num_set=num_set,
-            sum_rhox=sum_rhox,
-            sum_std_gap=sum_std_gap,
-            count_rhox=count_rhox)
+            nb_set=nb_set,
+            mean_rhox=mean_rhox,
+            std_gap=std_gap,
+            mean_v=mean_v)
         return file
 
     file_phi = "p%d.%d.%d.%d.%d.dat" % (eta, eps, Lx, Ly, seed)
@@ -94,7 +94,7 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, interp=None,
     seg_num, seg_idx0, seg_idx1 = peak.segment(peak.num_smoothed)
     seg_phi = phi.segment(seg_idx0, seg_idx1)
     beg_movAve, end_movAve, phi_movAve = phi.moving_average()
-    num_set, sum_rhox, sum_std_gap, count_rhox = peak.cumulate(
+    nb_set, mean_rhox, std_gap, mean_v = peak.cumulate(
         seg_num, seg_idx0, seg_idx1, interp=interp)
     para = [eta, eps, Lx, Ly, seed]
     plot_serials(
@@ -109,8 +109,7 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, interp=None,
         seg_phi,
         beg_movAve,
         end_movAve,
-        phi_movAve,
-        show=show)
+        phi_movAve)
     outfile = output()
     return outfile
 
