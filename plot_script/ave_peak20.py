@@ -7,42 +7,6 @@ from axes_zoom_effect import zoom_effect03
 from read_npz import read_matched_file, eq_Lx_and_nb
 
 
-def plot_rho_gas_vs_phi(Lx, nb, eta=350, eps=20):
-    def one_Lx(Lx0, nb0, maker):
-        if Lx0 == 440:
-            os.chdir(path2)
-        else:
-            os.chdir(path1)
-        rho_0 = 1
-        dictLSN = read_matched_file({"Lx": Lx0, "eps": eps, "eta": eta})
-        f = eq_Lx_and_nb(Lx0, nb0, "mean_phi", dictLSN=dictLSN)
-        phi = np.array([i for i in f])
-        f = eq_Lx_and_nb(Lx0, nb0, "ave_peak", dictLSN=dictLSN)
-        rho_gas = np.array([peak[190:230].mean() for peak in f])
-        ax.plot(
-            rho_0 - rho_gas,
-            phi,
-            maker,
-            label=r"$L_x=%d, n_b=%d$" % (Lx0, nb0))
-        z = np.polyfit(rho_0 - rho_gas, phi, 1)
-        print(z)
-
-    path1 = "E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20"
-    path2 = "E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband"
-
-    ax = plt.subplot(111)
-    mk = ["ro", "bs", "g>", "k<"]
-    if isinstance(Lx, list):
-        for i, Lx0 in enumerate(Lx):
-            one_Lx(Lx0, nb[i], mk[i])
-    else:
-        one_Lx(Lx, nb)
-
-    plt.legend(loc="best")
-    plt.show()
-    plt.close()
-
-
 def plot_peak(Lx, nb, eta=350, eps=20):
     """ Plot time-averaged peaks for differernt samples with zoom effect."""
 
@@ -53,10 +17,10 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     ax2 = plt.subplot(223)
     ax3 = plt.subplot(224)
 
-    ax1.set_xlim(60, 240)
-    ax3.set_xlim(190, 230)
+    ax1.set_xlim(60, 220)
+    ax3.set_xlim(190, 210)
     ax3.set_ylim(0.45, 0.5)
-    zoom_effect03(ax3, ax1, 190, 230, loc="downward")
+    zoom_effect03(ax3, ax1, 190, 210, loc="downward")
 
     dictLSN = read_matched_file({"Lx": Lx, "eta": eta, "eps": eps})
     phi = np.array(
@@ -88,10 +52,10 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     cb.set_label(r"$\langle \phi \rangle_t$")
 
     plt.show()
-    # plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak20.png")
+    # plt.savefig(
+    #     r"E:\report\quenched_disorder\report\fig\ave_peak20.pdf", dpi=300)
     plt.close()
 
 
 if __name__ == "__main__":
-    # plot_peak(460, 2)
-    plot_rho_gas_vs_phi([440, 660, 880], [2, 3, 4])
+    plot_peak(460, 2)

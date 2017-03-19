@@ -123,7 +123,7 @@ def two_panel():
     ax2.set_xlabel(r"$L_x$")
     ax1.set_ylabel(r"$\langle \phi \rangle_t$")
     ax1.set_title(r"(a) several samples per $L_x$")
-    ax2.set_title(r"(b) around 50 samples per $L_x$")
+    ax2.set_title(r"(b) around 60 samples per $L_x$")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0.02, \rho_0=1, L_y=200, n_b=%d$" % (nb),
@@ -141,4 +141,6 @@ def two_panel():
 
 
 if __name__ == "__main__":
+    # os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
+    # plot_phi_Lx_const_nb(2)
     two_panel()
