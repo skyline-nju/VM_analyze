@@ -17,10 +17,10 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     ax2 = plt.subplot(223)
     ax3 = plt.subplot(224)
 
-    ax1.set_xlim(60, 220)
-    ax3.set_xlim(190, 210)
-    ax3.set_ylim(0.45, 0.5)
-    zoom_effect03(ax3, ax1, 190, 210, loc="downward")
+    ax1.set_xlim(60, 210)
+    ax3.set_xlim(190, 200)
+    ax3.set_ylim(0.45, 0.49)
+    zoom_effect03(ax3, ax1, 190, 200, loc="downward")
 
     dictLSN = read_matched_file({"Lx": Lx, "eta": eta, "eps": eps})
     phi = np.array(
@@ -34,7 +34,7 @@ def plot_peak(Lx, nb, eta=350, eps=20):
             eq_Lx_and_nb(Lx, nb, "ave_peak", dictLSN=dictLSN)):
         ax1.plot(x, peak, c=color_list[i], lw=0.8)
         ax3.plot(x, peak, c=color_list[i])
-        rho_gas[i] = np.mean(peak[190:230])
+        rho_gas[i] = np.mean(peak[190:210])
     ax2.axis("auto")
     sca = ax2.scatter(rho_gas, phi, c=phi, cmap="jet")
     z = np.polyfit(rho_gas, phi, 1)

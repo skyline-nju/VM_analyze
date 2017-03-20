@@ -18,25 +18,25 @@ def plot_phi_Lx_const_nb(nb,
 
         Parameters:
         --------
-            nb: int
-                Number of bands.
-            Para: list
-                List of parameters: eta, $eta, eps, $eps...
-            dict_LSN: dict
-                A dict with keys: Lx->seed->nb
-            dict_NLS: dict
-                A dict with keys: nb->Lx->seed
-            fit: str
-                Method to fit the plot of sample-averaged order parameters.
-            vlim: list
-                The limitation of color list.
-            ax: matplotlib.axes
-                Axes of matplotlib
+        nb : int
+            Number of bands.
+        Para : list
+            List of parameters: eta, $eta, eps, $eps...
+        dict_LSN : dict
+            A dict with keys: Lx->seed->nb.
+        dict_NLS : dict
+            A dict with keys: nb->Lx->seed.
+        fit : str
+            Method to fit the plot of sample-averaged order parameters.
+        vlim : list
+            The limitation of color list.
+        ax : matplotlib.axes
+            Axes of matplotlib.
 
         Returns:
         --------
-            sca: plt.scatter
-                Scatter plot.
+        sca: plt.scatter
+            Scatter plot.
     """
     if dict_NLS is None:
         dict_NLS = get_dict_NLS(para, dict_LSN)
