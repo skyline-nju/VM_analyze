@@ -15,6 +15,21 @@ except:
 
 
 def time_average(file, rate_min=0.3):
+    """ Get time-averaged variables from a given sample.
+
+        parameters:
+        --------
+        file: str
+            Input file.
+        rate_min: float, optional
+            Minimum rate to accept a state of nb at given Lx.
+
+        Returns:
+        --------
+        res: dict
+            Key: nb, subkeys: "mean_phi", "rate", "ave_peak", "std_gap",
+            "mean_v".
+    """
     buff = np.load(file)
     sum_phi = defaultdict(float)
     count = defaultdict(int)
@@ -30,6 +45,7 @@ def time_average(file, rate_min=0.3):
         if nb > 0:
             rate = count[nb] / tot
             if rate >= rate_min:
+
                 res[nb] = {
                     "mean_phi": sum_phi[nb] / count[nb],
                     "rate": rate,
@@ -38,6 +54,39 @@ def time_average(file, rate_min=0.3):
                     "mean_v": buff["mean_v"][i],
                 }
     return res
+
+
+def sample_average(Lx, eps, eta=350, Ly=200, rate_min=0.2):
+    """ Get sample-averaged variables for give parameters.
+
+        Parameters:
+        --------
+        Lx, eps, eta, Ly: int
+            Parameters.
+        rate_min: float
+            Minimum rate to accept a nb at given Lx
+
+        Returns:
+        --------
+        phi: dict
+            Sample-averaged order parameters for Lx, nb
+        rate: dict
+            Rate of nb at given Lx
+    """
+    files = glob.glob("mb_%d.%d.%d.%d.*.npz" % (eta, eps, Lx, Ly))
+    sum_phi = defaultdict(float)
+    weight = defaultdict(float)
+    tot = 0
+
+    for file in files:
+        dict0 = time_average(file, rate_min)
+        for nb in dict0:
+            sum_phi[nb] += dict0[nb]["mean_phi"] * dict0[nb]["rate"]
+            weight[nb] += dict0[nb]["rate"]
+        tot += 1
+    phi = {nb: sum_phi[nb] / weight[nb] for nb in sum_phi}
+    rate = {nb: weight[nb] / tot for nb in weight}
+    return phi, rate
 
 
 def read_matched_file(para: dict={}) -> dict:

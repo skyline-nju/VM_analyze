@@ -123,7 +123,7 @@ def two_panel():
     ax2.set_xlabel(r"$L_x$")
     ax1.set_ylabel(r"$\langle \phi \rangle_t$")
     ax1.set_title(r"(a) several samples per $L_x$")
-    ax2.set_title(r"(b) around 60 samples per $L_x$")
+    ax2.set_title(r"(b) around 70 samples per $L_x$")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0.02, \rho_0=1, L_y=200, n_b=%d$" % (nb),
@@ -135,8 +135,8 @@ def two_panel():
     cb = fig.colorbar(sca, cax=cbar_ax)
     cb.set_label("Probability")
 
-    plt.show()
-    # plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.png")
+    # plt.show()
+    plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.pdf")
     plt.close()
 
 

@@ -148,7 +148,7 @@ def four_panels():
         v_m[i] = np.mean(v)
         rho_exc_m[i] = np.mean(rho_exc)
         ax1.plot(rho_exc, u, "o", label=r"$L_x=%d$" % (Lx))
-        print("Lx=%d, v=%f" % (Lx, v.mean()))
+        print("Lx=%d, eps=0.02, c=%g, slope=%g" % (Lx, v.mean(), slope[i]))
 
     llabel = r"$|{\bf v}| \propto c \left (\rho_0-\rho_{\rm gas}\right )$"
     slope_line(ax1, np.mean(v_m), 0.5225, 0.2135, 0.545, llabel, 0.5, 0.45, 50)
@@ -166,11 +166,11 @@ def four_panels():
         c_list.append(line.get_c())
     z = np.polyfit(rho_exc_m, u_m, 1)
     ym = z[0] * x + z[1]
-    ax2.plot(x, ym, "k:", lw=3, label="linear fit")
+    ax2.plot(x, ym, "k--", lw=3, label="linear fit")
     for i in range(slope.size):
         ax2.plot(
             rho_exc_m[i], u_m[i], "s", c=c_list[i], label=r"$L_x=%d$" % Lxs[i])
-
+    print("sample average: eps=0.02, c=%g, slope=%g" % (np.mean(v_m), z[0]))
     slope_line(ax2, np.mean(v_m), 0.531, ym.min(), 0.538, llabel, 0.5, 0.4, 47)
     ax2.axis("tight")
     ax2.set_title(r"(b)$\epsilon=0.02, n_b=2$, sample average")
@@ -197,13 +197,15 @@ def four_panels():
     z = np.polyfit(rho_exc, u, 1)
     x = np.linspace(rho_exc.min() - 0.0005, rho_exc.max() + 0.0005, 50)
     y = x * z[0] + z[1]
-    ax4.plot(x, y, "k:", label="liner fit", lw=2)
+    ax4.plot(x, y, "k--", label="liner fit", lw=2)
     for i in range(u.size):
         ax4.plot(rho_exc[i], u[i], "o", label=r"$L_x=%d$" % (Lx[i]))
 
     slope_line(ax4, np.mean(v), 0.6015, y.min(), 0.608, llabel, 0.5, 0.45, 48)
     ax4.set_title(r"(d)$\epsilon=0, n_b=2$")
     ax4.legend(loc=(0.01, 0.4), labelspacing=0.2)
+
+    print("eps=0, c=%g, slope=%g" % (v.mean(), z[0]))
 
     # set labels of x, y axis
     xlabel = r"$\rho_0-\rho_{\rm gas}$"
@@ -213,7 +215,7 @@ def four_panels():
         ax.text(0.01, 0.94, ylabel, fontsize=14, transform=ax.transAxes)
     plt.tight_layout()
 
-    # plt.savefig(r"E:\report\quenched_disorder\report\fig\rho_exc.eps")
+    # plt.savefig(r"E:\report\quenched_disorder\report\fig\rho_exc.pdf")
     plt.show()
     plt.close()
 

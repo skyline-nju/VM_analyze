@@ -10,7 +10,7 @@ from read_npz import read_matched_file, fixed_para
 
 def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
                             ax: matplotlib.axes=None,
-                            lamb: int=180, order=None):
+                            lamb: int=180):
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
@@ -29,16 +29,13 @@ def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
     ax.set_ylim(0, 4.5)
     ax.set_xlabel(r"$x$")
     ax.set_ylabel(r"$\langle \overline{\rho}_y(x)\rangle_t$")
-    if order is not None:
-        ax.set_title(r"%s$L_r/n_b\lambda=%s$" % (order, str(ratio)))
-    ax.legend()
+    ax.legend(title=r"$L_r/n_b\lambda=%s$" % str(ratio))
     if flag_show:
-        ax.legend(title=r"$L_r/n_b\lambda=%s$" % str(ratio))
         plt.show()
         plt.close()
 
 
-def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180, order=None):
+def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
@@ -63,16 +60,18 @@ def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180, order=None):
             peak,
             c=clist[i],
             lw=0.8,
-            label=r"$L_x=%d,L_r/n_b\lambda=%s$" % (Lxs[i], fracs[i]))
+            label=r"$L_r/n_b\lambda=%s$" % (fracs[i]))
     ax.set_xlim(80, 200)
     ax.set_ylim(0, 4.5)
     ax.set_xlabel(r"$x$")
     ax.set_ylabel(r"$\langle \overline{\rho}_y(x)\rangle_t$")
-    if order is not None:
-        ax.set_title(r"%s$n_b=%d$" % (order, nb0))
     ax.legend(loc="best", fontsize="x-small")
+    ax.legend(
+        title=r"$n_b=%d$" % nb0,
+        loc="best",
+        fontsize="x-small",
+        labelspacing=0.1)
     if flag_show:
-        ax.legend(title=r"$n_b=%d$" % nb0, loc="best", fontsize="x-small")
         plt.show()
         plt.close()
 
@@ -102,12 +101,17 @@ def eq_nb3():
 
 
 def four_panel():
-    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(8, 7))
-    plot_eq_Lr_over_nb_lamb(Fraction(0, 18), axes[0][0], order="(a)")
-    plot_eq_Lr_over_nb_lamb(Fraction(-1, 18), axes[0][1], order="(b)")
-    plot_eq_Lr_over_nb_lamb(Fraction(1, 18), axes[1][0], order="(c)")
-    plot_eq_nb(2, axes[1][1], order="(d)")
-    plt.suptitle(r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200$", color="b")
+    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(8, 6))
+    plot_eq_Lr_over_nb_lamb(Fraction(0, 18), axes[0][0])
+    plot_eq_Lr_over_nb_lamb(Fraction(-1, 18), axes[0][1])
+    plot_eq_Lr_over_nb_lamb(Fraction(1, 18), axes[1][0])
+    plot_eq_nb(2, axes[1][1])
+    order = ["(a)", "(b)", "(c)", "(d)"]
+    bbox = dict(edgecolor="k", fill=False)
+    for i, ax in enumerate(axes.flat):
+        ax.text(0.92, 0.92, order[i], transform=ax.transAxes, bbox=bbox)
+    plt.suptitle(
+        r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=220$", color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     # plt.show()
     plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak0.pdf")
