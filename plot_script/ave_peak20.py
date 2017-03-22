@@ -56,11 +56,11 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     ylabel = r"$x$"
     ax1.text(0.01, 0.93, xlabel, transform=ax1.transAxes)
     ax1.text(0.95, 0.07, ylabel, transform=ax1.transAxes)
-    ax2.text(0.01, 0.93, xlabel, transform=ax2.transAxes)
+    ax2.text(0.01, 0.93, r"$\langle \phi \rangle_t$", transform=ax2.transAxes)
     ax2.text(0.87, 0.02, r"$\rho_{\rm gas}$", transform=ax2.transAxes)
     ax3.text(0.01, 0.93, xlabel, transform=ax3.transAxes)
     ax3.text(0.95, 0.02, ylabel, transform=ax3.transAxes)
-    ax4.text(0.01, 0.93, xlabel, transform=ax4.transAxes)
+    ax4.text(0.01, 0.93, r"$\langle \phi \rangle_t$", transform=ax4.transAxes)
     ax4.text(
         0.75,
         0.02,
@@ -75,9 +75,9 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     fig.colorbar(sca, cax=cbar_ax)
     fig.text(0.88, 0.9, r"$\langle \phi \rangle_t$", color="b", fontsize=14)
 
-    # plt.show()
-    plt.savefig(
-        r"E:\report\quenched_disorder\report\fig\ave_peak20.pdf", dpi=300)
+    plt.show()
+    # plt.savefig(
+    #     r"E:\report\quenched_disorder\report\fig\ave_peak20.pdf", dpi=300)
     plt.close()
 
 

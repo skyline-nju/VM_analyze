@@ -70,9 +70,16 @@ def subplot(ax, Lx, phi, rate, nb, lamb, Ly, dLx, eta, eps, rho0=1):
         r"$\Phi_c=%f$" % z[1],
         transform=ax.transAxes,
         color=line.get_c())
-    ax.text(0.38, 0.82, r"$\eta=%g, \epsilon=%g, \rho_0=%g$" % (eta, eps, rho0), transform=ax.transAxes)
-    ax.text(0.38, 0.75, r"$L_y=%d, \Delta L_x=%d, \lambda=%d$" % (Ly, dLx, lamb), transform=ax.transAxes)
-    
+    ax.text(
+        0.38,
+        0.82,
+        r"$\eta=%g, \epsilon=%g, \rho_0=%g$" % (eta, eps, rho0),
+        transform=ax.transAxes)
+    ax.text(
+        0.38,
+        0.75,
+        r"$L_y=%d, \Delta L_x=%d, \lambda=%d$" % (Ly, dLx, lamb),
+        transform=ax.transAxes)
 
 
 if __name__ == "__main__":

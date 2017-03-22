@@ -135,8 +135,8 @@ def two_panel():
     cb = fig.colorbar(sca, cax=cbar_ax)
     cb.set_label("Probability")
 
-    # plt.show()
-    plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.pdf")
+    plt.show()
+    # plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.pdf")
     plt.close()
 
 
