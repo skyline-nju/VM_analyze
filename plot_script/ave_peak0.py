@@ -27,9 +27,11 @@ def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
 
     ax.set_xlim(80, 200)
     ax.set_ylim(0, 4.5)
-    ax.set_xlabel(r"$x$")
-    ax.set_ylabel(r"$\langle \overline{\rho}_y(x)\rangle_t$")
-    ax.legend(title=r"$L_r/n_b\lambda=%s$" % str(ratio))
+    ylabel = r"$\langle \overline{\rho}_y(x)\rangle_t$"
+    ax.text(0.02, 0.92, ylabel, transform=ax.transAxes)
+    ax.text(0.96, 0.02, r"$x$", transform=ax.transAxes)
+
+    ax.legend(title=r"$L_r/n_b\lambda=%s$" % str(ratio), loc=(0.02, 0.4))
     if flag_show:
         plt.show()
         plt.close()
@@ -63,12 +65,14 @@ def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
             label=r"$L_r/n_b\lambda=%s$" % (fracs[i]))
     ax.set_xlim(80, 200)
     ax.set_ylim(0, 4.5)
-    ax.set_xlabel(r"$x$")
-    ax.set_ylabel(r"$\langle \overline{\rho}_y(x)\rangle_t$")
-    ax.legend(loc="best", fontsize="x-small")
+    # ax.set_xlabel(r"$x$")
+    # ax.set_ylabel(r"$\langle \overline{\rho}_y(x)\rangle_t$")
+    ylabel = r"$\langle \overline{\rho}_y(x)\rangle_t$"
+    ax.text(0.02, 0.92, ylabel, transform=ax.transAxes)
+    ax.text(0.96, 0.02, r"$x$", transform=ax.transAxes)
     ax.legend(
         title=r"$n_b=%d$" % nb0,
-        loc="best",
+        loc=(0.02, 0.3),
         fontsize="x-small",
         labelspacing=0.1)
     if flag_show:
@@ -112,7 +116,7 @@ def four_panel():
         ax.text(0.92, 0.92, order[i], transform=ax.transAxes, bbox=bbox)
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=220$", color="b")
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout(rect=[0, 0, 1, 0.975])
     plt.show()
     # plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak0.pdf")
     plt.close()

@@ -30,24 +30,47 @@ def plot_serials(para: list,
 
     eta, eps, Lx, Ly, seed = para
     fig, (ax1, ax2) = plt.subplots(
-        nrows=2, ncols=1, sharex=True, figsize=(10, 6))
+        nrows=2, ncols=1, sharex=True, figsize=(10, 4))
     t = np.arange(t_beg, t_end) * 100
-    ax1.plot(t, num_raw)
-    ax1.plot(t, num_smoothed)
-    for i in range(seg_num.size):
-        ax1.plot((seg_idx0[i] + t_beg) * 100, seg_num[i], "k>")
-        ax1.plot((seg_idx1[i] + t_beg) * 100, seg_num[i], "k<")
-    ax1.set_ylabel(r"$n_b$")
+    ax1.plot(t, num_raw, "y-", label="raw")
+    ax1.plot(t, num_smoothed, "r--", label="smoothed")
 
-    ax2.plot(np.arange(beg_movAve, end_movAve) * 100, phi_movAve)
+    tBeg = (seg_idx0 + t_beg) * 100
+    tEnd = (seg_idx1 + t_beg) * 100
+    ax2.plot(
+        np.arange(beg_movAve, end_movAve) * 100,
+        phi_movAve,
+        "-",
+        label="moving average")
     for i in range(seg_num.size):
-        ax2.plot([(seg_idx0[i] + t_beg) * 100, (seg_idx1[i] + t_beg) * 100],
-                 [seg_phi[i]] * 2)
-    ax2.set_xlabel(r"$t$")
-    ax2.set_ylabel(r"$\phi$")
-    ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, seed=%d$" %
-                  (eta / 1000, eps / 1000, Lx, Ly, seed))
+        line, = ax2.plot([tBeg[i], tEnd[i]], [seg_phi[i]] * 2, "k-", lw=3)
+    line.set_label("averaged over shadow region")
+
+    # add vertical span on valid regions
+    for i in range(seg_num.size):
+        ax1.axvspan(tBeg[i], tEnd[i], alpha=0.2)
+        ax2.axvspan(tBeg[i], tEnd[i], alpha=0.2)
+
+    # set label and title
+    ax1.text(0.01, 0.9, r"$n_b$", transform=ax1.transAxes, fontsize="large")
+    ax2.text(0.01, 0.9, r"$\phi$", transform=ax2.transAxes, fontsize="large")
+    ax1.text(0.985, 0.01, r"$t$", transform=ax1.transAxes, fontsize="large")
+    ax2.text(0.985, 0.01, r"$t$", transform=ax2.transAxes, fontsize="large")
+    bbox = dict(edgecolor="k", fill=False)
+    ax1.text(0.972, 0.87, "$(a)$", transform=ax1.transAxes, bbox=bbox)
+    ax2.text(0.97, 0.875, "$(b)$", transform=ax2.transAxes, bbox=bbox)
+    
+    ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, {\rm seed}=%d$"
+                  % (eta / 1000, eps / 1000, Lx, Ly, seed))
+
+    # set lims of x, y axis
+    ax1.set_xlim(1e6, 1.2e7)
+    ax1.set_ylim(3.8, 6.2)
+
+    plt.tight_layout()
     if show:
+        ax1.legend()
+        ax2.legend(loc=(0.45, 0.05))
         plt.show()
     else:
         outfile = "ts_%d.%d.%d.%d.%d.png" % (eta, eps, Lx, Ly, seed)
@@ -97,19 +120,9 @@ def handle(eta, eps, Lx, Ly, seed, t_beg=10000, h=1.8, interp=None,
     nb_set, mean_rhox, std_gap, mean_v = peak.cumulate(
         seg_num, seg_idx0, seg_idx1, interp=interp)
     para = [eta, eps, Lx, Ly, seed]
-    plot_serials(
-        para,
-        t_beg,
-        t_end,
-        peak.num_raw,
-        peak.num_smoothed,
-        seg_num,
-        seg_idx0,
-        seg_idx1,
-        seg_phi,
-        beg_movAve,
-        end_movAve,
-        phi_movAve)
+    plot_serials(para, t_beg, t_end, peak.num_raw, peak.num_smoothed, seg_num,
+                 seg_idx0, seg_idx1, seg_phi, beg_movAve, end_movAve,
+                 phi_movAve)
     outfile = output()
     return outfile
 

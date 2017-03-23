@@ -10,6 +10,7 @@ sys.path.append("../")
 
 try:
     import common
+    from handle import plot_serials
 except:
     raise
 
@@ -283,11 +284,26 @@ def get_dict_NLS(para={}, dictLSN=None) -> dict:
     return dict_NLS
 
 
+def plot_time_serials(file):
+    buff = np.load(file)
+    para = common.get_para(file)
+    plot_serials(
+        para,
+        buff["t_beg_end"][0],
+        buff["t_beg_end"][1],
+        buff["num_raw"],
+        buff["num_smoothed"],
+        buff["seg_num"],
+        buff["seg_idx0"],
+        buff["seg_idx1"],
+        buff["seg_phi"],
+        buff["beg_movAve"],
+        buff["end_movAve"],
+        buff["phi_movAve"],
+        show=True)
+
+
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
-    dictLSN = read_matched_file()
-    f = eq_Lx_and_nb(400, 2, "mean_phi", dictLSN=dictLSN)
-    phi = np.array([x for x in f])
-    # f = fixed_para("mean_phi", Lx=400, nb=2, dictLSN=dictLSN)
-    # phi = np.array([x[0] for x in f])
-    print(np.mean(phi))
+    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
+    file = "mb_350.20.1000.200.2151000.npz"
+    plot_time_serials(file)
