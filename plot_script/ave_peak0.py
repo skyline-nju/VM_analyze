@@ -113,8 +113,8 @@ def four_panel():
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=220$", color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    # plt.show()
-    plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak0.pdf")
+    plt.show()
+    # plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak0.pdf")
     plt.close()
 
 

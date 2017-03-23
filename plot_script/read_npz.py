@@ -56,7 +56,7 @@ def time_average(file, rate_min=0.3):
     return res
 
 
-def sample_average(Lx, eps, eta=350, Ly=200, rate_min=0.2):
+def sample_average(Lx, eps, eta=350, Ly=200, rate_min=0.3):
     """ Get sample-averaged variables for give parameters.
 
         Parameters:

@@ -4,6 +4,7 @@ import os
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import defaultdict
 from read_npz import read_matched_file, eq_Lx_and_nb, time_average
 
 
@@ -11,7 +12,7 @@ def get_data(nb, Lx=None):
     if Lx is None:
         os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps0")
         if nb == 2:
-            Lxs = range(300, 460, 20)
+            Lxs = range(280, 460, 20)
         elif nb == 3:
             Lxs = range(460, 740, 20)
         elif nb == 4:
@@ -54,20 +55,28 @@ def get_data(nb, Lx=None):
         return phi, peak, v
 
 
-def get_data_varied_eta(nb=2, Lx=440):
+def get_data_varied_eta(Lx, nb=2, Ly=200, eps=0, rho0=1):
     os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\varied_eta")
-    files = glob.glob("*.npz")
-    eta = np.zeros(len(files))
-    phi = np.zeros_like(eta)
-    v = np.zeros_like(eta)
-    peak = np.zeros((phi.size, Lx))
-    for i, file in enumerate(files):
-        eta[i] = int(file.replace("mb_", "").split(".")[0]) / 1000
+    files = glob.glob("mb_*.%d.%d.%d.*.npz" % (eps, Lx, Ly))
+    phi = defaultdict(float)
+    c = defaultdict(float)
+    rho_exc = defaultdict(float)
+    weight = defaultdict(float)
+    for file in files:
+        eta = int(file.replace("mb_", "").split(".")[0]) / 1000
         data0 = time_average(file)
-        phi[i] = data0[nb]["mean_phi"]
-        v[i] = data0[nb]["mean_v"]
-        peak[i] = data0[nb]["ave_peak"]
-    return phi, peak, v, eta
+        if nb in data0:
+            rate = data0[nb]["rate"]
+            phi[eta] += data0[nb]["mean_phi"] * rate
+            c[eta] += data0[nb]["mean_v"] * rate
+            peak = data0[nb]["ave_peak"]
+            rho_exc[eta] += (rho0 - np.mean(peak[190: 200])) * rate
+            weight[eta] += rate
+    eta = np.array(sorted(phi.keys()))
+    phi = np.array([phi[key]/weight[key] for key in eta])
+    rho_exc = np.array([rho_exc[key]/weight[key] for key in eta])
+    c = np.array([c[key]/weight[key] for key in eta])
+    return eta, phi, rho_exc, c
 
 
 def plot_eq_nb_and_Lx(nb, Lx):
@@ -151,26 +160,32 @@ def disorder_free(v0=0.5):
     fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
     # subplot(121)
     phi, peak, c, Lx = get_data(2)
-    rho_exc = get_rho_exc(peak, xmax=200)
+    rho_exc = get_rho_exc(peak, xmax=195)
     v = phi * v0
     u = rho_exc * c
-    ax1.plot(u, v, "o")
+    for i in range(v.size):
+        ax1.plot(u[i], v[i], "o", label=r"$L_x=%d$" % Lx[i])
+    z = np.polyfit(u[4:], v[4:], 1)
+    print(z)
+    ax1.legend(fontsize="small", loc=(0.01, 0.3))
+    # subplot(122)
+
+    Lx0 = 440
+    eta, phi, rho_exc, c = get_data_varied_eta(Lx0)
+    v = phi * v0
+    u = rho_exc * c
+
+    for i in range(v.size):
+        ax2.plot(u[i], v[i], "o", label=r"$\eta=%g$" % eta[i])
     z = np.polyfit(u, v, 1)
     print(z)
-
-    # subplot(122)
-    phi, peak, c, Lx = get_data_varied_eta()
-    rho_exc = get_rho_exc(peak, xmax=200)
-    v = phi * v0
-    u = rho_exc * c
-    ax2.plot(u, v, "o")
-
+    ax2.legend(fontsize="small", loc=(0.01, 0.45))
     # add line to show slope
     add_slope_line(ax1, 1, 0.6, 0.4)
     add_slope_line(ax2, 1, 0.6, 0.4)
 
-    ax1.set_title(r"(a)$\epsilon=0, n_b=2, {\rm varied}\ L_x$")
-    ax2.set_title(r"(b)$\epsilon=0, n_b=2, {\rm varied}\ \eta$")
+    ax1.set_title(r"(a)$\eta=0.35, \epsilon=0, n_b=2, {\rm varied}\ L_x$")
+    ax2.set_title(r"(b)$L_x=440, \epsilon=0, n_b=2, {\rm varied}\ \eta$")
 
     # set axis label
     xlabel = r"$|{\bf v}|$"
@@ -233,12 +248,12 @@ def plot_eps20(v0=0.5):
     slope_m = np.zeros(Lxs.size)
     for i, Lx in enumerate(Lxs):
         phi, peak, c = get_data(2, Lx)
-        rho_exc = get_rho_exc(peak)
+        rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
         u = rho_exc * c
         v = phi * v0
         ax1.plot(u, v, "o", ms=3, label=r"$L_x=%d$" % Lx)
         slope_m[i] = np.polyfit(u, v, 1)[0]
-        u_m[i] = np.mean(u)
+        u_m[i] = u.mean()
         v_m[i] = np.mean(v)
 
     # subplot(122)
