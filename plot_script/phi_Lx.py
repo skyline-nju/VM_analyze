@@ -104,7 +104,7 @@ def plot_phi_Lx_const_nb(nb,
 
 def two_panel():
     nb = 2
-    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
+    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8.5, 4))
 
     ymin = 0.427
     ymax = 0.452
@@ -124,16 +124,16 @@ def two_panel():
     ax1.set_ylabel(r"$\langle \phi \rangle_t$")
     ax1.set_title(r"(a) several samples per $L_x$")
     ax2.set_title(r"(b) around 80 samples per $L_x$")
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0.02, \rho_0=1, L_y=200, n_b=%d$" % (nb),
         color="b")
 
     # add colorbar
-    fig.subplots_adjust(right=0.87)
-    cbar_ax = fig.add_axes([0.89, 0.15, 0.03, 0.7])
+    fig.subplots_adjust(right=0.89)
+    cbar_ax = fig.add_axes([0.905, 0.15, 0.03, 0.7])
     cb = fig.colorbar(sca, cax=cbar_ax)
-    cb.set_label("Probability")
+    cb.set_label(r"Probability of $n_b=2$ for a given sample")
 
     plt.show()
     # plt.savefig(r"E:\report\quenched_disorder\report\fig\phi_Lx_zoom.pdf")

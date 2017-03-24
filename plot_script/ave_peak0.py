@@ -115,7 +115,7 @@ def four_panel():
     for i, ax in enumerate(axes.flat):
         ax.text(0.92, 0.92, order[i], transform=ax.transAxes, bbox=bbox)
     plt.suptitle(
-        r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=220$", color="b")
+        r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=180$", color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.975])
     plt.show()
     # plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak0.pdf")
