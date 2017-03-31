@@ -62,6 +62,7 @@ def get_data_varied_eta(Lx, nb=2, Ly=200, eps=0, rho0=1):
     c = defaultdict(float)
     rho_exc = defaultdict(float)
     weight = defaultdict(float)
+    count = defaultdict(int)
     for file in files:
         eta = int(file.replace("mb_", "").split(".")[0]) / 1000
         data0 = time_average(file)
@@ -72,10 +73,25 @@ def get_data_varied_eta(Lx, nb=2, Ly=200, eps=0, rho0=1):
             peak = data0[nb]["ave_peak"]
             rho_exc[eta] += (rho0 - np.mean(peak[190:200])) * rate
             weight[eta] += rate
-    eta = np.array(sorted(phi.keys()))
-    phi = np.array([phi[key] / weight[key] for key in eta])
-    rho_exc = np.array([rho_exc[key] / weight[key] for key in eta])
-    c = np.array([c[key] / weight[key] for key in eta])
+        count[eta] += 1
+    # eta = np.array(sorted(phi.keys()))
+    # phi = np.array([phi[key] / weight[key] for key in eta])
+    # rho_exc = np.array([rho_exc[key] / weight[key] for key in eta])
+    # c = np.array([c[key] / weight[key] for key in eta])
+    eta_list = []
+    phi_list = []
+    rho_exc_list = []
+    c_list = []
+    for eta in sorted(phi.keys()):
+        if weight[eta] / count[eta] > 0.25:
+            eta_list.append(eta)
+            phi_list.append(phi[eta] / weight[eta])
+            rho_exc_list.append(rho_exc[eta] / weight[eta])
+            c_list.append(c[eta] / weight[eta])
+    eta = np.array(eta_list)
+    phi = np.array(phi_list)
+    rho_exc = np.array(rho_exc_list)
+    c = np.array(c_list)
     return eta, phi, rho_exc, c
 
 
@@ -139,9 +155,9 @@ def case_eps0_eq_nb(nb):
 
 
 def plot_varied_eta(v0=0.5):
-    def panel4(Lx, marker):
+    def panel4(Lx, marker, nb=2, ms=5):
         print("L = %d" % Lx)
-        eta, phi, rho_exc, c = get_data_varied_eta(Lx)
+        eta, phi, rho_exc, c = get_data_varied_eta(Lx, nb=nb)
         v = phi * v0
         u = rho_exc * c
 
@@ -149,53 +165,51 @@ def plot_varied_eta(v0=0.5):
         z = np.polyfit(eta, rho_exc, 1)
         print(z)
         ax1.plot(
-            eta,
-            rho_exc,
-            marker,
-            label=r"$L_x=%d,{\rm slope}=%.4f$" % (Lx, z[0]))
+            eta, rho_exc, marker, ms=ms, label=r"$L_x=%d,n_b=%d$" % (Lx, nb))
 
         # subplot(222)
         z = np.polyfit(eta, c, 1)
         print(z)
-        ax2.plot(
-            eta, c, marker, label=r"$L_x=%d,{\rm slope}=%.4f$" % (Lx, z[0]))
+        ax2.plot(eta, c, marker, ms=ms, label=r"$L_x=%d,n_b=%d$" % (Lx, nb))
 
         # subplot(223)
         z = np.polyfit(eta, v, 1)
         print(z)
-        ax3.plot(
-            eta, v, marker, label=r"$L_x=%d,{\rm slope}=%.4f$" % (Lx, z[0]))
+        ax3.plot(eta, v, marker, ms=ms, label=r"$L_x=%d,n_b=%d$" % (Lx, nb))
 
         # subplot(224)
         z = np.polyfit(u, v, 1)
         print(z)
-        ax4.plot(u, v, marker, label=r"$L_x=%d,{\rm slope}=%.4f$" % (Lx, z[0]))
+        ax4.plot(u, v, marker, ms=ms, label=r"$L_x=%d,n_b=%d$" % (Lx, nb))
 
     fig, axes = plt.subplots(ncols=4, nrows=1, figsize=(15, 4))
     ax1, ax2, ax3, ax4 = axes.flat
 
+    panel4(360, "--o", nb=1)
     panel4(360, "-o")
     panel4(440, "-s")
+    panel4(440, "--s", nb=3)
+    panel4(540, ":p", nb=3)
 
     # set legend
-    ax1.legend(loc=(0.01, 0.01), fontsize=11.5, labelspacing=0, borderpad=0.1)
-    ax2.legend(loc=(0.01, 0.01), fontsize=11.5, labelspacing=0, borderpad=0.1)
-    ax3.legend(loc=(0.01, 0.01), fontsize=11.5, labelspacing=0, borderpad=0.1)
-    ax4.legend(loc=(0.01, 0.77), fontsize=11.5, labelspacing=0, borderpad=0.1)
+    ax1.legend(loc=(0.01, 0.01), fontsize=13, labelspacing=0, borderpad=0.1)
+    ax2.legend(loc=(0.01, 0.01), fontsize=13, labelspacing=0, borderpad=0.1)
+    ax3.legend(loc=(0.01, 0.01), fontsize=13, labelspacing=0, borderpad=0.1)
+    ax4.legend(loc=(0.01, 0.62), fontsize=13, labelspacing=0, borderpad=0.1)
 
     # set xlabel, ylabel
-    ax1.set_ylim(0.5825, 0.6075)
+    ax1.set_ylim(0.51, 0.65)
     xlabel = r"$\eta$"
     ylabel = r"$\rho_0-\rho_{\rm gas}$"
     ax1.text(0.93, 0.02, xlabel, transform=ax1.transAxes, fontsize="xx-large")
     ax1.text(0.01, 0.94, ylabel, transform=ax1.transAxes, fontsize="xx-large")
 
-    ax2.set_ylim(0.4088, 0.412)
+    ax2.set_ylim(0.403, 0.4165)
     ylabel = r"$c$"
     ax2.text(0.93, 0.02, xlabel, transform=ax2.transAxes, fontsize="xx-large")
     ax2.text(0.01, 0.94, ylabel, transform=ax2.transAxes, fontsize="xx-large")
 
-    ax3.set_ylim(0.239, 0.251)
+    ax3.set_ylim(0.205, 0.273)
     ylabel = r"$|{\bf v}|$"
     ax3.text(0.93, 0.02, xlabel, transform=ax3.transAxes, fontsize="xx-large")
     ax3.text(0.01, 0.94, ylabel, transform=ax3.transAxes, fontsize="xx-large")
@@ -206,15 +220,24 @@ def plot_varied_eta(v0=0.5):
     ax4.text(0.01, 0.94, ylabel, transform=ax4.transAxes, fontsize="xx-large")
 
     # set axis number
-    ax4.set_ylim(ymax=0.251)
+    ax4.set_ylim(ymax=0.275)
     set_subplot_number(axes, 0.89, 0.94, fontsize="x-large")
 
-    add_slope_line(ax1, -3, 0.5, 0.3, 0.2, 0.4)
-    add_slope_line(ax2, -0.4, 0.5, 0.3, 0.2, 0.4)
-    add_slope_line(ax3, -1.5, 0.5, 0.3, 0.2, 0.4)
+    add_slope_line(ax1, -3, 0.5, 0.65, 0.45, 0.7)
+    add_slope_line(ax2, -0.4, 0.5, 0.6, 0.5, 0.65)
+    add_slope_line(ax3, -1.5, 0.5, 0.65, 0.5, 0.7)
     add_slope_line(ax4, 1, 0.6, 0.4)
 
-    title = r"$\epsilon=0, \rho_0=1, L_y=200, n_b=2$"
+    ax4.arrow(0.5, 0.6, -0.3, -0.3, width=0.01, transform=ax4.transAxes)
+    ax4.text(
+        0.1,
+        0.55,
+        r"increasing $\eta$",
+        transform=ax4.transAxes,
+        rotation=45,
+        fontsize="x-large")
+
+    title = r"$\epsilon=0, \rho_0=1, v_0=0.5, L_y=200$"
     plt.suptitle(title, y=0.99, fontsize="xx-large", color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
@@ -289,7 +312,16 @@ def plot_varied_Lx(v0=0.5):
     add_slope_line(ax3, -2.4e-5, 0.5, 0.3, 0.2, 0.4, label=label)
     add_slope_line(ax4, 1, 0.6, 0.4)
 
-    title = r"$\eta=0.35, \epsilon=0, \rho_0=1, L_y=200, n_b=2$"
+    ax4.arrow(0.7, 0.7, -0.3, -0.3, width=0.01, transform=ax4.transAxes)
+    ax4.text(
+        0.35,
+        0.70,
+        r"increasing $L_x$",
+        transform=ax4.transAxes,
+        rotation=45,
+        fontsize="x-large")
+
+    title = r"$\eta=0.35, \epsilon=0, \rho_0=1, L_y=200, n_b=2, \lambda=180$"
     plt.suptitle(title, y=0.99, fontsize="xx-large", color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
@@ -345,7 +377,7 @@ def add_slope_line(ax,
 
 
 def plot_eps20(v0=0.5):
-    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
+    fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, nrows=1, figsize=(12, 4))
 
     # subplot(121)
     Lxs = np.array([400, 420, 440, 460, 480])
@@ -353,55 +385,67 @@ def plot_eps20(v0=0.5):
     u_m = np.zeros(Lxs.size)
     v_m = np.zeros(Lxs.size)
     slope_m = np.zeros(Lxs.size)
+    shift = [0.002, 0.001, 0, -0.001, -0.002]
     for i, Lx in enumerate(Lxs):
         phi, peak, c = get_data(2, Lx)
         rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
         u = rho_exc * c
         v = phi * v0
         ax1.plot(u, v, "o", ms=3, label=r"$L_x=%d$" % Lx)
+        ax2.plot(u, v + shift[i], "o", ms=3, label=r"$L_x=%d$" % Lx)
+        if i == 2:
+            ax3.plot(u, v, "go", ms=3, label=r"$L_x=%d, n_b=2$" % Lx)
         slope_m[i] = np.polyfit(u, v, 1)[0]
+        print(slope_m[i])
         u_m[i] = u.mean()
         v_m[i] = np.mean(v)
 
-    # subplot(122)
-    x = np.linspace(0.216, 0.222, 100)
-    ax2.set_xlim(0.217, 0.221)
-    ax2.set_ylim(0.2185, 0.2225)
-    for i, slope in enumerate(slope_m):
-        y = slope * (x - u_m[i]) + v_m[i]
-        line, = ax2.plot(x, y)
-        ax2.plot(
-            u_m[i],
-            v_m[i],
-            "s",
-            color=line.get_c(),
-            label=r"$L_x=%d$" % Lxs[i])
-        print("Lx=%d, slope=%g" % (Lxs[i], slope))
-    z = np.polyfit(u_m, v_m, 1)
-    y = z[0] * x + z[1]
-    ax2.plot(x, y, "k--")
-    print("mean slope = %g" % z[0])
+    # ax3.set_xlim(0.216)
+    # ax3.set_ylim(0.217)
+    phi, peak, c = get_data(3, 660)
+    rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
+    u = rho_exc * c
+    v = phi * v0
+    ax3.plot(u, v, "bs", ms=5, label=r"$L_x=%d, n_b=3$" % 660)
 
-    add_slope_line(ax1, 1, 0.6, 0.4, 0.55, 0.45)
+    phi, peak, c = get_data(4, 880)
+    rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
+    u = rho_exc * c
+    v = phi * v0
+    ax3.plot(u, v, "r^", ms=5, label=r"$L_x=%d, n_b=4$" % 880)
+
+    add_slope_line(ax1, 1, 0.6, 0.45, 0.55, 0.45)
+    add_slope_line(ax1, 0.9, 0.5, 0.65, 0.4, 0.8)
     add_slope_line(ax2, 1, 0.65, 0.35, 0.6, 0.4)
-    add_slope_line(ax2, 1.16, 0.4, 0.6, 0.3, 0.8)
+    add_slope_line(ax2, 0.9, 0.4, 0.65, 0.4, 0.88)
+    add_slope_line(ax3, 1, 0.65, 0.55, 0.5, 0.5)
+    add_slope_line(ax3, 0.9, 0.4, 0.5, 0.2, 0.6)
 
     # set axis label
     xlabel = r"$|{\bf v}|$"
     ylabel = r"$c\left (\rho_0 -\rho_{\rm gas}\right )$"
-    ax1.text(0.01, 0.94, xlabel, transform=ax1.transAxes, fontsize="large")
-    ax2.text(0.01, 0.94, xlabel, transform=ax2.transAxes, fontsize="large")
-    ax1.text(0.68, 0.02, ylabel, transform=ax1.transAxes, fontsize="large")
-    ax2.text(0.68, 0.02, ylabel, transform=ax2.transAxes, fontsize="large")
+    ax1.text(0.01, 0.94, xlabel, transform=ax1.transAxes, fontsize="x-large")
+    ax2.text(0.01, 0.94, xlabel, transform=ax2.transAxes, fontsize="x-large")
+    ax3.text(0.01, 0.94, xlabel, transform=ax3.transAxes, fontsize="x-large")
+
+    ax1.text(0.62, 0.02, ylabel, transform=ax1.transAxes, fontsize="x-large")
+    ax2.text(0.62, 0.02, ylabel, transform=ax2.transAxes, fontsize="x-large")
+    ax3.text(0.62, 0.02, ylabel, transform=ax3.transAxes, fontsize="x-large")
 
     # set legend
-    ax1.legend(loc=(0.01, 0.55), fontsize="small")
-    ax2.legend(loc=(0.01, 0.55), fontsize="small")
+    ax1.legend(loc=(0.01, 0.6), labelspacing=0, fontsize=12, borderpad=0.01)
+    ax2.legend(loc=(0.01, 0.6), labelspacing=0, fontsize=12, borderpad=0.01)
+    ax3.legend(loc=(0.01, 0.73), labelspacing=0, fontsize=12, borderpad=0.01)
 
-    ax1.set_title(r"(a)$\epsilon=0.02, n_b=2$")
-    ax2.set_title(r"(b)$\epsilon=0.02, n_b=2$, sample average")
+    ax1.set_title(r"(a)$n_b=2$", fontsize="x-large")
+    ax2.set_title(r"(b)$n_b=2$, shifted", fontsize="x-large")
+    ax3.set_title(r"(c)$L_r/ n_b \lambda=0$", fontsize="x-large")
 
-    plt.tight_layout()
+    plt.suptitle(
+        r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_y=200, v_0=0.5$",
+        fontsize="x-large",
+        color="b")
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
     # plt.savefig(r"E:\report\quenched_disorder\report\fig\rho_exc_20.pdf")
     plt.close()
@@ -409,4 +453,5 @@ def plot_eps20(v0=0.5):
 
 if __name__ == "__main__":
     # plot_varied_eta()
-    plot_varied_Lx()
+    # plot_varied_Lx()
+    plot_eps20()

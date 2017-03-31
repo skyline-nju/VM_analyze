@@ -52,7 +52,7 @@ def read(**kwargs):
 def subplot(ax, Lx, phi, rate, nb, lamb, Ly, dLx, eta, eps, rho0=1):
     Lr = Lx - nb * lamb
     l = Lr / (nb * lamb)
-    ax.plot(l, phi, "o")
+    circle, = ax.plot(l, phi, "o")
 
     z = np.polyfit(l, phi, 1)
     x = np.linspace(l.min(), l.max(), 100)
@@ -63,23 +63,41 @@ def subplot(ax, Lx, phi, rate, nb, lamb, Ly, dLx, eta, eps, rho0=1):
         0.05,
         r"$a=%f$" % z[0],
         transform=ax.transAxes,
-        color=line.get_c())
+        color=line.get_c(),
+        fontsize="large")
     ax.text(
         0.05,
-        0.13,
+        0.15,
         r"$\Phi_c=%f$" % z[1],
         transform=ax.transAxes,
-        color=line.get_c())
+        color=line.get_c(),
+        fontsize="large")
     ax.text(
-        0.38,
+        0.98,
         0.82,
         r"$\eta=%g, \epsilon=%g, \rho_0=%g$" % (eta, eps, rho0),
+        horizontalalignment="right",
+        fontsize="large",
+        color=circle.get_c(),
         transform=ax.transAxes)
     ax.text(
-        0.38,
-        0.75,
-        r"$L_y=%d, \Delta L_x=%d, \lambda=%d$" % (Ly, dLx, lamb),
+        0.98,
+        0.72,
+        r"$L_y=%d, \Delta L_x=%d$" % (Ly, dLx),
+        fontsize="large",
+        horizontalalignment="right",
+        color=circle.get_c(),
         transform=ax.transAxes)
+    ax.text(
+        0.98,
+        0.62,
+        r"$\lambda=%d$" % (lamb),
+        fontsize="large",
+        horizontalalignment="right",
+        color=circle.get_c(),
+        transform=ax.transAxes)
+    ax.set_ylabel(r"$\Phi$", fontsize="x-large")
+    ax.set_xlabel(r"$L_r/n_b\lambda$", fontsize="x-large")
 
 
 if __name__ == "__main__":
@@ -88,7 +106,7 @@ if __name__ == "__main__":
     file3 = r"E:\data\random_torque\bands\Lx\old\400_0.dat"
     file4 = r"E:\data\random_torque\bands\Lx\old\400_20.dat"
 
-    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(8, 6))
+    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(8, 7))
 
     # subplot(221)
     Lx, phi, rate, nb = read(file=file1)
@@ -106,18 +124,19 @@ if __name__ == "__main__":
     Lx, phi, rate, nb = read(file=file4)
     subplot(axes[1][1], Lx, phi, rate, nb, 600, 100, 100, 0.4, 0.02)
 
-    axes[0][0].set_ylabel(r"$\Phi$")
-    axes[1][0].set_ylabel(r"$\Phi$")
-    axes[1][0].set_xlabel(r"$L_r/n_b\lambda$")
-    axes[1][1].set_xlabel(r"$L_r/n_b\lambda$")
-
     bbox = dict(edgecolor="k", fill=False)
     order = ["(a)", "(b)", "(c)", "(d)"]
     for i, ax in enumerate(axes.flat):
-        ax.text(0.92, 0.93, order[i], transform=ax.transAxes, bbox=bbox)
+        ax.text(
+            0.90,
+            0.93,
+            order[i],
+            transform=ax.transAxes,
+            bbox=bbox,
+            fontsize="large")
 
-    plt.tight_layout(pad=0.6)
-    # plt.show()
-    plt.savefig(
-        r"E:\report\quenched_disorder\report\fig\band_rescale.pdf", dpi=300)
+    plt.tight_layout()
+    plt.show()
+    # plt.savefig(
+    #     r"E:\report\quenched_disorder\report\fig\band_rescale.pdf", dpi=300)
     plt.close()

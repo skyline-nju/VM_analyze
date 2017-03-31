@@ -43,25 +43,34 @@ def plot_serials(para: list,
         "-",
         label="moving average")
     for i in range(seg_num.size):
-        line, = ax2.plot([tBeg[i], tEnd[i]], [seg_phi[i]] * 2, "k-", lw=3)
-    line.set_label("averaged over shadow region")
+        line, = ax2.plot([tBeg[i], tEnd[i]], [seg_phi[i]] * 2, "k-", lw=2)
+    line.set_label("averaged over valid region")
 
     # add vertical span on valid regions
     for i in range(seg_num.size):
-        ax1.axvspan(tBeg[i], tEnd[i], alpha=0.2)
-        ax2.axvspan(tBeg[i], tEnd[i], alpha=0.2)
+        if i == 0:
+            beg = 0
+            end = tBeg[i]
+        else:
+            beg = tEnd[i-1]
+            end = tBeg[i]
+        ax1.axvspan(beg, end, alpha=0.2)
+        ax2.axvspan(beg, end, alpha=0.2)
 
     # set label and title
-    ax1.text(0.01, 0.9, r"$n_b$", transform=ax1.transAxes, fontsize="large")
-    ax2.text(0.01, 0.9, r"$\phi$", transform=ax2.transAxes, fontsize="large")
-    ax1.text(0.985, 0.01, r"$t$", transform=ax1.transAxes, fontsize="large")
-    ax2.text(0.985, 0.01, r"$t$", transform=ax2.transAxes, fontsize="large")
+    ax1.text(0.01, 0.9, r"$n_b$", transform=ax1.transAxes, fontsize="x-large")
+    ax2.text(0.01, 0.9, r"$\phi$", transform=ax2.transAxes, fontsize="x-large")
+    ax1.text(0.985, 0.01, r"$t$", transform=ax1.transAxes, fontsize="x-large")
+    ax2.text(0.985, 0.01, r"$t$", transform=ax2.transAxes, fontsize="x-large")
     bbox = dict(edgecolor="k", fill=False)
     ax1.text(0.972, 0.87, "$(a)$", transform=ax1.transAxes, bbox=bbox)
     ax2.text(0.97, 0.875, "$(b)$", transform=ax2.transAxes, bbox=bbox)
-    
-    ax1.set_title(r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, {\rm seed}=%d$"
-                  % (eta / 1000, eps / 1000, Lx, Ly, seed))
+
+    ax1.set_title(
+        r"$\eta=%g,\ \epsilon=%g,\ L_x=%d,\ L_y=%d,\, {\rm seed}=%d$" %
+        (eta / 1000, eps / 1000, Lx, Ly, seed),
+        color="b",
+        fontsize="large")
 
     # set lims of x, y axis
     ax1.set_xlim(1e6, 1.2e7)
@@ -69,8 +78,8 @@ def plot_serials(para: list,
 
     plt.tight_layout()
     if show:
-        ax1.legend()
-        ax2.legend(loc=(0.45, 0.05))
+        ax1.legend(loc=(0.01, 0.02), fontsize="large")
+        ax2.legend(loc=(0.45, 0.02), fontsize="large")
         plt.show()
     else:
         outfile = "ts_%d.%d.%d.%d.%d.png" % (eta, eps, Lx, Ly, seed)

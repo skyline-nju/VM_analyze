@@ -12,7 +12,7 @@ def plot_peak(Lx, nb, eta=350, eps=20):
 
     os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
 
-    fig = plt.figure(1, figsize=(7, 6))
+    fig = plt.figure(1, figsize=(8, 5))
     ax1 = plt.subplot(221)
     ax2 = plt.subplot(224)
     ax3 = plt.subplot(223)
@@ -47,22 +47,22 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     print(z)
 
     bbox = dict(edgecolor="k", fill=False)
-    ax1.text(0.89, 0.93, "(a)", transform=ax1.transAxes, bbox=bbox)
-    ax2.text(0.89, 0.93, "(d)", transform=ax2.transAxes, bbox=bbox)
-    ax3.text(0.89, 0.93, "(c)", transform=ax3.transAxes, bbox=bbox)
-    ax4.text(0.89, 0.93, "(b)", transform=ax4.transAxes, bbox=bbox)
+    ax1.text(0.91, 0.91, "(a)", transform=ax1.transAxes, bbox=bbox)
+    ax2.text(0.91, 0.91, "(d)", transform=ax2.transAxes, bbox=bbox)
+    ax3.text(0.91, 0.91, "(c)", transform=ax3.transAxes, bbox=bbox)
+    ax4.text(0.91, 0.91, "(b)", transform=ax4.transAxes, bbox=bbox)
 
-    xlabel = r"$\langle \overline{\rho}_y (x)\rangle_t$"
-    ylabel = r"$x$"
-    ax1.text(0.01, 0.93, xlabel, transform=ax1.transAxes)
-    ax1.text(0.95, 0.07, ylabel, transform=ax1.transAxes)
-    ax2.text(0.01, 0.93, r"$\langle \phi \rangle_t$", transform=ax2.transAxes)
-    ax2.text(0.87, 0.02, r"$\rho_{\rm gas}$", transform=ax2.transAxes)
-    ax3.text(0.01, 0.93, xlabel, transform=ax3.transAxes)
-    ax3.text(0.95, 0.02, ylabel, transform=ax3.transAxes)
-    ax4.text(0.01, 0.93, r"$\langle \phi \rangle_t$", transform=ax4.transAxes)
+    ylabel = r"$\langle \overline{\rho}_y (x)\rangle_t$"
+    xlabel = r"$x$"
+    ax1.text(0.01, 0.92, ylabel, transform=ax1.transAxes)
+    ax1.text(0.96, 0.07, xlabel, transform=ax1.transAxes)
+    ax2.text(0.01, 0.92, r"$\langle \phi \rangle_t$", transform=ax2.transAxes)
+    ax2.text(0.90, 0.02, r"$\rho_{\rm gas}$", transform=ax2.transAxes)
+    ax3.text(0.01, 0.92, ylabel, transform=ax3.transAxes)
+    ax3.text(0.96, 0.02, xlabel, transform=ax3.transAxes)
+    ax4.text(0.01, 0.92, r"$\langle \phi \rangle_t$", transform=ax4.transAxes)
     ax4.text(
-        0.75,
+        0.78,
         0.02,
         r"$\langle \sigma(\Delta x_b)\rangle_t$",
         transform=ax4.transAxes)

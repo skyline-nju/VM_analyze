@@ -28,11 +28,11 @@ def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
     ax.set_xlim(80, 200)
     ax.set_ylim(0, 4.5)
     ylabel = r"$\langle \overline{\rho}_y(x)\rangle_t$"
-    ax.text(0.02, 0.92, ylabel, transform=ax.transAxes)
-    ax.text(0.96, 0.02, r"$x$", transform=ax.transAxes)
+    ax.text(0.02, 0.92, ylabel, transform=ax.transAxes, fontsize="xx-large")
+    ax.text(0.95, 0.02, r"$x$", transform=ax.transAxes, fontsize="xx-large")
 
-    ax.legend(title=r"$L_r/n_b\lambda=%s$" % str(ratio), loc=(0.02, 0.4))
     if flag_show:
+        ax.legend(loc=(0.02, 0.6), fontsize="large", labelspacing=0.1)
         plt.show()
         plt.close()
 
@@ -68,13 +68,13 @@ def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
     # ax.set_xlabel(r"$x$")
     # ax.set_ylabel(r"$\langle \overline{\rho}_y(x)\rangle_t$")
     ylabel = r"$\langle \overline{\rho}_y(x)\rangle_t$"
-    ax.text(0.02, 0.92, ylabel, transform=ax.transAxes)
-    ax.text(0.96, 0.02, r"$x$", transform=ax.transAxes)
-    ax.legend(
-        title=r"$n_b=%d$" % nb0,
-        loc=(0.02, 0.3),
-        fontsize="x-small",
-        labelspacing=0.1)
+    ax.text(0.02, 0.92, ylabel, transform=ax.transAxes, fontsize="xx-large")
+    ax.text(0.95, 0.02, r"$x$", transform=ax.transAxes, fontsize="xx-large")
+    # ax.legend(
+    #     title=r"$n_b=%d$" % nb0,
+    #     loc=(0.02, 0.3),
+    #     labelspacing=0)
+    ax.set_title(r"$n_b=%d$" % nb0)
     if flag_show:
         plt.show()
         plt.close()
@@ -105,18 +105,38 @@ def eq_nb3():
 
 
 def four_panel():
-    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(8, 6))
-    plot_eq_Lr_over_nb_lamb(Fraction(0, 18), axes[0][0])
-    plot_eq_Lr_over_nb_lamb(Fraction(-1, 18), axes[0][1])
-    plot_eq_Lr_over_nb_lamb(Fraction(1, 18), axes[1][0])
-    plot_eq_nb(2, axes[1][1])
-    order = ["(a)", "(b)", "(c)", "(d)"]
-    bbox = dict(edgecolor="k", fill=False)
-    for i, ax in enumerate(axes.flat):
-        ax.text(0.92, 0.92, order[i], transform=ax.transAxes, bbox=bbox)
+    fig, axes = plt.subplots(ncols=4, nrows=1, figsize=(14, 4), sharey=True)
+    plot_eq_Lr_over_nb_lamb(Fraction(0, 18), axes[0])
+    plot_eq_Lr_over_nb_lamb(Fraction(-1, 18), axes[1])
+    plot_eq_Lr_over_nb_lamb(Fraction(1, 18), axes[2])
+    plot_eq_nb(2, axes[3])
+
+    axes[0].set_title(r"(a)$L_r/n_b\lambda=0$", fontsize="xx-large")
+    axes[1].set_title(r"(b)$L_r/n_b\lambda=-1/18$", fontsize="xx-large")
+    axes[2].set_title(r"(c)$L_r/n_b\lambda=1/18$", fontsize="xx-large")
+    axes[3].set_title(r"(d)$n_b=2$", fontsize="xx-large")
+
+    axes[3].arrow(
+        0.5, 0.5, -0.3, 0.3, width=0.01, transform=axes[3].transAxes)
+    axes[3].text(
+        0.07,
+        0.79,
+        r"${\rm increasing}\ L_r/n_b\lambda$",
+        transform=axes[3].transAxes,
+        rotation=-45,
+        fontsize="x-large")
+
+    axes[0].legend(loc=(0.02, 0.6), fontsize=12.5, labelspacing=0.1)
+    axes[1].legend(loc=(0.02, 0.7), fontsize=13, labelspacing=0.1)
+    axes[2].legend(loc=(0.02, 0.7), fontsize=13, labelspacing=0.1)
+    
+    
     plt.suptitle(
-        r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=180$", color="b")
-    plt.tight_layout(rect=[0, 0, 1, 0.975])
+        r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=180$",
+        y=0.99,
+        color="b",
+        fontsize="xx-large")
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
     # plt.savefig(r"E:\report\quenched_disorder\report\fig\ave_peak0.pdf")
     plt.close()
