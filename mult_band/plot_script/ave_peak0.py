@@ -129,8 +129,7 @@ def four_panel():
     axes[0].legend(loc=(0.02, 0.6), fontsize=12.5, labelspacing=0.1)
     axes[1].legend(loc=(0.02, 0.7), fontsize=13, labelspacing=0.1)
     axes[2].legend(loc=(0.02, 0.7), fontsize=13, labelspacing=0.1)
-    
-    
+
     plt.suptitle(
         r"$\eta=0.35,\epsilon=0, \rho_0=1, L_y=200, \lambda=180$",
         y=0.99,
