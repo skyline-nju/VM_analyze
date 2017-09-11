@@ -15,7 +15,7 @@ def read(file, dict_eps):
             s = line.replace("\n", "").split("\t")
             L[i] = float(s[0])
             phi[i] = float(s[1])
-        if L.size > 2 and eps >= 0.055:
+        if L.size > 2 and eps >= 0.0535:
             dict_eps[eps] = {"L": L, "phi": phi}
 
 
@@ -69,7 +69,7 @@ def find_peak(alpha, show=True, output=False):
 
 
 def varied_alpha():
-    alpha = np.linspace(0.4, 0.55, 300)
+    alpha = np.linspace(0.35, 0.5, 300)
     beta = np.zeros_like(alpha)
     res = np.zeros_like(alpha)
     for i in range(beta.size):
@@ -93,4 +93,4 @@ def varied_alpha():
 if __name__ == "__main__":
     os.chdir("data")
     # varied_alpha()
-    find_peak(0.46)
+    find_peak(0.5, output=True)

@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import matplotlib as mpl
+import os
 
 
 def read():
-    with open("susceptibility.dat") as f:
+    with open("suscept_peak.dat") as f:
         lines = f.readlines()
         L1 = np.zeros(len(lines))
         eps1 = np.zeros_like(L1)
@@ -272,6 +272,7 @@ def show_algebraic():
 
 
 if __name__ == "__main__":
+    os.chdir("data")
     # L1, eps1, L2, eps2, L3, eps3 = read()
     # popt, perr = fit_exp(eps1, L1, 1)
     # print(popt, perr)
