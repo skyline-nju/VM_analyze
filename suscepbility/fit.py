@@ -154,63 +154,64 @@ def show_KT(nu):
     plt.show()
 
 
-def varied_nu():
-    def cal_error_square(xdata, ydata, popt, nu):
-        lny = popt[1] + popt[2] * (xdata - popt[0])**(-nu)
-        return np.sum((np.log(ydata) - lny)**2)
+def get_cross_point(x, y1, y2):
+    for i in range(x.size - 1):
+        if (y1[i] - y2[i]) * (y1[i + 1] - y2[i + 1]) < 0:
+            k1 = (y1[i] - y1[i + 1]) / (x[i] - x[i + 1])
+            k2 = (y2[i] - y2[i + 1]) / (x[i] - x[i + 1])
+            xc = x[i] - (y1[i] - y2[i]) / (k1 - k2)
+            yc = y1[i] - (x[i] - xc) * k1
+            return xc, yc
+    return None
 
+
+def varied_nu():
     L1, eps1, L2, eps2, L3, eps3 = read()
-    nus = np.linspace(0.01, 2, 50)
+    nus = np.linspace(0.05, 2, 300)
     # nus = np.logspace(np.log10(0.005), np.log10(3), 100)
-    eps_c1 = np.zeros_like(nus)
-    eps_c2 = np.zeros_like(nus)
-    eps_c3 = np.zeros_like(nus)
-    err1 = np.zeros_like(nus)
-    err2 = np.zeros_like(nus)
-    err3 = np.zeros_like(nus)
-    lnA1 = np.zeros_like(nus)
-    lnA2 = np.zeros_like(nus)
-    lnA3 = np.zeros_like(nus)
-    b1 = np.zeros_like(nus)
-    b2 = np.zeros_like(nus)
-    b3 = np.zeros_like(nus)
-    e1 = np.zeros_like(nus)
-    e2 = np.zeros_like(nus)
-    e3 = np.zeros_like(nus)
+    eps_c1, eps_c2, eps_c3 = np.zeros((3, nus.size))
+    err1, err2, err3 = np.zeros((3, nus.size))
+    lnA1, lnA2, lnA3 = np.zeros((3, nus.size))
+    b1, b2, b3 = np.zeros((3, nus.size))
 
     for i, nu in enumerate(nus):
         popt, perr = fit_exp(eps1, L1, nu)
         eps_c1[i], lnA1[i], b1[i] = popt
-        err1[i] = perr[0]
-        e1[i] = cal_error_square(eps1, L1, popt, nu)
         popt, perr = fit_exp(eps2, L2, nu)
         eps_c2[i], lnA2[i], b2[i] = popt
-        err2[i] = perr[0]
-        e2[i] = cal_error_square(eps2, L2, popt, nu)
         popt, perr = fit_exp(eps3, L3, nu)
         eps_c3[i], lnA3[i], b3[i] = popt
-        e3[i] = cal_error_square(eps3, L3, popt, nu)
-        err3[i] = perr[0]
-    # plt.errorbar(nus, eps_c1, yerr=err1, fmt=".", label="from susceptibility peak")
-    # plt.errorbar(nus, eps_c2, yerr=err2, fmt=".", label="from order parameter")
-    # plt.errorbar(nus, eps_c3, yerr=err3, fmt=".", label="from correlation function")
 
-    # plt.subplot(311)
-    plt.plot(nus, eps_c1, "-", label="from susceptibility peak")
-    plt.plot(nus, eps_c2, "-", label="from order parameter")
-    plt.plot(nus, eps_c3, "-", label="from correlation function")
-    plt.xscale("log")
-    plt.legend()
-    plt.xlabel(r"$\nu$")
-    plt.ylabel(r"$\epsilon_c$")
+    plt.rc('text', usetex=True)
+    # plt.rc('font', family='serif')
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+    ax1.plot(nus, eps_c1, "-", label="from susceptibility peak")
+    ax1.plot(nus, eps_c2, "-", label="from order parameter")
+    ax1.plot(nus, eps_c3, "-", label="from correlation function")
+    ax1.set_xscale("log")
+    ax1.set_xlabel(r"$\nu$", fontsize="x-large")
+    ax1.set_ylabel(r"$\epsilon_c$", fontsize="x-large")
 
-    # plt.subplot(312)
-    # plt.plot(nus, lnA1, nus, lnA2, nus, lnA3)
-    # plt.xscale("log")
-    # plt.subplot(313)
-    # plt.plot(nus, e1, nus, e2, nus, e3)
-    # plt.xscale("log")
-    # plt.yscale("log")
+    y = np.array([eps_c1, eps_c2, eps_c3])
+    y_std = np.std(y, axis=0)
+    y_mean = np.mean(y, axis=0)
+    ax2.plot(nus, y_std / y_mean, "k")
+    ax2.set_xscale("log")
+    ax2.set_yscale("log")
+    ax2.set_xlabel(r"$\nu$", fontsize="x-large")
+    ax2.set_ylabel(
+        r"$\left.\sqrt{\langle (\epsilon_c - \overline{\epsilon_c})^2 \rangle} \middle / \overline{\epsilon_c} \right.$",
+        fontsize="x-large")
+    idx = np.argmin(y_std / y_mean)
+    nu_m = nus[idx]
+    eps_m = y_mean[idx]
+
+    ax1.axhline(eps_m, color="r", linestyle="--")
+    ax1.axvline(nu_m, color="r", linestyle="--")
+    ax2.axvline(
+        nu_m, color="r", linestyle="--", label=r"optimal $\nu=%.4f$" % (nu_m))
+    ax1.legend(fontsize="large")
+    ax2.legend(fontsize="large")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -279,6 +280,12 @@ if __name__ == "__main__":
     # popt, perr = fit_exp(eps2, L2, 1)
     # print(popt, perr)
     # popt, perr = fit_exp(eps3, L3, 1)
+    # print(popt, perr)
+    # popt, perr = fit_pow(eps1, L1)
+    # print(popt, perr)
+    # popt, perr = fit_pow(eps2, L2)
+    # print(popt, perr)
+    # popt, perr = fit_pow(eps3, L3)
     # print(popt, perr)
     varied_nu()
     # show_KT(0.01)

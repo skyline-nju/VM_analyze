@@ -69,27 +69,95 @@ def read_npz(L):
                      chi_std[i]))
 
 
-def find_peak(eps, xi, order=5, full=False):
-    c = polyfit(eps, np.log10(xi), order)
-    x = np.linspace(eps.min(), eps.max(), 10000)
-    y = c[0] * np.ones(x.size)
+def find_peak_by_polyfit(xdata,
+                         ydata,
+                         order=5,
+                         xscale="lin",
+                         yscale="lin",
+                         full=False):
+    """ Find the peak by polyfit.
+
+    Parameters:
+    --------
+    xdata, ydata : array_like
+        Input data to fit.
+    order : int, optional
+        The order of polynomi.
+    xscale, yscale : str, optional
+        ""lin"" or "log".
+    full : bool
+        If true, return xp, yp, xfit, yfit, else only return xp, yp.
+
+    Returns:
+    --------
+    xp, yp : float
+        The peak of input data.
+    xfit, yfit : array_like
+        Fitting curve of input data.
+    """
+    if xscale == "log":
+        xdata = np.log10(xdata)
+    if yscale == "log":
+        ydata = np.log10(ydata)
+    c = polyfit(xdata, ydata, order)
+    xfit = np.linspace(xdata.min(), xdata.max(), 10000)
+    yfit = c[0] * np.ones(xfit.size)
     for i in range(1, order + 1):
-        y += c[i] * x**i
-    idx = np.argmax(y)
+        yfit += c[i] * xfit**i
+    idx = np.argmax(yfit)
+    xp = xfit[idx]
+    yp = yfit[idx]
+    if xscale == "log":
+        xp = 10**xp
+        xfit = 10**xfit
+    if yscale == "log":
+        yp = 10**yp
+        yfit = 10**yfit
     if full:
-        return x[idx], 10**(y[idx]), x, 10**y
+        return xp, yp, xfit, yfit
     else:
-        return x[idx], 10**(y[idx])
+        return xp, yp
 
 
-def find_max_by_spline(xdata, ydata):
+def find_peak_by_spline(xdata, ydata, xscale="lin", yscale="lin", full=False):
+    """ Find the peak by interpolation with spline.
+
+    Parameters:
+    --------
+    xdata, ydata : array_like
+        Input data to fit.
+    xscale, yscale : str, optional
+        ""lin"" or "log".
+    full : bool
+        If true, return xp, yp, xfit, yfit, else only return xp, yp.
+
+    Returns:
+    --------
+    xp, yp : float
+        The peak of input data.
+    xfit, yfit : array_like
+        Fitting curve of input data.
+    """
+    if xscale == "log":
+        xdata = np.log10(xdata)
+    if yscale == "log":
+        ydata = np.log10(ydata)
     f = interpolate.interp1d(xdata, ydata, kind="cubic")
-    x = np.linspace(xdata.min(), xdata.max(), 2000)
-    y = f(x)
-    idxm = y.argmax()
-    xm = x[idxm]
-    ym = y[idxm]
-    return xm, ym
+    xfit = np.linspace(xdata.min(), xdata.max(), 2000)
+    yfit = f(xfit)
+    idxm = yfit.argmax()
+    xp = xfit[idxm]
+    yp = yfit[idxm]
+    if xscale == "log":
+        xp = 10**xp
+        xfit = 10**xfit
+    if yscale == "log":
+        yp = 10**yp
+        yfit = 10**yfit
+    if full:
+        return xp, yp, xfit, yfit
+    else:
+        return xp, yp
 
 
 def diff_find_peak(L, *idx):
@@ -112,9 +180,11 @@ def diff_find_peak(L, *idx):
     for j, i in enumerate(idx):
         line, = plt.plot(eps0, chi0[i], "o", label="Sample %d" % j)
         c = line.get_color()
-        eps_p, chi_p, eps, chi = find_peak(eps0, chi0[i], order=3, full=True)
+        eps_p, chi_p, eps, chi = find_peak_by_polyfit(
+            eps0, chi0[i], order=3, yscale="log", full=True)
         plt.plot(eps, chi, linestyle="dashed", color=c)
-        eps_p, chi_p, eps, chi = find_peak(eps0, chi0[i], order=5, full=True)
+        eps_p, chi_p, eps, chi = find_peak_by_polyfit(
+            eps0, chi0[i], order=5, yscale="log", full=True)
         plt.plot(eps, chi, linestyle="solid", color=c)
     plt.xlabel(r"$\epsilon$")
     plt.ylabel(r"$\chi$")
@@ -149,12 +219,14 @@ def varied_sample_size(L, M):
         eps_p = np.zeros(n)
         chi_p = np.zeros(n)
         for j in range(n):
-            eps_p[j], chi_p[j] = find_peak(eps, chi[j], order=5)
+            eps_p[j], chi_p[j] = find_peak_by_polyfit(
+                eps, chi[j], order=5, yscale="log")
         eps_p1[i] = np.mean(eps_p)
         chi_p1[i] = np.mean(chi_p)
 
         chi_mean = np.mean(chi[:n], axis=0)
-        eps_p2[i], chi_p2[i] = find_peak(eps, chi_mean, order=5)
+        eps_p2[i], chi_p2[i] = find_peak_by_polyfit(
+            eps, chi_mean, order=5, yscale="log")
 
     plt.subplot(221)
     plt.plot(N, chi_p1, "-o", label=r"$\langle \chi_m\rangle^A_s$")
@@ -199,8 +271,9 @@ def distrubition(L, N):
     chi_m, eps_m, chi_m2, eps_m2 = np.zeros((4, N))
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(9, 3))
     for i in range(N):
-        eps_m[i], chi_m[i] = find_peak(eps, chi[i], order=5)
-        eps_m2[i], chi_m2[i] = find_max_by_spline(eps, chi[i])
+        eps_m[i], chi_m[i] = find_peak_by_polyfit(
+            eps, chi[i], order=5, yscale="log")
+        eps_m2[i], chi_m2[i] = find_peak_by_spline(eps, chi[i], yscale="log")
     # chi_m2 = np.exp(chi_m2)
     ax[0].plot(eps_m, chi_m, "o", markersize=3)
     ax[0].set_xlabel(r"$\epsilon_m$")
@@ -224,8 +297,9 @@ def distrubition(L, N):
 
     print("A: chi_m=%f\teps_m=%f" % (np.mean(chi_m), np.mean(eps_m)))
     chi_mean = np.mean(chi, axis=0)
-    eps_peak, chi_peak = find_peak(eps, chi_mean, order=5)
-    eps_peak2, chi_peak2 = find_max_by_spline(eps, chi_mean)
+    eps_peak, chi_peak = find_peak_by_polyfit(
+        eps, chi_mean, order=5, yscale="log")
+    eps_peak2, chi_peak2 = find_peak_by_spline(eps, chi_mean, yscale="log")
     print("B: chi_m=%f\teps_m=%f" % (chi_peak, eps_peak))
     print("C: chi_m=%f\teps_m=%f" % (np.mean(chi_m2), np.mean(eps_m2)))
 
@@ -264,7 +338,8 @@ def average_type_B(save=False):
             eps = np.array(eps_list)
             line, = plt.plot(eps, chi, "o", label=r"$%d$" % L)
             i = np.argwhere(L_arr == L)
-            eps_p[i], chi_p[i], x, y = find_peak(eps, chi, 5, True)
+            eps_p[i], chi_p[i], x, y = find_peak_by_polyfit(
+                eps, chi, 5, yscale="log", full=True)
             plt.plot(x, y, color=line.get_color())
 
     plt.plot(eps_p, chi_p, "ks--", fillstyle="none")
