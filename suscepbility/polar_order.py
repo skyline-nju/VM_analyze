@@ -9,7 +9,7 @@ import os
 from numpy.polynomial.polynomial import polyfit
 from add_line import add_line
 from suscept_peak import find_peak_by_polyfit
-from fit import fit_exp
+from fit import plot_KT_fit, plot_pow_fit, fit_exp
 
 
 def read(file, dict_eps):
@@ -48,8 +48,8 @@ def plot_phi_vs_L(ax=None, dict_eps=None, Lc=None, phi_c=None):
         ax.plot(Lc, phi_c, "--ks", fillstyle="none")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel(r"$L$")
-    ax.set_ylabel(r"$\phi$")
+    ax.set_xlabel(r"$L$", fontsize="x-large")
+    ax.set_ylabel(r"$\phi$", fontsize="x-large")
     ax.legend(title=r"$\epsilon=$", loc="lower left")
     add_line(ax, 0.25, 0.65, 0.55, -1, scale="log")
     if flag_show:
@@ -118,8 +118,8 @@ def find_peak(alpha,
         ax.plot(10**x, 10**y, "k--", label=r"$L^{%.3f}$" % (c[1]))
         ax.set_xscale("log")
         ax.set_yscale("log")
-        ax.set_xlabel(r"$L$")
-        ax.set_ylabel(r"$L^{%g}\phi$" % alpha)
+        ax.set_xlabel(r"$L$", fontsize="x-large")
+        ax.set_ylabel(r"$L^{%g}\phi$" % alpha, fontsize="x-large")
         # ax.legend()
         if flag_show:
             plt.tight_layout()
@@ -129,53 +129,58 @@ def find_peak(alpha,
         return c[1], stats[0][0], eps_m, xm, phi_m
 
 
-def plot_two_panel(alpha):
+def plot_three_panel(alpha):
     dict_eps = {}
     files = glob.glob("0*.dat")
     for file in files:
         read(file, dict_eps)
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     c0, res, eps_m, Lm, phi_m = find_peak(
         alpha, show=True, output=False, ax=ax2, dict_eps=dict_eps, ret=True)
     plot_phi_vs_L(ax1, dict_eps, Lm, phi_m)
+    ax3.plot(eps_m, Lm, "o")
+
+    plot_KT_fit(0.5, ax3, eps_m, Lm)
+    plot_KT_fit(1.0, ax3, eps_m, Lm)
+    plot_pow_fit(ax3, eps_m, Lm)
+
+    ax3.set_yscale("log")
+    ax3.set_xlabel(r"$\epsilon$", fontsize="x-large")
+    ax3.set_ylabel(r"$\xi$", fontsize="x-large")
+    ax3.legend(fontsize="large", title="fitting curve")
+    ax1.set_title("(a)")
+    ax2.set_title("(b)")
+    ax3.set_title("(c)")
     fig.tight_layout()
     plt.show()
     plt.close()
-    plt.plot(eps_m, Lm, "-o")
-    plt.yscale("log")
-    plt.show()
 
 
 def varied_alpha(nus):
-    alpha = np.linspace(0.4, 0.6, 200)
-    eps_c = np.zeros_like(alpha)
-    lnA = np.zeros_like(alpha)
-    b = np.zeros_like(alpha)
-    std_eps_c = np.zeros_like(alpha)
-    std_lnA = np.zeros_like(alpha)
-    std_b = np.zeros_like(alpha)
+    alpha = np.linspace(0.4, 0.6, 100)
+    squared_res = np.zeros_like(alpha)
     dict_eps = {}
     files = glob.glob("0*.dat")
     for file in files:
         read(file, dict_eps)
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
     for nu in nus:
         for i in range(alpha.size):
             c, res, eps_m, Lm, phi_m = find_peak(
                 alpha[i], show=False, ret=True, dict_eps=dict_eps)
-            popt, perr = fit_exp(eps_m, Lm, beta=nu)
-            eps_c[i], lnA[i], b[i] = popt
-            std_eps_c[i], std_lnA[i], std_b[i] = perr
-        ax1.plot(alpha, std_eps_c/eps_c)
-        ax2.plot(alpha, std_lnA/lnA)
-        ax3.plot(alpha, std_b/b)
+            popt, perr, squared_res[i] = fit_exp(
+                eps_m, Lm, beta=nu, ret_res=True)
+        plt.plot(alpha, squared_res, label="%g" % nu)
+    plt.xlabel(r"$\alpha$")
+    plt.ylabel("Squared residuals for KT-like fitting")
+    plt.legend(title=r"$\nu=$")
+    plt.tight_layout()
     plt.show()
 
 
 if __name__ == "__main__":
     os.chdir("data")
-    varied_alpha([0.4, 0.45, 0.5, 0.55])
+    # varied_alpha([0.4, 0.6, 0.8, 1.0, 1.2])
     # find_peak(0.5, output=True)
-    # plot_two_panel(0.5)
+    plot_three_panel(0.5)
     # plot_phi_vs_L()
     # plot_L_vs_eps_c([0.35, 0.4, 0.45, 0.5])

@@ -16,6 +16,7 @@ from scipy import interpolate
 import os
 import glob
 import add_line
+from fit import plot_KT_fit, plot_pow_fit
 
 
 def read(file, dict_L):
@@ -256,7 +257,8 @@ def varied_sample_size(L, M):
         + r"/ \langle\epsilon_m\rangle^B_s$"
     plt.ylabel(ylabel)
 
-    plt.tight_layout()
+    plt.suptitle(r"$L=%d$" % L, fontsize="x-large")
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.show()
     plt.close()
 
@@ -322,6 +324,8 @@ def average_type_B(save=False):
     files = glob.glob("0*.dat")
     for file in files:
         read(file, dict_L)
+
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     # Plot susceptibility peak vs its location.
     L_arr = np.array([46, 64, 90, 128, 180, 256, 362, 512, 724])
     eps_p, chi_p = np.zeros((2, len(L_arr)))
@@ -336,18 +340,22 @@ def average_type_B(save=False):
             chi = np.array(chi_list)
             # err_xi = np.array(err_xi_list)
             eps = np.array(eps_list)
-            line, = plt.plot(eps, chi, "o", label=r"$%d$" % L)
+            line, = axes[0].plot(eps, chi, "o", label=r"$%d$" % L)
             i = np.argwhere(L_arr == L)
             eps_p[i], chi_p[i], x, y = find_peak_by_polyfit(
                 eps, chi, 5, yscale="log", full=True)
-            plt.plot(x, y, color=line.get_color())
+            axes[0].plot(x, y, color=line.get_color())
 
-    plt.plot(eps_p, chi_p, "ks--", fillstyle="none")
-    plt.yscale("log")
-    plt.legend(loc="upper right", title=r"$L=$")
-    plt.xlim(xmax=0.09)
-    plt.xlabel(r"$\epsilon$")
-    plt.ylabel("Sample-averaged susceptibility")
+    axes[0].plot(eps_p, chi_p, "ks--", fillstyle="none")
+    axes[0].set_yscale("log")
+    axes[0].legend(loc="upper right", title=r"$L=$")
+    axes[0].set_xlim(xmax=0.09)
+    axes[0].set_xlabel(r"$\epsilon$", fontsize="x-large")
+    axes[0].set_ylabel("Sample-averaged susceptibility", fontsize="x-large")
+    plot_peak_location_vs_L(L_arr, eps_p, chi_p, ax=axes[1:])
+    axes[0].set_title("(a)")
+    axes[1].set_title("(b)")
+    axes[2].set_title("(c)")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -358,11 +366,8 @@ def average_type_B(save=False):
             for i, L in enumerate(L_arr):
                 f.write("%d\t%.8f\t%.8f\n" % (L, eps_p[i], chi_p[i]))
 
-    # Plot susceptibility peak and location vs. system size, respectively.
-    plot_peak_location_vs_L(L_arr, eps_p, chi_p)
 
-
-def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None):
+def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None, ax=None):
     """ Plot susceptibility peak and its loaction against system size,
         respectively.
 
@@ -385,7 +390,11 @@ def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None):
                 eps_p[i] = float(s[1])
                 chi_p[i] = float(s[2])
 
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+    if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+        flag_show = True
+    else:
+        flag_show = False
     ax[0].loglog(L, chi_p, "o")
     c = polyfit(np.log10(L), np.log10(chi_p), deg=1)
     x0, x1 = ax[0].get_xlim()
@@ -394,14 +403,96 @@ def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None):
     ax[0].loglog(
         x, y, "--", label=r"$\langle \chi_m\rangle^B_s\sim L^{%.4f}$" % c[1])
     ax[0].set_xlim(x0, x1)
-    ax[0].legend(loc="lower right", title="liner fit")
+    ax[0].legend(loc="lower right", title="linear fit", fontsize="large")
     add_line.add_line(ax[0], 0, 0.2, 1, 1.75, label=r"$L^{1.75}$", scale="log")
-    ax[0].set_xlabel(r"$L$")
-    ax[0].set_ylabel(r"${\rm susceptibility\ peak\ }\langle\chi_m\rangle^B_s$")
+    ax[0].set_xlabel(r"$L$", fontsize="x-large")
+    ax[0].set_ylabel(
+        r"${\rm susceptibility\ peak\ }\langle\chi_m\rangle^B_s$",
+        fontsize="x-large")
 
-    ax[1].loglog(L, eps_p, "-o")
-    ax[1].set_xlabel(r"$L$")
-    ax[1].set_ylabel(r"${\rm peak\ location\ }\langle \epsilon_m\rangle^B_s$")
+    ax[1].plot(L, eps_p, "o")
+    plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True)
+    plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True)
+    plot_pow_fit(ax[1], eps_p, L, reversed=True)
+    ax[1].set_xscale("log")
+    ax[1].set_xlabel(r"$L$", fontsize="x-large")
+    ax[1].set_ylabel(
+        r"${\rm peak\ location\ }\langle \epsilon_m\rangle^B_s$",
+        fontsize="x-large")
+    ax[1].legend(fontsize="large", title="fitting curve")
+    if flag_show:
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
+
+def compare_two_averaging(L_list, M=500):
+    plt.rc('text', usetex=True)
+    if isinstance(L_list, list):
+        L_list = np.array(L_list)
+    chi_m1 = np.zeros(L_list.size)
+    chi_m2 = np.zeros_like(chi_m1)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+    for idx_L, L in enumerate(L_list):
+        data = np.load("%d.npz" % L)
+        chi = data["chi"]
+        eps = data["eps"] / 10000
+
+        N = (np.arange(M // 50) + 1) * 50
+        eps_p1 = np.zeros(N.size)
+        eps_p2 = np.zeros(N.size)
+        chi_p1 = np.zeros(N.size)
+        chi_p2 = np.zeros(N.size)
+
+        for i, n in enumerate(N):
+            eps_p = np.zeros(n)
+            chi_p = np.zeros(n)
+            for j in range(n):
+                eps_p[j], chi_p[j] = find_peak_by_polyfit(
+                    eps, chi[j], order=5, yscale="log")
+            eps_p1[i] = np.mean(eps_p)
+            chi_p1[i] = np.mean(chi_p)
+
+            chi_mean = np.mean(chi[:n], axis=0)
+            eps_p2[i], chi_p2[i] = find_peak_by_polyfit(
+                eps, chi_mean, order=5, yscale="log")
+
+        ax1.plot(N, (chi_p1 - chi_p2) / chi_p2, "-o", label=r"$L=%d$" % L)
+        ax2.plot(N, -(eps_p1 - eps_p2) / eps_p2, "-o", label=r"$L=%d$" % L)
+        chi_m1[idx_L] = chi_p1[-1]
+        chi_m2[idx_L] = chi_p2[-1]
+    ax3.plot(L_list, chi_m1, "o", label="averaging A")
+    ax3.plot(L_list, chi_m2, "o", label="averaging B")
+
+    x0, x1 = ax3.get_xlim()
+    x = np.linspace(x0, x1, 1000)
+    c = polyfit(np.log10(L_list), np.log10(chi_m1), deg=1)
+    y = 10 ** c[0] * x ** c[1]
+    ax3.plot(x, y, "--")
+    c = polyfit(np.log10(L_list), np.log10(chi_m2), deg=1)
+    y = 10 ** c[0] * x ** c[1]
+    ax3.plot(x, y, "--")
+    ax3.set_xscale("log")
+    ax3.set_yscale("log")
+
+    ax1.set_xlabel("sample size", fontsize="x-large")
+    ax2.set_xlabel("sample size", fontsize="x-large")
+    ax3.set_xlabel(r"$L$", fontsize="x-large")
+    ax3.set_ylabel("Susceptibility Peak", fontsize="x-large")
+    ylabel = r"$\left. \left|\langle \chi_m\rangle^\mathrm{A}_\mathrm{s}-"\
+        + r" \langle\chi_m\rangle^\mathrm{B}_\mathrm{s}\right|"\
+        + r" \middle/\langle \chi_m\rangle ^\mathrm{B}_\mathrm{s}\right.$"
+    ax1.set_ylabel(ylabel, fontsize="xx-large")
+    ylabel = r"$\left. \left|\langle\epsilon_m\rangle^\mathrm{A}_\mathrm{s}-"\
+        + r" \langle\epsilon_m\rangle^\mathrm{B}_\mathrm{s}\right|"\
+        + r" \middle/ \langle\epsilon_m\rangle^\mathrm{B}_\mathrm{s}\right.$"
+    ax2.set_ylabel(ylabel, fontsize="xx-large")
+    ax1.set_title("(a)")
+    ax2.set_title("(b)")
+    ax3.set_title("(c)")
+    ax1.legend(fontsize="large")
+    ax2.legend(fontsize="large")
+    ax3.legend(fontsize="large")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -409,9 +500,10 @@ def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None):
 
 if __name__ == "__main__":
     os.chdir("data")
-    # distrubition(90, 500)
-    # varied_sample_size(90, 500)
-    average_type_B(True)
+    distrubition(64, 500)
+    # varied_sample_size(64, 500)
+    # average_type_B(True)
     # diff_find_peak(90, 4, 10)
     # plot_peak_location_vs_L()
     # read_npz(724)
+    # compare_two_averaging([64, 90])

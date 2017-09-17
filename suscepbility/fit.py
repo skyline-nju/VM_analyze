@@ -32,7 +32,7 @@ def read():
     return L1, eps1, L2, eps2, L3, eps3
 
 
-def fit_exp(eps, l, beta=None, reverse=False):
+def fit_exp(eps, l, beta=None, reverse=False, ret_res=False):
     def fun1(x, xc, lnA, b):
         return lnA + b * (x - xc)**(-beta)
 
@@ -45,6 +45,16 @@ def fit_exp(eps, l, beta=None, reverse=False):
     def fun4(x, yc, lnA, b, beta):
         return yc + (b / (x - lnA))**(1 / beta)
 
+    def cal_squared_residuals(f, xdata, ydata, popt):
+        yfit = np.zeros_like(ydata)
+        for i in range(xdata.size):
+            if beta is not None:
+                yfit[i] = f(xdata[i], popt[0], popt[1], popt[2])
+            else:
+                yfit[i] = f(xdata[i], popt[0], popt[1], popt[2], popt[3])
+        squared_res = np.var(yfit - ydata)
+        return squared_res
+
     if not reverse:
         x = eps
         y = np.log(l)
@@ -53,11 +63,15 @@ def fit_exp(eps, l, beta=None, reverse=False):
             p_min = [0, -np.inf, 0]
             p_max = [0.05, y.min(), np.inf]
             popt, pcov = curve_fit(fun1, x, y, p0, bounds=(p_min, p_max))
+            if ret_res:
+                squared_res = cal_squared_residuals(fun1, x, y, popt)
         else:
             p0 = [0.03, -1, 1.5, 0.5]
             p_min = [0, -np.inf, 0, 0]
             p_max = [0.05, y.min(), np.inf, np.inf]
             popt, pcov = curve_fit(fun2, x, y, p0, bounds=(p_min, p_max))
+            if ret_res:
+                squared_res = cal_squared_residuals(fun2, x, y, popt)
     else:
         x = np.log(l)
         y = eps
@@ -66,14 +80,21 @@ def fit_exp(eps, l, beta=None, reverse=False):
             p_min = [0, -np.inf, 0]
             p_max = [0.05, x.min(), np.inf]
             popt, pcov = curve_fit(fun3, x, y, p0, bounds=(p_min, p_max))
+            if ret_res:
+                squared_res = cal_squared_residuals(fun3, x, y, popt)
         else:
             p0 = [0.03, -1, 1.5, 0.5]
             p_min = [0, -np.inf, 0, 0]
             p_max = [0.05, x.min(), np.inf, np.inf]
-            popt, pcov = curve_fit(fun3, x, y, p0, bounds=(p_min, p_max))
+            popt, pcov = curve_fit(fun4, x, y, p0, bounds=(p_min, p_max))
+            if ret_res:
+                squared_res = cal_squared_residuals(fun4, x, y, popt)
 
     perr = np.sqrt(np.diag(pcov))
-    return popt, perr
+    if ret_res:
+        return popt, perr, squared_res
+    else:
+        return popt, perr
 
 
 def fit_pow(eps, l, beta=None):
@@ -97,6 +118,30 @@ def fit_pow(eps, l, beta=None):
         popt, pcov = curve_fit(fun2, x, y, p0, bounds=(p_min, p_max))
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
+
+
+def plot_KT_fit(nu, ax, eps, xi, reversed=False):
+    popt, perr = fit_exp(eps, xi, beta=nu)
+    x = np.linspace(0.05, 0.087, 100)
+    y = np.exp(popt[1] + popt[2] * (x - popt[0])**(-nu))
+    label = r"$\xi=%.3f \times e^{%.3f(\epsilon - %.4f)^{-%g}}$" % (
+        np.exp(popt[1]), popt[2], popt[0], nu)
+    if reversed:
+        ax.plot(y, x, "--", label=label)
+    else:
+        ax.plot(x, y, "--", label=label)
+
+
+def plot_pow_fit(ax, eps, xi, reversed=False):
+    popt, perr = fit_pow(eps, xi)
+    x = np.linspace(0.05, 0.087, 100)
+    y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
+    label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
+                                                            popt[0], popt[2])
+    if reversed:
+        ax.plot(y, x, "--", label=label)
+    else:
+        ax.plot(x, y, "--", label=label)
 
 
 def show_KT(nu):
@@ -199,9 +244,9 @@ def varied_nu():
     ax2.set_xscale("log")
     ax2.set_yscale("log")
     ax2.set_xlabel(r"$\nu$", fontsize="x-large")
-    ax2.set_ylabel(
-        r"$\left.\sqrt{\langle (\epsilon_c - \overline{\epsilon_c})^2 \rangle} \middle / \overline{\epsilon_c} \right.$",
-        fontsize="x-large")
+    ylabel = r"$\left.\sqrt{\langle (\epsilon_c - \overline{\epsilon_c})^2" \
+        + r"\rangle} \middle / \overline{\epsilon_c} \right.$"
+    ax2.set_ylabel(ylabel, fontsize="x-large")
     idx = np.argmin(y_std / y_mean)
     nu_m = nus[idx]
     eps_m = y_mean[idx]
