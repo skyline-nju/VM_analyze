@@ -35,7 +35,7 @@ def read(file):
     return t, rho_m, vx_m, vy_m, r, crho_r, cv_r
 
 
-def sample_average(eps, L, l, eta=0.18, rho0=1, time_averaged=False):
+def sample_average(eps, L, l, eta=0.18, rho0=1, time_averaged=False, ax=None):
     os.chdir(r"D:\code\VM\VM\corr_r")
     files = glob.glob("cr_%g_%g_%g_%d_%d_*.bin" % (eta, eps, rho0, L, l))
     s = files[0].replace(".bin", "").split("_")
@@ -73,12 +73,23 @@ def sample_average(eps, L, l, eta=0.18, rho0=1, time_averaged=False):
         print(t_new)
     print(crho_r_m.shape)
 
+    if ax is None:
+        flag_show = True
+        ax = plt.subplot(111)
+    else:
+        flag_show = False
     for i, cr in enumerate(crho_r_m):
-        plt.loglog(r, cr - 1, label="%g" % t[i])
-    plt.legend(title=r"$t=$")
-    plt.show()
-    plt.close()
+        ax.loglog(r, cr - 1, label="%g" % t[i])
+    ax.set_ylim(1e-4)
+    ax.legend(loc="upper right", title=r"$t=$")
+    if flag_show:
+        plt.show()
+        plt.close()
 
 
 if __name__ == "__main__":
-    sample_average(0, 4096, 2, eta=0.35, time_averaged=True)
+    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
+    sample_average(0, 4096, 1, eta=0.18, time_averaged=False, ax=ax1)
+    sample_average(0, 8192, 2, eta=0.18, time_averaged=True, ax=ax2)
+    plt.show()
+    plt.close()

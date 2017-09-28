@@ -27,7 +27,6 @@ import struct
 import numpy as np
 import platform
 import matplotlib
-from scipy.ndimage import gaussian_filter
 
 if platform.system() is not "Windows":
     matplotlib.use("Agg")
@@ -164,73 +163,6 @@ class CoarseGrainSnap(Snap):
                 vy /= 128
             frame = [t, vxm, vym, num, vx, vy]
         return frame
-
-    def show(self,
-             i_beg=0,
-             i_end=None,
-             di=1,
-             lx=1,
-             ly=1,
-             transpos=True,
-             sigma=[5, 1],
-             output=True,
-             show=True):
-        import half_rho
-        import half_peak
-        if output:
-            f = open(self.file.replace(".bin", "_%d.dat" % (sigma[0])), "w")
-        for i, frame in enumerate(self.gene_frames(i_beg, i_end, di)):
-            t, vxm, vym, num = frame
-            rho = num.astype(np.float32)
-            yh = np.linspace(0.5, self.nrows - 0.5, self.nrows)
-            # xh1, rho_h1 = half_rho.find_interface(rho, sigma=sigma)
-            xh2, rho_h2 = half_peak.find_interface(rho, sigma=sigma)
-            # xh1 = half_rho.untangle(xh1, self.ncols)
-            xh2 = half_rho.untangle(xh2, self.ncols)
-            # w1 = np.var(xh1)
-            w2 = np.var(xh2)
-            if show:
-                if ly > 1:
-                    rho = np.array([
-                        np.mean(num[i * ly:(i + 1) * ly], axis=0)
-                        for i in range(self.nrows // ly)
-                    ])
-                if lx > 1:
-                    rho = np.array([
-                        np.mean(rho[:, i * lx:(i + 1) * lx], axis=1)
-                        for i in range(self.ncols // lx)
-                    ])
-                rho = gaussian_filter(rho, sigma=[5, 1])
-                if transpos:
-                    rho = rho.T
-                    box = [0, self.nrows, 0, self.ncols]
-                    plt.figure(figsize=(14, 3))
-                    plt.plot(yh, xh2, "r")
-                    plt.xlabel(r"$y$")
-                    plt.ylabel(r"$x$")
-                else:
-                    box = [0, self.ncols, 0, self.nrows]
-                    plt.figure(figsize=(4, 12))
-                    plt.plot(xh2, yh, "r")
-                    plt.xlabel(r"$x$")
-                    plt.ylabel(r"$y$")
-                rho[rho > 4] = 4
-                plt.imshow(
-                    rho,
-                    origin="lower",
-                    interpolation="none",
-                    extent=box,
-                    aspect="auto")
-                plt.title(r"$t=%d, \phi=%g, w^2=%g$" %
-                          (t, np.sqrt(vxm**2 + vym**2), w2))
-                plt.tight_layout()
-                plt.show()
-                plt.close()
-            print(t, np.sqrt(vxm**2 + vym**2), w2)
-            if output:
-                f.write("%d\t%f\t%f\n" % (t, np.sqrt(vxm**2 + vym**2), w2))
-        if output:
-            f.close()
 
 
 if __name__ == "__main__":

@@ -6,11 +6,15 @@ import numpy as np
 import platform
 import matplotlib
 import os
-# import sys
 import glob
-import load_snap
 import spatial_corr as sc
 from add_line import add_line
+import sys
+sys.path.append("..")
+try:
+    from snap import load_snap
+except:
+    pass
 
 if platform.system() is not "Windows":
     matplotlib.use("Agg")
