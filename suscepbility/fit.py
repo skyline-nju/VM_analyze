@@ -28,7 +28,10 @@ def read():
         for i, line in enumerate(lines):
             s = line.replace("\n", "").split("\t")
             eps3[i] = float(s[0])
-            L3[i] = 0.5 * (float(s[1]) + float(s[2]))
+            if len(s) == 3:
+                L3[i] = 0.5 * (float(s[1]) + float(s[2]))
+            else:
+                L3[i] = float(s[1])
     return L1, eps1, L2, eps2, L3, eps3
 
 
@@ -212,7 +215,7 @@ def get_cross_point(x, y1, y2):
 
 def varied_nu():
     L1, eps1, L2, eps2, L3, eps3 = read()
-    nus = np.linspace(0.05, 2, 300)
+    nus = np.linspace(0.05, 2, 200)
     # nus = np.logspace(np.log10(0.005), np.log10(3), 100)
     eps_c1, eps_c2, eps_c3 = np.zeros((3, nus.size))
     err1, err2, err3 = np.zeros((3, nus.size))

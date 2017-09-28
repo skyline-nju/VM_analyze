@@ -500,9 +500,9 @@ def compare_two_averaging(L_list, M=500):
 
 if __name__ == "__main__":
     os.chdir("data")
-    distrubition(64, 500)
+    # distrubition(64, 500)
     # varied_sample_size(64, 500)
-    # average_type_B(True)
+    average_type_B(True)
     # diff_find_peak(90, 4, 10)
     # plot_peak_location_vs_L()
     # read_npz(724)
