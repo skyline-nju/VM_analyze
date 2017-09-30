@@ -8,7 +8,7 @@
 
 Calculate the susceptibility peak and its location. Similar to the magnetic case, the susceptibility for the Vicsek model is defined as: 
 $$\chi=L^2\langle \phi^2-\overline{\phi}^2\rangle_t,$$
-where \\(\phi\\) denotes instant order parameter and \\(\overline{\cdots}\\) denotes time average. There will be a susceptibility peak as the controlling parameter approching its critical value.
+where \\(\phi\\) denotes instant order parameter and \\(\overline{\cdots}\\) denotes time average. There will be a susceptibility peak as the controlling parameter approching its critical value. The location of the susceptibility peak can be regarded as the correlation length at given strength of disorder.
 
 In the presence of disorder, the susceptibility is different from sample to sample. Two methods are proposed when do sample-averaging:
 
@@ -24,10 +24,11 @@ For strength of disorder larger than its critical value, the system is in disord
 We can also evaluate the correlation length from the spatial correlation function of velocity fields directily, which decays exponentially in the disordered state.
 
 
-# Estimate critical disorder strength and exponents from correlation length
+## Estimate critical disorder strength and exponents from correlation length
 
 In the disorder state, the correlation length growth rapidly with decreasing disorder strength, and goes to infity at critical disorder strength. Two types of scaling are assumed.
 
+# Divergence of the correlation length
 ## KT-like scaling
 $$\xi=A_{\xi}e^{b(\epsilon-\epsilon_c)^{-\nu}},$$
 where \\(\nu=0.5\\) for the KT transition.

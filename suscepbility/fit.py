@@ -213,7 +213,11 @@ def get_cross_point(x, y1, y2):
     return None
 
 
-def varied_nu():
+def varied_nu3():
+    """
+    Epsilon evaluated from three different correlation lengths vs. the
+    exponent nu.
+    """
     L1, eps1, L2, eps2, L3, eps3 = read()
     nus = np.linspace(0.05, 2, 200)
     # nus = np.logspace(np.log10(0.005), np.log10(3), 100)
@@ -261,6 +265,46 @@ def varied_nu():
     ax1.legend(fontsize="large")
     ax2.legend(fontsize="large")
     plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
+def varied_nu2():
+    """
+    Epsilon evaluated from two different correlation lengths vs. the
+    exponent nu.
+    """
+    L1, eps1, L2, eps2, L3, eps3 = read()
+    nu_arr = np.linspace(0.05, 2, 100)
+    eps_c1 = np.zeros_like(nu_arr)
+    eps_c2 = np.zeros_like(nu_arr)
+
+    for i, nu in enumerate(nu_arr):
+        popt, perr = fit_exp(eps1, L1, nu)
+        eps_c1[i], lnA, b = popt
+        popt, perr = fit_exp(eps2, L2, nu)
+        eps_c2[i], lnA, b = popt
+
+    fig = plt.figure()
+    plt.plot(nu_arr, eps_c1, "-", label="from susceptibility peak location")
+    lb = "from the correlation length\nevaluated by order parameters"
+    plt.plot(nu_arr, eps_c2, "-", label=lb)
+    plt.xscale("log")
+    plt.xlabel(r"$\nu$")
+    plt.ylabel(r"$\epsilon_c$")
+    plt.tight_layout()
+    plt.legend(loc="upper right")
+
+    xc, yc = get_cross_point(nu_arr, eps_c1, eps_c2)
+    ax = fig.add_axes([0.28, 0.25, 0.4, 0.4])
+    ax.plot(nu_arr, eps_c1, "-")
+    ax.plot(nu_arr, eps_c2, "-")
+    ax.axhline(yc, c="r", linestyle="dashed")
+    ax.axvline(xc, c="r", linestyle="dashed")
+    ax.set_xlim(0.98, 1.04)
+    ax.set_ylim(0.0333, 0.0342)
+    ax.set_xlabel(r"$\nu$")
+    ax.set_ylabel(r"$\epsilon_c$")
     plt.show()
     plt.close()
 
@@ -335,5 +379,5 @@ if __name__ == "__main__":
     # print(popt, perr)
     # popt, perr = fit_pow(eps3, L3)
     # print(popt, perr)
-    varied_nu()
+    varied_nu2()
     # show_KT(0.01)
