@@ -234,8 +234,8 @@ def plot_sample_averaged_Crho(L0, eta, eps):
 
     for i, cr in enumerate(c_rho_r):
         if i == 2 or i == 3 or i == 4 or i == 5:
-            ax1.plot(r, cr, "o", label=r"$%d$" % (t[i]), ms=2)
-            ax2.plot(r / rcut[i], cr, "o", label=r"$%d$" % (t[i]), ms=2)
+            ax1.plot(r, cr/cr[0], "o", label=r"$%d$" % (t[i]), ms=2)
+            ax2.plot(r / rcut[i], cr/cr[0], "o", label=r"$%d$" % (t[i]), ms=2)
     ax1.set_xscale("log")
     ax1.set_yscale("log")
     ax1.set_ylim(1e-4, 1)
@@ -372,27 +372,27 @@ if __name__ == "__main__":
         # os.chdir(r"D:\code\corr2d\data")
         # file = r"ciff_0.18_0_2048_2048_1024_1024_4194304_1.06_123.bin"
         # file = r"ciff_0.18_0_4096_4096_1024_1024_16777216_1.06_123.bin"
-        os.chdir(r"E:\data\random_torque\ordering")
+        os.chdir(r"E:\data\random_torque\ordering\block")
         # os.chdir(r"D:\data\statistic")
         # file = r"cHff_0.18_0.08_1024_1024_1024_1024_1048576_1709040.bin"
     else:
         os.chdir(r"coarse")
 
-    file = r"ciff_0.18_0_2048_2048_1024_1024_4194304_1.1_17090301.bin"
+    # file = r"ciff_0.18_0_2048_2048_1024_1024_4194304_1.1_17090301.bin"
 
-    L0, eta, eps, ncols, nrows, seed = get_para(file)
-    cell_area = (L0 / ncols)**2
-    snap = load_snap.CoarseGrainSnap(file)
-    print(snap.get_tot_frames_num())
-    frames = snap.gene_frames()
-    for frame in frames:
-        t, vxm, vym, num, vx, vy = frame
-        if t == 26:
-            c_rho, c_v = sc.cal_corr2d(
-                num, vx, vy, cell_area, remove_mean=True)
-            sc.vary_box_size([2], L0, t, num, vx, vy, rm_mean=True)
+    # L0, eta, eps, ncols, nrows, seed = get_para(file)
+    # cell_area = (L0 / ncols)**2
+    # snap = load_snap.CoarseGrainSnap(file)
+    # print(snap.get_tot_frames_num())
+    # frames = snap.gene_frames()
+    # for frame in frames:
+    #     t, vxm, vym, num, vx, vy = frame
+    #     if t == 26:
+    #         c_rho, c_v = sc.cal_corr2d(
+    #             num, vx, vy, cell_area, remove_mean=True)
+    #         sc.vary_box_size([2], L0, t, num, vx, vy, rm_mean=True)
 
-    # plot_sample_averaged_Crho(2048, 0.18, 0)
+    plot_sample_averaged_Crho(4096, 0.18, 0)
     # sample_average(2048, 0.18, 0.02, 1024)
     # sample_time_average(4096, 0.18, 0, 1024)
     # show_comparision(4096, 0.18, 0)

@@ -22,7 +22,7 @@ def read(file, dict_eps):
             s = line.replace("\n", "").split("\t")
             L[i] = float(s[0])
             phi[i] = float(s[1])
-        if L.size > 2 and eps >= 0.0535:
+        if L.size > 3 and eps >= 0.0535:
             dict_eps[eps] = {"L": L, "phi": phi}
 
 
@@ -136,7 +136,7 @@ def plot_three_panel(alpha):
         read(file, dict_eps)
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     c0, res, eps_m, Lm, phi_m = find_peak(
-        alpha, show=True, output=False, ax=ax2, dict_eps=dict_eps, ret=True)
+        alpha, show=True, output=True, ax=ax2, dict_eps=dict_eps, ret=True)
     plot_phi_vs_L(ax1, dict_eps, Lm, phi_m)
     ax3.plot(eps_m, Lm, "o")
 

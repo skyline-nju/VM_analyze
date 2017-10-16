@@ -210,7 +210,7 @@ def get_cross_point(x, y1, y2):
             xc = x[i] - (y1[i] - y2[i]) / (k1 - k2)
             yc = y1[i] - (x[i] - xc) * k1
             return xc, yc
-    return None
+    return None, None
 
 
 def varied_nu3():
@@ -280,9 +280,9 @@ def varied_nu2():
     eps_c2 = np.zeros_like(nu_arr)
 
     for i, nu in enumerate(nu_arr):
-        popt, perr = fit_exp(eps1, L1, nu)
+        popt, perr = fit_exp(eps1[3:], L1[3:], nu)
         eps_c1[i], lnA, b = popt
-        popt, perr = fit_exp(eps2, L2, nu)
+        popt, perr = fit_exp(eps2[:L2.size-3], L2[:L2.size-3], nu)
         eps_c2[i], lnA, b = popt
 
     fig = plt.figure()
@@ -296,15 +296,16 @@ def varied_nu2():
     plt.legend(loc="upper right")
 
     xc, yc = get_cross_point(nu_arr, eps_c1, eps_c2)
-    ax = fig.add_axes([0.28, 0.25, 0.4, 0.4])
-    ax.plot(nu_arr, eps_c1, "-")
-    ax.plot(nu_arr, eps_c2, "-")
-    ax.axhline(yc, c="r", linestyle="dashed")
-    ax.axvline(xc, c="r", linestyle="dashed")
-    ax.set_xlim(0.98, 1.04)
-    ax.set_ylim(0.0333, 0.0342)
-    ax.set_xlabel(r"$\nu$")
-    ax.set_ylabel(r"$\epsilon_c$")
+    if xc is not None:
+        ax = fig.add_axes([0.28, 0.25, 0.4, 0.4])
+        ax.plot(nu_arr, eps_c1, "-")
+        ax.plot(nu_arr, eps_c2, "-")
+        ax.axhline(yc, c="r", linestyle="dashed")
+        ax.axvline(xc, c="r", linestyle="dashed")
+        ax.set_xlim(xc - 0.02, xc + 0.02)
+        ax.set_ylim(yc - 0.0003, yc + 0.0003)
+        ax.set_xlabel(r"$\nu$")
+        ax.set_ylabel(r"$\epsilon_c$")
     plt.show()
     plt.close()
 

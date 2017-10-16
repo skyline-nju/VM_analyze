@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
             v_orient = np.arctan2(vy, vx) / np.pi * 180
             v_orient[v_orient < 0] += 360
-            v_module = np.sqrt(vx**2 + vy**2) * rho
+            v_module = np.sqrt(vx**2 + vy**2)
             RGB = get_rgb(v_orient, v_module, scaled=False)
             ax2.imshow(RGB, extent=[0, L, 0, L], origin="lower")
             ax2.axis('scaled')
