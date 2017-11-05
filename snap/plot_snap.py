@@ -10,7 +10,7 @@ from matplotlib.colors import hsv_to_rgb
 import load_snap
 
 
-def get_rgb(theta0, module0, scaled=True):
+def get_rgb(theta0, module0, scaled=True, module_max=None):
     theta, module = theta0.copy(), module0.copy()
     H = theta / 360
     if scaled:
@@ -25,6 +25,8 @@ def get_rgb(theta0, module0, scaled=True):
         V = (module - mmin) / (mmax - mmin)
     else:
         V = module
+        if module_max is not None:
+            V[V > module_max] = module_max
     S = np.ones_like(H)
     HSV = np.dstack((H, S, V))
     RGB = hsv_to_rgb(HSV)
@@ -45,7 +47,8 @@ def add_colorbar(ax, mmin, mmax, theta_min, theta_max):
     theta_ticks = [0, 45, 90, 135, 180, 225, 270, 315, 360]
     ax.set_xticks(theta_ticks)
     ax.set_xticklabels([r"$%d\degree$" % i for i in theta_ticks])
-    ax.set_ylabel('module')
+    ax.set_ylabel(r'module $\rho |v|$', fontsize="large")
+    ax.set_xlabel("orientation", fontsize="large")
 
 
 def plot(L, eta, eps, rho0, seed, t_end, rho, theta, module, polar_angle, phi,
@@ -137,7 +140,9 @@ def plot(L, eta, eps, rho0, seed, t_end, rho, theta, module, polar_angle, phi,
 
 if __name__ == "__main__":
     os.chdir("data")
-    file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
+    # file = r"cHff_0.1_0_8192_8192_1024_1024_67108864_17102532.bin"
+    # file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
+    file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
     snap = load_snap.CoarseGrainSnap(file)
     frames = snap.gene_frames()
     s = file.replace(".bin", "").split("_")
@@ -149,11 +154,13 @@ if __name__ == "__main__":
     lBox = L // ncols
     dA = lBox**2
     x = y = np.linspace(lBox / 2, L - lBox / 2, ncols)
+    # rho_level = np.linspace(0, 5, 11)
     rho_level = np.linspace(0, 4, 9)
     for frame in frames:
         t, vxm, vym, num, vx, vy = frame
+        # if t in [3200]:
         if t in [25, 50, 100, 200, 400, 800, 1600, 3200]:
-            fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 8))
+            fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 7.5))
             rho = num / dA
             contour = ax1.contourf(x, y, rho, rho_level, extend="max")
             ax1.axis("scaled")
@@ -161,17 +168,22 @@ if __name__ == "__main__":
 
             v_orient = np.arctan2(vy, vx) / np.pi * 180
             v_orient[v_orient < 0] += 360
-            v_module = np.sqrt(vx**2 + vy**2)
-            RGB = get_rgb(v_orient, v_module, scaled=False)
+            v_module = np.sqrt(vx**2 + vy**2) * rho
+            RGB = get_rgb(
+                v_orient, v_module, scaled=False, module_max=4)
             ax2.imshow(RGB, extent=[0, L, 0, L], origin="lower")
             ax2.axis('scaled')
             ax2.axis(domain)
-
-            plt.tight_layout()
+            plt.suptitle(
+                r"$\eta=%g,\ \rho_0=1, \epsilon=%g,\ L=%d,\ t=%d$" % (eta, eps,
+                                                                      L, t),
+                fontsize="xx-large",
+                y=0.985)
+            plt.tight_layout(rect=[0, 0, 1, 0.98])
 
             bbox1 = ax1.get_position().get_points().flatten()
             bbox2 = ax2.get_position().get_points().flatten()
-            fig.subplots_adjust(bottom=0.2)
+            fig.subplots_adjust(bottom=0.24)
             bbox1[1], bbox1[3] = 0.14, 0.04
             bbox1[2] = bbox1[2] - bbox1[0] - 0.03
             bbox2[1], bbox2[3] = 0.08, 0.14
@@ -179,6 +191,8 @@ if __name__ == "__main__":
             cb_ax1 = fig.add_axes(bbox1)
             cb_ax2 = fig.add_axes(bbox2)
             cb1 = fig.colorbar(contour, cax=cb_ax1, orientation="horizontal")
-            add_colorbar(cb_ax2, v_module.min(), v_module.max(), 0, 360)
-            plt.show()
+            cb1.set_label(r"density $\rho$", fontsize="x-large")
+            add_colorbar(cb_ax2, v_module.min(), 4, 0, 360)
+            # plt.show()
+            plt.savefig("snap_%g_%g_%d_%04d.png" % (eta, eps, L, t))
             plt.close()

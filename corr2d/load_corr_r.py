@@ -9,6 +9,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from add_line import add_line
+# from spatial_corr import get_chara_length
 
 
 def read(file, load_Sk=False):
@@ -76,6 +77,18 @@ def split_array(a, sep=1):
     return pos
 
 
+def plot_lin_fit(xdata, ydata, ax, scale="lin"):
+    xlim = ax.get_xlim()
+    x = np.linspace(xlim[0], xlim[1], 1000)
+    if scale == "lin":
+        p = np.polyfit(xdata, ydata, 1)
+        y = p[0] * x + p[1]
+    else:
+        p = np.polyfit(np.log10(xdata), np.log10(ydata), 1)
+        y = 10**(p[0] * np.log10(x) + p[1])
+    ax.plot(x, y, "--", label="slope = %.3f" % (p[0]))
+
+
 def time_ave(t, rho_m, vx_m, vy_m, crho_r, cv_r, srho_k=None, sv_k=None):
     """ Average over nearby frames. """
     pos = split_array(t)
@@ -108,7 +121,40 @@ def time_ave(t, rho_m, vx_m, vy_m, crho_r, cv_r, srho_k=None, sv_k=None):
 
 
 def sample_ave(eta, eps, L, l, rho0=1, t_ave=True, files=None):
-    """ Average over samples. """
+    """ Average over samples.
+
+    Parameters:
+    --------
+    eta: float
+        Noise strength.
+    eps: float
+        Disorder strength.
+    L: int
+        System size.
+    rho0: float, optional
+        Particle density
+    t_ave: bool, optional
+        Whether do average over time.
+    files: list of str, optional
+        Input files.
+
+    Returns:
+    --------
+    t: array_like
+        Time for each frames.
+    rho_m: float
+        Mean density.
+    vx_m: float
+        Mean vx.
+    vy_m: float
+        Mean vy.
+    r: array_like
+        Array of distance from the origin.
+    crho_r: array_like
+        Spherically averaged correlation function of density.
+    cv_r: array_like
+        Spherically averaged correlation function of velocity.
+    """
     if files is None:
         files = glob.glob("cr*_%g_%g_%g_%d_%d_*.bin" % (eta, eps, rho0, L, l))
     t, rho_m, vx_m, vy_m, r, crho_r, cv_r = read(files[0])
@@ -141,6 +187,10 @@ def plot_cr(t,
             xlog=True,
             ylog=True,
             t_specify=None,
+            marker="o",
+            ms=2,
+            clist=[],
+            flag_line_label=True,
             ax=None):
     if ax is None:
         ax = plt.subplot(111)
@@ -148,14 +198,34 @@ def plot_cr(t,
     else:
         flag_show = False
 
-    for i, cr_t in enumerate(cr[start_idx:]):
-        i += start_idx
+    if len(clist) == 0:
+        flag_c = True
+    else:
+        flag_c = False
+    cr = cr[start_idx:]
+    t = t[start_idx:]
+    if isinstance(mean, np.ndarray):
+        mean = mean[start_idx:]
+    for i, cr_t in enumerate(cr):
         if t_specify is None or t[i] in t_specify:
             if lc is None:
                 r_new = r
             else:
-                r_new = r / lc[i]
-            ax.plot(r_new, cr_t - mean, "o", label="%g" % (t[i]), ms=1)
+                r_new = r / lc[start_idx + i]
+            if isinstance(mean, np.ndarray):
+                c_new = (cr_t - mean[i]) / (cr_t[0] - mean[i])
+            else:
+                c_new = (cr_t - mean) / (cr_t[0] - mean)
+            line, = ax.plot(r_new, c_new, marker, ms=ms)
+            if flag_c:
+                clist.append(line.get_color())
+            else:
+                line.set_color(clist[i])
+            if flag_line_label:
+                if t[i] > 25:
+                    line.set_label("%g" % (t[i] + 0.5))
+                else:
+                    line.set_label("25")
     if xlog:
         ax.set_xscale("log")
     if ylog:
@@ -166,30 +236,244 @@ def plot_cr(t,
         plt.close()
 
 
+def varied_eta(*args,
+               L=8192,
+               eps=0,
+               rho0=1,
+               l=2,
+               start_idx=0,
+               save=False,
+               hline=0.002):
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+    mk = {0.10: "-", 0.18: "o", 0.35: "--"}
+    line_type = {0.10: "solid line", 0.18: "circle", 0.35: "dashed line"}
+    title = ""
+    clist = []
+    for i, eta in enumerate(args):
+        t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+        print(vx_m**2 + vy_m**2)
+        if i == 0:
+            flag_line_label = True
+        else:
+            flag_line_label = False
+        plot_cr(
+            t,
+            r,
+            crho_r,
+            xlog=True,
+            start_idx=start_idx,
+            mean=1,
+            ax=ax1,
+            marker=mk[eta],
+            flag_line_label=flag_line_label,
+            clist=clist)
+        plot_cr(
+            t,
+            r,
+            cv_r,
+            xlog=True,
+            start_idx=start_idx,
+            ax=ax2,
+            marker=mk[eta],
+            flag_line_label=flag_line_label,
+            clist=clist)
+        title += " %g (%s)," % (eta, line_type[eta])
+    title = title[:-1]  # remove the last comma
+    ax1.legend(title=r"$t=$", fontsize="large")
+    ax2.legend(title=r"$t=$", fontsize="large")
+    ax1.set_xlabel(r"$r$", fontsize="x-large")
+    ax2.set_xlabel(r"$r$", fontsize="x-large")
+    ax1.set_ylabel(r"$C_{\rho}$", fontsize="x-large")
+    ax2.set_ylabel(r"$C_{v}$", fontsize="x-large")
+    ax1.set_ylim(5e-5, 1)
+    ax2.set_ylim(5e-4, 1)
+    ax2.axhline(hline, color="k")
+
+    title = r"$L=%d,\ \rho_0=%g,\ \epsilon=%g,\ \eta=$" + title
+    plt.suptitle(title % (L, rho0, eps), fontsize="xx-large", y=0.995)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+    if save:
+        filename = "eta"
+        for eta in args:
+            filename += "_%g" % eta
+        plt.savefig(filename + ".pdf")
+    else:
+        plt.show()
+    plt.close()
+
+
+def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+    mk = {4096: "--", 8192: "o"}
+    line_type = {4096: "dashed line", 8192: "circle"}
+    title = ""
+    clist = []
+    for i, L in enumerate(args):
+        # if L == 4096:
+        #     l = 1
+        # else:
+        #     l = 2
+        t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+        if i == 0:
+            flag_line_label = True
+        else:
+            flag_line_label = False
+        plot_cr(
+            t,
+            r,
+            crho_r,
+            start_idx,
+            mean=1,
+            ax=ax1,
+            marker=mk[L],
+            ms=3,
+            flag_line_label=flag_line_label,
+            clist=clist)
+        plot_cr(
+            t,
+            r,
+            cv_r,
+            xlog=True,
+            start_idx=start_idx,
+            ax=ax2,
+            marker=mk[L],
+            ms=3,
+            flag_line_label=flag_line_label,
+            clist=clist)
+        title += " %g (%s)," % (L, line_type[L])
+    title = title[:-1]  # remove the last comma
+    ax1.legend(title=r"$t=$", fontsize="large")
+    ax2.legend(title=r"$t=$", fontsize="large")
+    ax1.set_xlabel(r"$r$", fontsize="x-large")
+    ax2.set_xlabel(r"$r$", fontsize="x-large")
+    ax1.set_ylabel(r"$C_{\rho}$", fontsize="x-large")
+    ax2.set_ylabel(r"$C_{v}$", fontsize="x-large")
+    ax1.set_ylim(5e-5, 1)
+    ax2.set_ylim(1e-3, 1)
+    ax1.set_xlim(xmax=2e3)
+    ax2.set_xlim(xmax=4e3)
+
+    title = r"$\eta=%g,\ \rho_0=%g,\ \epsilon=%g,\ L=$" + title
+    plt.suptitle(title % (eta, rho0, eps), fontsize="xx-large", y=0.995)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+    if save:
+        filename = "L"
+        for L in args:
+            filename += "_%g" % L
+        plt.savefig(filename + ".pdf")
+    else:
+        plt.show()
+    plt.close()
+
+
+def plot_six_pannel(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
+    t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+    fig, axes = plt.subplots(ncols=3, nrows=2, figsize=(9, 6))
+    lc_v = dict_lc["v"][eta]
+    # lc_rho = dict_lc["rho"][eta]
+    lc_rho = lc_v
+    t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+    label_size = "x-large"
+    """ density """
+    plot_cr(t, r, crho_r, beg_idx, mean=1, ax=axes[0][0])
+    axes[0][0].set_ylim(1e-4, 1)
+    axes[0][0].set_xlabel(r"$r$", fontsize=label_size)
+    axes[0][0].set_ylabel(r"$C_\rho$", fontsize=label_size)
+
+    plot_cr(t, r, crho_r, beg_idx, lc_rho, mean=1, ax=axes[0][1])
+    axes[0][1].set_ylim(1e-4, 1)
+    axes[0][1].set_xlim(xmax=1)
+    axes[0][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
+    axes[0][1].set_ylabel(r"$C_\rho$", fontsize=label_size)
+    axes[0][1].legend(title="t=")
+
+    plot_cr(
+        t,
+        r,
+        crho_r,
+        beg_idx,
+        lc_rho,
+        mean=1,
+        xlog=False,
+        ylog=False,
+        ax=axes[0][2])
+    axes[0][2].set_ylim(-0.05, 1)
+    axes[0][2].set_xlim(-0.02, 0.5)
+    axes[0][2].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
+    axes[0][2].set_ylabel(r"$C_\rho$", fontsize=label_size)
+    axes[0][2].legend(title="t=")
+    """ velocity """
+    plot_cr(t, r, cv_r, beg_idx, ax=axes[1][0])
+    # axes[1][0].set_ylim(1e-3, 1)
+    axes[1][0].set_xlabel(r"$r$", fontsize=label_size)
+    axes[1][0].set_ylabel(r"$C_v$", fontsize=label_size)
+
+    plot_cr(t, r, cv_r, beg_idx, lc_v, ax=axes[1][1])
+    # axes[1][1].set_ylim(1e-3, 1)
+    axes[1][1].set_xlim(xmax=11)
+    axes[1][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
+    axes[1][1].set_ylabel(r"$C_v$", fontsize=label_size)
+    axes[1][1].legend(title="t=")
+
+    plot_cr(t, r, cv_r, beg_idx, lc_v, xlog=False, ylog=False, ax=axes[1][2])
+    axes[1][2].set_ylim(-0.05, 1)
+    axes[1][2].set_xlim(-0.02, 0.5)
+    axes[1][2].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
+    axes[1][2].set_ylabel(r"$C_v$", fontsize=label_size)
+    axes[1][2].legend(title="t=")
+
+    plt.suptitle(
+        r"$L=%d,\ \eta=%g, \rho_0=%d,\ \epsilon=%g$" % (L, eta, rho0, eps),
+        fontsize="xx-large",
+        y=0.995)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+    if save:
+        plt.savefig("collapse_%d_%g_%d.png" % (L, eta, beg_idx))
+    else:
+        plt.show()
+    plt.close()
+
+
+def plot_lc(save=False, L=8192):
+    p = np.polyfit(np.log10(t_specify[2:]), np.log10(dict_lc["v"][0.1][2:]), 1)
+    plt.plot(
+        t_specify,
+        dict_lc["v"][0.1],
+        "o",
+        label="$\eta=%g$, slope=%.3f" % (0.1, p[0]))
+    p = np.polyfit(
+        np.log10(t_specify[2:]), np.log10(dict_lc["v"][0.18][2:]), 1)
+    plt.plot(
+        t_specify,
+        dict_lc["v"][0.18],
+        "s",
+        label="$\eta=%g$, slope=%.3f" % (0.18, p[0]))
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.legend(fontsize="x-large")
+    plt.xlabel(r"$t$", fontsize="xx-large")
+    plt.ylabel(r"$\xi_v$", fontsize="xx-large")
+    plt.title(
+        r"$L=%d,\ \rho_0=%g,\ \epsilon=%g$" % (L, 1, 0), fontsize="xx-large")
+    add_line(plt.gca(), 0, 0.08, 1, 1, scale="log", label="slope 1")
+    add_line(plt.gca(), 0.1, 0, 1, 0.95, "slope 0.95", 0.6, 0.5, scale="log")
+    plt.tight_layout()
+    if save:
+        plt.savefig("Lc_%d.pdf" % (L))
+    else:
+        plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     os.chdir(r"data\corr_r")
+    dict_lc = {"rho": {}, "v": {}}
+    dict_lc["v"][0.18] = [25.27, 46.45, 89.16, 171.5, 332, 657.7, 1222.5, 2412]
+    dict_lc["v"][0.1] = [25.82, 47.87, 91.55, 178.6, 338, 688, 1255.3, 2767]
+    dict_lc["v"][0.35] = [25, 44.3, 84.5, 158.7, 308.1, 598, 1123, 2329]
     t_specify = [25, 50, 100, 200, 400, 800, 1600, 3200]
-    # lc = [8.39, 17.4, 37.14, 73.46, 160, 314, 609, 1106, 2509]
-    # lc = [35, 55, 95, 172, 331, 640, 1133, 2268]
-    # lc = [24.3, 44, 83, 158, 305, 597, 1110, 2424]
-    lc_rho = [8.34, 18.27, 36.68, 76.24, 157.8, 312.6, 627.6, 1149]
-    lc_v = [6.24, 10.12, 17.24, 30.87, 56, 105, 202.8, 387]
-    eta = 0.18
-    eps = 0
-    rho0 = 1
-    # L = 4096
-    L = 8192
-    l = 2
-    # files = glob.glob("cr_%g_%g_%g_%d_%d_*.bin" % (eta, eps, rho0, L, l))
-    t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
-    # ax = plt.subplot(111)
-    plot_cr(t, r, cv_r, lc=lc_v, xlog=False, start_idx=3)
-    # plt.show()
-    # fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
-    # ax = plt.subplot(111)
-    # ax.loglog(t[1:], lc_rho[1:], 'o', t[1:], lc_v[1:], 's')
-    # add_line(ax, 0, 0.12, 1, slope=1, scale="log")
-    # add_line(ax, 0, 0, 1, slope=0.9, scale="log")
-    # add_line(ax, 0.1, 0, 1, slope=1, scale="log")
-    # plt.show()
-    # plt.close()
+
+    # varied_eta(0.35, save=True, hline=5e-4)
+    # plot_six_pannel(0.35, beg_idx=2, save=False)
+    # plot_lc(save=True)
+    varied_L(4096, 8192, save=True)
