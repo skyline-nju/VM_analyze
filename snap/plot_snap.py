@@ -10,139 +10,79 @@ from matplotlib.colors import hsv_to_rgb
 import load_snap
 
 
-def get_rgb(theta0, module0, scaled=True, module_max=None):
+def get_rgb(theta0, module0, m_max=None):
+    """ Transform orientation and magnitude of velocity into rgb.
+
+    Parameters:
+    --------
+    theta0: array_like
+        Orietation of velocity field.
+    module0: array_like
+        Magnitude of velocity field.
+    m_max: float, optional
+        Max magnitude to show.
+
+    Returns:
+    --------
+    RGB: array_like
+        RGB corresponding to velocity fields.
+    """
     theta, module = theta0.copy(), module0.copy()
     H = theta / 360
-    if scaled:
-        mmean, mstd = np.mean(module), np.std(module)
-        mmax = min(module.max(), mmean + 2 * mstd)
-        if module.min() < 0.05:
-            mmin = 0
-        else:
-            mmin = max(module.min(), mmean - 2 * mstd)
-        module[module > mmax] = mmax
-        module[module < mmin] = mmin
-        V = (module - mmin) / (mmax - mmin)
-    else:
-        V = module
-        if module_max is not None:
-            V[V > module_max] = module_max
+    V = module
+    if m_max is not None:
+        V[V > m_max] = m_max
     S = np.ones_like(H)
     HSV = np.dstack((H, S, V))
     RGB = hsv_to_rgb(HSV)
-    if scaled:
-        return RGB, mmin, mmax, mmean
-    else:
-        return RGB
+    return RGB
 
 
-def add_colorbar(ax, mmin, mmax, theta_min, theta_max):
+def add_colorbar(ax, mmin, mmax, theta_min=0, theta_max=360, orientation="h"):
+    """ Add colorbar for the RGB image plotted by plt.imshow() """
     V, H = np.mgrid[0:1:50j, 0:1:180j]
+    if orientation == "v":
+        V = V.T
+        H = H.T
+        box = [mmin, mmax, theta_min, theta_max]
+    else:
+        box = [theta_min, theta_max, mmin, mmax]
     S = np.ones_like(V)
     HSV = np.dstack((H, S, V))
     RGB = hsv_to_rgb(HSV)
-    t_min, t_max = 0, 360
-    ax.imshow(
-        RGB, origin='lower', extent=[t_min, t_max, mmin, mmax], aspect='auto')
+    ax.imshow(RGB, origin='lower', extent=box, aspect='auto')
     theta_ticks = [0, 45, 90, 135, 180, 225, 270, 315, 360]
-    ax.set_xticks(theta_ticks)
-    ax.set_xticklabels([r"$%d\degree$" % i for i in theta_ticks])
-    ax.set_ylabel(r'module $\rho |v|$', fontsize="large")
-    ax.set_xlabel("orientation", fontsize="large")
+
+    if orientation == "h":
+        ax.set_xticks(theta_ticks)
+        ax.set_xticklabels([r"$%d\degree$" % i for i in theta_ticks])
+        ax.set_ylabel(r'module $\rho |v|$', fontsize="large")
+        ax.set_xlabel("orientation", fontsize="large")
+    else:
+        ax.yaxis.set_label_position('right')
+        ax.yaxis.set_ticks_position("right")
+        ax.set_yticks(theta_ticks)
+        ax.set_yticklabels([r"$%d\degree$" % i for i in theta_ticks])
+        ax.set_ylabel(r'orientation $\theta$', fontsize="large")
+        ax.set_xlabel(r"module $\rho |v|$", fontsize="large")
 
 
-def plot(L, eta, eps, rho0, seed, t_end, rho, theta, module, polar_angle, phi,
-         dl):
-    rmax = rho.max()
-    rmin = rho.min()
-    rmean = np.mean(rho)
-    rstd = np.std(rho)
-    rho = (rho - rmean) / (2 * rstd)
-    mmax = module.max()
-    mmin = module.min()
-    mstd = np.std(module)
-    mmean = np.mean(module)
-    # module2 = (module - mmean) / (2 * mstd)
-    box = [0, L, 0, L]
-    tick = np.arange(5) * L / 4
-    x = y = np.linspace(dl / 2, L - dl / 2, L // dl)
+def plot_two_panel(file, t_list=None, save=False):
+    """ Plot density and velocity filed on left, right pannel, respectively.
+        One picture per frame.
 
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(11, 7))
-    v = np.linspace(-1, 1, 11)
-    cf = ax1.contourf(x, y, rho, v, cmap='hot', extend='both')
-    ax1.axis('scaled')
-    ax1.axis(box)
-
-    ax1.set_xticks(tick)
-    ax1.set_yticks(tick)
-
-    RGB, mmin, mmax, mmean = get_rgb(theta, module)
-    ax2.imshow(RGB, extent=[0, L, 0, L], origin='lower')
-    ax2.axis('scaled')
-    ax2.axis(box)
-    ax2.set_xticks(tick)
-    ax2.set_yticks(tick)
-
-    plt.tight_layout()
-    ax1.set_title(
-        'density: min=%.3f, max=%.3f, mean=%.3f, SD=%.3f' % (rmin, rmax, rmean,
-                                                             rstd),
-        fontsize=11,
-        color='b')
-    ax2.set_title(
-        'module: min=%.3f, max=%.3f, mean=%.3f, SD=%.3f' % (mmin, mmax, mmean,
-                                                            mstd),
-        fontsize=11,
-        color='b')
-    bbox1 = ax1.get_position().get_points().flatten()
-    bbox2 = ax2.get_position().get_points().flatten()
-    fig.subplots_adjust(bottom=0.2)
-    bbox1[1], bbox1[3] = 0.14, 0.04
-    bbox1[2] = bbox1[2] - bbox1[0] - 0.03
-    bbox2[1], bbox2[3] = 0.08, 0.14
-    bbox2[2] = bbox2[2] - bbox2[0]
-
-    cb_ax1 = fig.add_axes(bbox1)
-    cb_ax2 = fig.add_axes(bbox2)
-
-    cb1 = fig.colorbar(cf, cax=cb_ax1, orientation='horizontal')
-    cb1.set_label('density')
-    cbticks = np.linspace(-1, 1, 6)
-    cb1.set_ticks(cbticks)
-    cb1.set_ticklabels(['%.4f' % i for i in cbticks * rstd * 2.0 + rmean])
-    add_colorbar(cb_ax2, mmin, mmax, theta.min(), theta.max())
-
-    # add_arrow
-    length = L / 4
-    ax1.arrow(
-        L / 2,
-        L / 2,
-        length * np.cos(polar_angle),
-        length * np.sin(polar_angle),
-        color="k",
-        width=3 * L / 2048)
-    ax2.arrow(
-        L / 2,
-        L / 2,
-        length * np.cos(polar_angle),
-        length * np.sin(polar_angle),
-        color="w",
-        width=3 * L / 2048)
-
-    fig.suptitle(
-        r'$\eta=%.2f,\ \epsilon=%.3f,\ \langle \phi \rangle_t=%.4f,\ \rm{seed}=%d$'
-        % (eta, eps, phi, seed),
-        fontsize=18)
-
-    plt.show()
-    plt.close()
-
-
-if __name__ == "__main__":
-    os.chdir("data")
-    # file = r"cHff_0.1_0_8192_8192_1024_1024_67108864_17102532.bin"
-    # file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
-    file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
+    Parameters:
+    ---------
+    file: str
+        Input file
+    t_list: array_like, optional
+        The frames to show. If is None, t_list = [25, 50, 100, 200, 400, 800,
+        1600, 3200]
+    save: bool, optional
+        Whether to save the figure to disk.
+    """
+    if t_list is None:
+        t_list = [25, 50, 100, 200, 400, 800, 1600, 3200]
     snap = load_snap.CoarseGrainSnap(file)
     frames = snap.gene_frames()
     s = file.replace(".bin", "").split("_")
@@ -158,8 +98,7 @@ if __name__ == "__main__":
     rho_level = np.linspace(0, 4, 9)
     for frame in frames:
         t, vxm, vym, num, vx, vy = frame
-        # if t in [3200]:
-        if t in [25, 50, 100, 200, 400, 800, 1600, 3200]:
+        if t in t_list:
             fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 7.5))
             rho = num / dA
             contour = ax1.contourf(x, y, rho, rho_level, extend="max")
@@ -169,8 +108,7 @@ if __name__ == "__main__":
             v_orient = np.arctan2(vy, vx) / np.pi * 180
             v_orient[v_orient < 0] += 360
             v_module = np.sqrt(vx**2 + vy**2) * rho
-            RGB = get_rgb(
-                v_orient, v_module, scaled=False, module_max=4)
+            RGB = get_rgb(v_orient, v_module, m_max=4)
             ax2.imshow(RGB, extent=[0, L, 0, L], origin="lower")
             ax2.axis('scaled')
             ax2.axis(domain)
@@ -193,6 +131,97 @@ if __name__ == "__main__":
             cb1 = fig.colorbar(contour, cax=cb_ax1, orientation="horizontal")
             cb1.set_label(r"density $\rho$", fontsize="x-large")
             add_colorbar(cb_ax2, v_module.min(), 4, 0, 360)
-            # plt.show()
-            plt.savefig("snap_%g_%g_%d_%04d.png" % (eta, eps, L, t))
+            if save:
+                plt.savefig("snap_%g_%g_%d_%04d.jpg" % (eta * 100, eps, L, t))
+            else:
+                plt.show()
             plt.close()
+
+
+def plot_serial_snap(file, save=False):
+    """ Plot density (upper row) and velocity (lower row), with incresing time
+        from left to right.
+
+    Parameters:
+    --------
+    file: str
+        Input file.
+    save: bool, optional
+        If true, save the figure into disk.
+    """
+    t_list = [400, 800, 1600, 3200]
+    snap = load_snap.CoarseGrainSnap(file)
+    frames = snap.gene_frames()
+    s = file.replace(".bin", "").split("_")
+    eta = float(s[1])
+    eps = float(s[2])
+    L = int(s[3])
+    ncols = int(s[5])
+    domain = [0, L, 0, L]
+    lBox = L // ncols
+    dA = lBox**2
+    x = y = np.linspace(lBox / 2, L - lBox / 2, ncols)
+    rho_level = np.linspace(0, 4, 9)
+    fig, axes = plt.subplots(nrows=2, ncols=len(t_list), figsize=(12, 6))
+    col = 0
+    for frame in frames:
+        t, vxm, vym, num, vx, vy = frame
+        if t in t_list:
+            rho = num / dA
+            contour = axes[0][col].contourf(x, y, rho, rho_level, extend="max")
+            axes[0][col].axis("scaled")
+            axes[0][col].axis(domain)
+            axes[0][col].axis("off")
+            axes[0][col].set_title(r"$t=%d$" % (t), fontsize="x-large")
+
+            v_orient = np.arctan2(vy, vx) / np.pi * 180
+            v_orient[v_orient < 0] += 360
+            v_module = np.sqrt(vx**2 + vy**2) * rho
+            RGB = get_rgb(v_orient, v_module, m_max=4)
+            axes[1][col].axis('scaled')
+            axes[1][col].imshow(RGB, extent=[0, L, 0, L], origin="lower")
+            axes[1][col].axis(domain)
+            axes[1][col].axis("off")
+            col += 1
+
+    # axes[0][0].set_title("density", fontsize="x-large", loc="left")
+    # axes[1][0].set_title("velocity", fontsize="x-large", loc="left")
+    plt.suptitle(
+        r"$\eta=%g,\ \rho_0=1,\ \epsilon=%g,\ L=%d$" % (eta, eps, L),
+        fontsize="xx-large",
+        y=0.985)
+    plt.tight_layout(rect=[0, 0, 1, 0.97], h_pad=0.005, w_pad=0.005)
+
+    fig.subplots_adjust(right=0.90)
+
+    # positon of the last column: x0, y0, x1, y1
+    bbox1 = axes[0][col - 1].get_position().get_points().flatten()
+    bbox2 = axes[1][col - 1].get_position().get_points().flatten()
+
+    # add axes for colobar, whose position is [left, bottom, width, height]
+    dy = 0.015
+    cb_ax1 = fig.add_axes(
+        [0.92, bbox1[1] + dy, 0.02, bbox1[3] - bbox1[1] - 2 * dy])
+    cb1 = fig.colorbar(contour, cax=cb_ax1)
+    cb1.set_label(r"density $\rho$", fontsize="x-large")
+    cb_ax2 = fig.add_axes(
+        [0.91, bbox2[1] + dy, 0.04, bbox2[3] - bbox2[1] - 2 * dy])
+    add_colorbar(cb_ax2, 0, 4, 0, 360, orientation="v")
+    if save:
+        plt.savefig(
+            r"../fig/snap_%d_%g.jpg" % (L, eta * 100),
+            bbox_inches="tight",
+            pad_inches=0.02,
+            dpi=300)
+    else:
+        plt.show()
+    plt.close()
+
+
+if __name__ == "__main__":
+    os.chdir("data")
+    # file = r"cHff_0.1_0_8192_8192_1024_1024_67108864_17102532.bin"
+    file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
+    # file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
+    # plot_two_panel(file)
+    plot_serial_snap(file, save=True)

@@ -192,6 +192,7 @@ def plot_cr(t,
             clist=[],
             flag_line_label=True,
             ax=None):
+    """ Plot correlatin function vs. distance. """
     if ax is None:
         ax = plt.subplot(111)
         flag_show = True
@@ -244,6 +245,27 @@ def varied_eta(*args,
                start_idx=0,
                save=False,
                hline=0.002):
+    """ Plot correlation functions with varied eta and incresing time.
+
+    Parameters:
+    --------
+    *args: float
+        Values of eta.
+    L: int, optional
+        System size.
+    eps: float, optional
+        Strength of quenched disorder.
+    rho0: float, optional
+        Particle density.
+    l: float, optional
+        Boxes size for coarse grain.
+    start_idx: int, optional
+        The first `start_idx` points are not shown.
+    save: bool, optional
+        Whether to save figure.
+    hline: float, optional
+        Plot a horizontal line at `y=hline` on the right panel.
+    """
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
     mk = {0.10: "-", 0.18: "o", 0.35: "--"}
     line_type = {0.10: "solid line", 0.18: "circle", 0.35: "dashed line"}
@@ -285,8 +307,9 @@ def varied_eta(*args,
     ax2.set_xlabel(r"$r$", fontsize="x-large")
     ax1.set_ylabel(r"$C_{\rho}$", fontsize="x-large")
     ax2.set_ylabel(r"$C_{v}$", fontsize="x-large")
+    ax1.set_xlim(xmax=2e3)
     ax1.set_ylim(5e-5, 1)
-    ax2.set_ylim(5e-4, 1)
+    ax2.set_ylim(1e-3, 1)
     ax2.axhline(hline, color="k")
 
     title = r"$L=%d,\ \rho_0=%g,\ \epsilon=%g,\ \eta=$" + title
@@ -303,16 +326,31 @@ def varied_eta(*args,
 
 
 def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
+    """ Plot correlation functions with varied system size and time.
+
+    Parameters:
+    --------
+    *args: float
+        Values of system size.
+    eta: float, optional
+        Strength of noise.
+    eps: float, optional
+        Strength of quenched disorder.
+    rho0: float, optional
+        Particle density.
+    l: float, optional
+        Boxes size for coarse grain.
+    start_idx: int, optional
+        The first `start_idx` points are not shown.
+    save: bool, optional
+        Whether to save figure.
+    """
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
-    mk = {4096: "--", 8192: "o"}
-    line_type = {4096: "dashed line", 8192: "circle"}
+    mk = {2048: ":", 4096: "--", 8192: "s"}
+    line_type = {2048: "dotted line", 4096: "dashed line", 8192: "square"}
     title = ""
     clist = []
     for i, L in enumerate(args):
-        # if L == 4096:
-        #     l = 1
-        # else:
-        #     l = 2
         t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
         if i == 0:
             flag_line_label = True
@@ -360,13 +398,33 @@ def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
         filename = "L"
         for L in args:
             filename += "_%g" % L
-        plt.savefig(filename + ".pdf")
+        plt.savefig(filename + ".eps")
     else:
         plt.show()
     plt.close()
 
 
-def plot_six_pannel(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
+def collapse6(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
+    """ Show the collapse of rescaled correlation functions. Two rows and
+        three coloums, total 6 pannels.
+
+    Parameters:
+    --------
+    eta: float
+        Strength of noise.
+    eps: float, optional
+        Stregth of disorder.
+    rho0: float, optional
+        Particle density.
+    L: int, optional
+        System size.
+    l: int, optional
+        Boxes size for coarse grain.
+    beg_idx: int, optional
+        The first `beg_idx` points are not shown.
+    save: bool, optional
+        Whether to save figure.
+    """
     t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
     fig, axes = plt.subplots(ncols=3, nrows=2, figsize=(9, 6))
     lc_v = dict_lc["v"][eta]
@@ -435,6 +493,8 @@ def plot_six_pannel(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
 
 
 def plot_lc(save=False, L=8192):
+    """ Plot correlation length as a function of time in log-log scales.
+    """
     p = np.polyfit(np.log10(t_specify[2:]), np.log10(dict_lc["v"][0.1][2:]), 1)
     plt.plot(
         t_specify,
@@ -473,7 +533,7 @@ if __name__ == "__main__":
     dict_lc["v"][0.35] = [25, 44.3, 84.5, 158.7, 308.1, 598, 1123, 2329]
     t_specify = [25, 50, 100, 200, 400, 800, 1600, 3200]
 
-    # varied_eta(0.35, save=True, hline=5e-4)
-    # plot_six_pannel(0.35, beg_idx=2, save=False)
+    # varied_eta(0.10, 0.18, save=True)
+    collapse6(0.18, beg_idx=2, save=False)
     # plot_lc(save=True)
-    varied_L(4096, 8192, save=True)
+    varied_L(2048, 4096, 8192, save=True)

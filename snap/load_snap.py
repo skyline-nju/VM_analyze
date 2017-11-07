@@ -1,13 +1,10 @@
 """ Method to read raw or coarse-grained snapshots.
 
-    Raw snapshot record the instant location (x, y) and orientation (theta)
-    of each particle with float number (float32).
+    `RawSnap` handle the binary file recording the time serials of coordinates
+    `x, y, theta` in `float32` format.
 
-    Coarse-grained snapshots record the count of number and mean velocity
-    over cells with linear size (lx, ly). Types of num, vx, vy are int32,
-    float32, float32 for "iff" and unsigned char, signed char, singed char
-    for "Bbb". Additional imformation such as time step, sum of vx and vy would
-    be also saved in the file.
+    `CoarseGrainSnap` handle the binary file recording the time serials of
+    density and velocity fields.
 
     FIND A BUG:
     code:
@@ -67,6 +64,24 @@ class Snap:
             sys.exit()
 
     def gene_frames(self, beg_idx=0, end_idx=None, interval=1, frames=None):
+        """ Generator of frames.
+
+        Parameters:
+        --------
+        beg_idx: int, optional
+            The first frame to read.
+        end_idx: int, optional
+            The last frame.
+        interval: int, optional
+            The interval between two frames.
+        frames: array_like, optional
+            The list of index of frames to read.
+
+        Yields:
+        --------
+        frame: array_like
+            One frame containing the instant information.
+        """
         if frames is None:
             self.f.seek(beg_idx * self.frame_size)
             if end_idx is None:
@@ -141,6 +156,7 @@ class CoarseGrainSnap(Snap):
             self.snap_size = self.N
         self.frame_size = self.snap_size + 20
         self.open_file(file)
+        print(file)
 
     def one_frame(self):
         buff = self.f.read(4)

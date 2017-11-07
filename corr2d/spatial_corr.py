@@ -82,6 +82,17 @@ def cal_corr2d(num,
     return C_rho, C_v
 
 
+def output(r, c_rho, c_v, eta, eps, seed, L, l):
+    """ Output shperially averaged correlation function into disk. """
+    file = "cr_%g_%g_%d_%d_%d.dat" % (eta, eps, L, l, seed)
+    with open(file, "w") as f:
+        lines = [
+            "%f\t%.8f\t%.8f\n" % (r[i], c_rho[i], c_v[i])
+            for i in range(r.size)
+        ]
+        f.writelines(lines)
+
+
 def spherical_average(corr, L, smoothed=True):
     """
     Average correlation function spherically.
@@ -209,10 +220,52 @@ def coarse_grain_array(a, lx=1, ly=1, w=None):
     return res
 
 
+def plot_two_Cv(L, t, num, vx, vy, *args):
+    """ Show correlation functions for velocity fields, with and without weighted
+        term.
+
+    """
+    ly0 = L / num.shape[0]
+    lx0 = L / num.shape[1]
+    C_rho, C_v = cal_corr2d(num, vx, vy, lx0 * ly0)
+    r, cv = spherical_average(C_v, L)
+    plt.plot(r, cv, label=r"$l=%g$" % lx0)
+    for k in args:
+        num2 = coarse_grain_array(num, k, k)
+        vx2 = coarse_grain_array(vx, k, k, num)
+        vy2 = coarse_grain_array(vy, k, k, num)
+        C_rho, C_v = cal_corr2d(num2, vx2, vy2, lx0 * ly0 * k * k)
+        r, cv = spherical_average(C_v, L)
+        plt.plot(r, cv, label=r"$l=%g$" % (lx0 * k))
+    C_rho, C_v = cal_corr2d(num, vx, vy, lx0 * ly0, weighted=False)
+    r, cv = spherical_average(C_v, L)
+    plt.plot(r, cv, "--", label=r"$l=%g$" % lx0)
+    for k in args:
+        num2 = coarse_grain_array(num, k, k)
+        vx2 = coarse_grain_array(vx, k, k, num)
+        vy2 = coarse_grain_array(vy, k, k, num)
+        C_rho, C_v = cal_corr2d(
+            num2, vx2, vy2, lx0 * ly0 * k * k, weighted=False)
+        r, cv = spherical_average(C_v, L)
+        plt.plot(r, cv, "--", label=r"$l=%g$" % (lx0 * k))
+    plt.xscale("log")
+    plt.yscale("log")
+    # plt.xlim(xmax=60)
+    # plt.ylim(ymin=1e-3)
+    plt.xlabel(r"$r$")
+    plt.ylabel(r"$C_{\rho}(r)$")
+    plt.axvline(10)
+    plt.legend()
+    plt.suptitle(r"$t=%d$" % t)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show()
+    plt.close()
+
+
 def vary_box_size(magnification, L, t, num, vx, vy, rm_mean=True):
     """
     Show effects of varied boxes size used for coarse grain on the resulting
-    correlation functions.
+    correlation functions. Lef panel for density and right pannel for velocity.
 
     Parameters:
     --------
@@ -224,8 +277,10 @@ def vary_box_size(magnification, L, t, num, vx, vy, rm_mean=True):
         Time.
     num : array_like
         Particle number in each cell.
-    vx, vy : array_like
-        Velocity averaged over each cell.
+    vx : array_like
+        Vx averaged over each cell.
+    vy : array_like
+        Vy averaged over each cell.
     """
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
     ly0 = L / num.shape[0]
@@ -337,31 +392,23 @@ def time_average(frames,
         output(r, crho, cv, eta, eps, seed, L, L // ncols * magni)
 
 
-def output(r, c_rho, c_v, eta, eps, seed, L, l):
-    """ Output shperially averaged correlation function into disk. """
-    file = "cr_%g_%g_%d_%d_%d.dat" % (eta, eps, L, l, seed)
-    with open(file, "w") as f:
-        lines = [
-            "%f\t%.8f\t%.8f\n" % (r[i], c_rho[i], c_v[i])
-            for i in range(r.size)
-        ]
-        f.writelines(lines)
-
-
 if __name__ == "__main__":
+    import sys
+    sys.path.append("../snap")
     import load_snap
-    import glob
     import os
-    os.chdir(r"E:\data\random_torque\coarse_grain")
-    # file = "cHff_0.18_0.055_4080_4080_1020_1020_16646400_1709040.bin"
-    files = glob.glob("*.bin")
-    for file in files:
-        s = file.replace(".bin", "").split("_")
-        eta = float(s[1])
-        eps = float(s[2])
-        L = int(s[3])
-        ncols = int(s[5])
-        seed = int(s[8])
-        snap = load_snap.CoarseGrainSnap(file)
-        frames = snap.gene_frames()
-        time_average(frames, L, eta, eps, ncols, seed, save=True)
+    os.chdir(r"data")
+    file = r"ciff_0.18_0_2048_2048_1024_1024_4194304_1.06_123.bin"
+    s = file.replace(".bin", "").split("_")
+    eta = float(s[1])
+    eps = float(s[2])
+    L = int(s[3])
+    ncols = int(s[5])
+    snap = load_snap.CoarseGrainSnap(file)
+    frames = snap.gene_frames(beg_idx=60)
+    for frame in frames:
+        t, vxm, vym, num, vx, vy = frame
+        if t == 404:
+            plot_two_Cv(L, t, num, vx, vy, 2, 4)
+            sys.exit()
+        print(t)
