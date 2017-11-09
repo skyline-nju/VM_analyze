@@ -9,6 +9,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from add_line import add_line
+
 # from spatial_corr import get_chara_length
 
 
@@ -191,6 +192,7 @@ def plot_cr(t,
             ms=2,
             clist=[],
             flag_line_label=True,
+            normed=True,
             ax=None):
     """ Plot correlatin function vs. distance. """
     if ax is None:
@@ -214,9 +216,13 @@ def plot_cr(t,
             else:
                 r_new = r / lc[start_idx + i]
             if isinstance(mean, np.ndarray):
-                c_new = (cr_t - mean[i]) / (cr_t[0] - mean[i])
+                c_new = cr_t - mean[i]
+                if normed:
+                    c_new /= (cr_t[0] - mean[i])
             else:
-                c_new = (cr_t - mean) / (cr_t[0] - mean)
+                c_new = cr_t - mean
+                if normed:
+                    c_new /= (cr_t[0] - mean)
             line, = ax.plot(r_new, c_new, marker, ms=ms)
             if flag_c:
                 clist.append(line.get_color())
@@ -244,6 +250,7 @@ def varied_eta(*args,
                l=2,
                start_idx=0,
                save=False,
+               normed=False,
                hline=0.002):
     """ Plot correlation functions with varied eta and incresing time.
 
@@ -263,6 +270,8 @@ def varied_eta(*args,
         The first `start_idx` points are not shown.
     save: bool, optional
         Whether to save figure.
+    normed: bool, optional,
+        If `True`, normalize the correlation function with it's value at r=0.
     hline: float, optional
         Plot a horizontal line at `y=hline` on the right panel.
     """
@@ -287,6 +296,7 @@ def varied_eta(*args,
             mean=1,
             ax=ax1,
             marker=mk[eta],
+            normed=normed,
             flag_line_label=flag_line_label,
             clist=clist)
         plot_cr(
@@ -298,19 +308,33 @@ def varied_eta(*args,
             ax=ax2,
             marker=mk[eta],
             flag_line_label=flag_line_label,
+            normed=normed,
             clist=clist)
         title += " %g (%s)," % (eta, line_type[eta])
     title = title[:-1]  # remove the last comma
     ax1.legend(title=r"$t=$", fontsize="large")
     ax2.legend(title=r"$t=$", fontsize="large")
+    if normed:
+        ylabel1 = r"$C_\rho (r, t)/C_\rho (0, t)$"
+        ylabel2 = r"$C_v (r, t) / C_v (0, t)$"
+    else:
+        ylabel1 = r"$C_\rho (r, t)$"
+        ylabel2 = r"$C_v (r, t)$"
     ax1.set_xlabel(r"$r$", fontsize="x-large")
     ax2.set_xlabel(r"$r$", fontsize="x-large")
-    ax1.set_ylabel(r"$C_{\rho}$", fontsize="x-large")
-    ax2.set_ylabel(r"$C_{v}$", fontsize="x-large")
+    ax1.set_ylabel(ylabel1, fontsize="x-large")
+    ax2.set_ylabel(ylabel2, fontsize="x-large")
     ax1.set_xlim(xmax=2e3)
-    ax1.set_ylim(5e-5, 1)
+    if normed:
+        ax1.set_ylim(5e-5, 1)
+    else:
+        if 0.1 in args:
+            ax1.set_ylim(1e-4, 10)
+        else:
+            ax1.set_ylim(1e-4, 3)
     ax2.set_ylim(1e-3, 1)
-    ax2.axhline(hline, color="k")
+    if hline is not None:
+        ax2.axhline(hline, color="k")
 
     title = r"$L=%d,\ \rho_0=%g,\ \epsilon=%g,\ \eta=$" + title
     plt.suptitle(title % (L, rho0, eps), fontsize="xx-large", y=0.995)
@@ -325,7 +349,14 @@ def varied_eta(*args,
     plt.close()
 
 
-def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
+def varied_L(*args,
+             eta=0.18,
+             eps=0,
+             rho0=1,
+             l=2,
+             start_idx=0,
+             normed=False,
+             save=False):
     """ Plot correlation functions with varied system size and time.
 
     Parameters:
@@ -342,6 +373,8 @@ def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
         Boxes size for coarse grain.
     start_idx: int, optional
         The first `start_idx` points are not shown.
+    normed: bool, optional,
+        If `True`, normalize the correlation function with it's value at r=0.
     save: bool, optional
         Whether to save figure.
     """
@@ -366,6 +399,7 @@ def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
             marker=mk[L],
             ms=3,
             flag_line_label=flag_line_label,
+            normed=normed,
             clist=clist)
         plot_cr(
             t,
@@ -377,16 +411,26 @@ def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
             marker=mk[L],
             ms=3,
             flag_line_label=flag_line_label,
+            normed=normed,
             clist=clist)
         title += " %g (%s)," % (L, line_type[L])
     title = title[:-1]  # remove the last comma
     ax1.legend(title=r"$t=$", fontsize="large")
     ax2.legend(title=r"$t=$", fontsize="large")
+    if normed:
+        ylabel1 = r"$C_\rho (r, t)/C_\rho (0, t)$"
+        ylabel2 = r"$C_v (r, t) / C_v (0, t)$"
+    else:
+        ylabel1 = r"$C_\rho (r, t)$"
+        ylabel2 = r"$C_v (r, t)$"
     ax1.set_xlabel(r"$r$", fontsize="x-large")
     ax2.set_xlabel(r"$r$", fontsize="x-large")
-    ax1.set_ylabel(r"$C_{\rho}$", fontsize="x-large")
-    ax2.set_ylabel(r"$C_{v}$", fontsize="x-large")
-    ax1.set_ylim(5e-5, 1)
+    ax1.set_ylabel(ylabel1, fontsize="x-large")
+    ax2.set_ylabel(ylabel2, fontsize="x-large")
+    if normed:
+        ax1.set_ylim(5e-5, 1)
+    else:
+        ax1.set_ylim(1e-4, 3)
     ax2.set_ylim(1e-3, 1)
     ax1.set_xlim(xmax=2e3)
     ax2.set_xlim(xmax=4e3)
@@ -404,7 +448,14 @@ def varied_L(*args, eta=0.18, eps=0, rho0=1, l=2, start_idx=0, save=False):
     plt.close()
 
 
-def collapse6(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
+def collapse6(eta,
+              eps=0,
+              rho0=1,
+              L=8192,
+              l=2,
+              beg_idx=2,
+              normed=False,
+              save=False):
     """ Show the collapse of rescaled correlation functions. Two rows and
         three coloums, total 6 pannels.
 
@@ -422,6 +473,8 @@ def collapse6(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
         Boxes size for coarse grain.
     beg_idx: int, optional
         The first `beg_idx` points are not shown.
+    normed: bool, optional,
+        If `True`, normalize the correlation function with it's value at r=0.
     save: bool, optional
         Whether to save figure.
     """
@@ -432,19 +485,16 @@ def collapse6(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
     lc_rho = lc_v
     t, rho_m, vx_m, vy_m, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
     label_size = "x-large"
+    if normed:
+        ylabel1 = r"$C_\rho (r, t)/C_\rho (0, t)$"
+        ylabel2 = r"$C_v (r, t) / C_v (0, t)$"
+    else:
+        ylabel1 = r"$C_\rho (r, t)$"
+        ylabel2 = r"$C_v (r, t)$"
     """ density """
-    plot_cr(t, r, crho_r, beg_idx, mean=1, ax=axes[0][0])
-    axes[0][0].set_ylim(1e-4, 1)
-    axes[0][0].set_xlabel(r"$r$", fontsize=label_size)
-    axes[0][0].set_ylabel(r"$C_\rho$", fontsize=label_size)
-
-    plot_cr(t, r, crho_r, beg_idx, lc_rho, mean=1, ax=axes[0][1])
-    axes[0][1].set_ylim(1e-4, 1)
-    axes[0][1].set_xlim(xmax=1)
-    axes[0][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
-    axes[0][1].set_ylabel(r"$C_\rho$", fontsize=label_size)
-    axes[0][1].legend(title="t=")
-
+    plot_cr(t, r, crho_r, beg_idx, mean=1, ax=axes[0][0], normed=normed)
+    plot_cr(
+        t, r, crho_r, beg_idx, lc_rho, mean=1, ax=axes[0][1], normed=normed)
     plot_cr(
         t,
         r,
@@ -454,32 +504,52 @@ def collapse6(eta, eps=0, rho0=1, L=8192, l=2, beg_idx=2, save=False):
         mean=1,
         xlog=False,
         ylog=False,
+        normed=normed,
         ax=axes[0][2])
-    axes[0][2].set_ylim(-0.05, 1)
-    axes[0][2].set_xlim(-0.02, 0.5)
+    axes[0][0].set_xlabel(r"$r$", fontsize=label_size)
+    axes[0][0].set_ylabel(ylabel1, fontsize=label_size)
+    axes[0][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
+    axes[0][1].set_ylabel(ylabel1, fontsize=label_size)
     axes[0][2].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
-    axes[0][2].set_ylabel(r"$C_\rho$", fontsize=label_size)
+    axes[0][2].set_ylabel(ylabel1, fontsize=label_size)
+    axes[0][1].legend(title="t=")
     axes[0][2].legend(title="t=")
+    axes[0][1].set_xlim(xmax=1)
+    axes[0][2].set_xlim(-0.02, 0.5)
+    if normed:
+        axes[0][0].set_ylim(1e-4, 1)
+        axes[0][1].set_ylim(1e-4, 1)
+        axes[0][2].set_ylim(-0.05, 1)
+    else:
+        axes[0][0].set_ylim(1e-4)
+        axes[0][1].set_ylim(1e-4)
+        axes[0][2].set_ylim(-0.3)
     """ velocity """
-    plot_cr(t, r, cv_r, beg_idx, ax=axes[1][0])
-    # axes[1][0].set_ylim(1e-3, 1)
-    axes[1][0].set_xlabel(r"$r$", fontsize=label_size)
-    axes[1][0].set_ylabel(r"$C_v$", fontsize=label_size)
-
-    plot_cr(t, r, cv_r, beg_idx, lc_v, ax=axes[1][1])
-    # axes[1][1].set_ylim(1e-3, 1)
-    axes[1][1].set_xlim(xmax=11)
+    plot_cr(t, r, cv_r, beg_idx, ax=axes[1][0], normed=normed)
+    plot_cr(t, r, cv_r, beg_idx, lc_v, ax=axes[1][1], normed=normed)
+    plot_cr(
+        t,
+        r,
+        cv_r,
+        beg_idx,
+        lc_v,
+        xlog=False,
+        ylog=False,
+        ax=axes[1][2],
+        normed=normed)
     axes[1][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
-    axes[1][1].set_ylabel(r"$C_v$", fontsize=label_size)
-    axes[1][1].legend(title="t=")
-
-    plot_cr(t, r, cv_r, beg_idx, lc_v, xlog=False, ylog=False, ax=axes[1][2])
-    axes[1][2].set_ylim(-0.05, 1)
-    axes[1][2].set_xlim(-0.02, 0.5)
+    axes[1][1].set_ylabel(ylabel2, fontsize=label_size)
+    axes[1][0].set_xlabel(r"$r$", fontsize=label_size)
+    axes[1][0].set_ylabel(ylabel2, fontsize=label_size)
     axes[1][2].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
-    axes[1][2].set_ylabel(r"$C_v$", fontsize=label_size)
+    axes[1][2].set_ylabel(ylabel2, fontsize=label_size)
+    axes[1][1].legend(title="t=")
     axes[1][2].legend(title="t=")
-
+    axes[1][0].set_ylim(1e-3, 1)
+    axes[1][1].set_xlim(xmax=11)
+    axes[1][1].set_ylim(1e-3, 1)
+    axes[1][2].set_xlim(-0.02, 0.5)
+    axes[1][2].set_ylim(-0.05, 1)
     plt.suptitle(
         r"$L=%d,\ \eta=%g, \rho_0=%d,\ \epsilon=%g$" % (L, eta, rho0, eps),
         fontsize="xx-large",
@@ -529,11 +599,13 @@ if __name__ == "__main__":
     os.chdir(r"data\corr_r")
     dict_lc = {"rho": {}, "v": {}}
     dict_lc["v"][0.18] = [25.27, 46.45, 89.16, 171.5, 332, 657.7, 1222.5, 2412]
-    dict_lc["v"][0.1] = [25.82, 47.87, 91.55, 178.6, 338, 688, 1255.3, 2767]
+    dict_lc["v"][0.1] = [
+        25.62, 47.87, 91.55, 177.1, 341.43, 678.6, 1238.9, 2594
+    ]
     dict_lc["v"][0.35] = [25, 44.3, 84.5, 158.7, 308.1, 598, 1123, 2329]
     t_specify = [25, 50, 100, 200, 400, 800, 1600, 3200]
 
-    # varied_eta(0.10, 0.18, save=True)
-    collapse6(0.18, beg_idx=2, save=False)
-    # plot_lc(save=True)
-    varied_L(2048, 4096, 8192, save=True)
+    # varied_eta(0.10, 0.18, save=True, normed=False)
+    collapse6(0.10, beg_idx=2, save=True, normed=False)
+    # plot_lc(save=False)
+    # varied_L(2048, 4096, 8192, save=True)

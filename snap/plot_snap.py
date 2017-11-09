@@ -138,7 +138,7 @@ def plot_two_panel(file, t_list=None, save=False):
             plt.close()
 
 
-def plot_serial_snap(file, save=False):
+def plot_serial_snap(file, save=False, rescale=False):
     """ Plot density (upper row) and velocity (lower row), with incresing time
         from left to right.
 
@@ -148,6 +148,8 @@ def plot_serial_snap(file, save=False):
         Input file.
     save: bool, optional
         If true, save the figure into disk.
+    rescale: bool, optional
+        If true, xlim, ylim increase linearly with incresing time.
     """
     t_list = [400, 800, 1600, 3200]
     snap = load_snap.CoarseGrainSnap(file)
@@ -157,32 +159,40 @@ def plot_serial_snap(file, save=False):
     eps = float(s[2])
     L = int(s[3])
     ncols = int(s[5])
-    domain = [0, L, 0, L]
     lBox = L // ncols
     dA = lBox**2
     x = y = np.linspace(lBox / 2, L - lBox / 2, ncols)
-    rho_level = np.linspace(0, 4, 9)
+    rho_level = np.linspace(0, 3, 7)
     fig, axes = plt.subplots(nrows=2, ncols=len(t_list), figsize=(12, 6))
     col = 0
+    if rescale:
+        i = ncols // 8
+    else:
+        i = ncols
     for frame in frames:
         t, vxm, vym, num, vx, vy = frame
         if t in t_list:
             rho = num / dA
-            contour = axes[0][col].contourf(x, y, rho, rho_level, extend="max")
+            contour = axes[0][col].contourf(
+                x[0:i], y[0:i], rho[0:i, 0:i], rho_level, extend="max")
             axes[0][col].axis("scaled")
-            axes[0][col].axis(domain)
+            axes[0][col].axis([0, i * lBox, 0, i * lBox])
             axes[0][col].axis("off")
             axes[0][col].set_title(r"$t=%d$" % (t), fontsize="x-large")
 
-            v_orient = np.arctan2(vy, vx) / np.pi * 180
+            v_orient = np.arctan2(vy[0:i, 0:i], vx[0:i, 0:i]) / np.pi * 180
             v_orient[v_orient < 0] += 360
-            v_module = np.sqrt(vx**2 + vy**2) * rho
+            v_module = np.sqrt(vx[0:i, 0:i]**2 + vy[0:i, 0:i]**2) * rho[0:i, 0:
+                                                                        i]
             RGB = get_rgb(v_orient, v_module, m_max=4)
             axes[1][col].axis('scaled')
-            axes[1][col].imshow(RGB, extent=[0, L, 0, L], origin="lower")
-            axes[1][col].axis(domain)
+            axes[1][col].imshow(
+                RGB, extent=[0, i * lBox, 0, i * lBox], origin="lower")
+            axes[1][col].axis([0, i * lBox, 0, i * lBox])
             axes[1][col].axis("off")
             col += 1
+            if rescale:
+                i *= 2
 
     # axes[0][0].set_title("density", fontsize="x-large", loc="left")
     # axes[1][0].set_title("velocity", fontsize="x-large", loc="left")
@@ -221,7 +231,7 @@ def plot_serial_snap(file, save=False):
 if __name__ == "__main__":
     os.chdir("data")
     # file = r"cHff_0.1_0_8192_8192_1024_1024_67108864_17102532.bin"
-    file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
-    # file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
+    # file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
+    file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
     # plot_two_panel(file)
-    plot_serial_snap(file, save=True)
+    plot_serial_snap(file, save=False)
