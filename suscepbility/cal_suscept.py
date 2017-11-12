@@ -142,6 +142,9 @@ def sample_average(L, eps, first=None, last=None, eta=180):
 
 
 if __name__ == "__main__":
+    import platform
+    if platform.system() == "Windows":
+        os.chdir(r"D:\data\susceptibility")
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", type=int, help="System size")
     parser.add_argument("-n", type=int, help="Number of files")

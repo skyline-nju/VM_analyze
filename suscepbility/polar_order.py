@@ -12,7 +12,8 @@ from suscept_peak import find_peak_by_polyfit
 from fit import plot_KT_fit, plot_pow_fit, fit_exp
 
 
-def read(file, dict_eps):
+def read(file, dict_eps, eps_min=0.0535):
+    """ Read `phi` and `L` from `file` and add them into `dict_eps`."""
     eps = float(file.replace(".dat", ""))
     with open(file) as f:
         lines = f.readlines()
@@ -22,7 +23,7 @@ def read(file, dict_eps):
             s = line.replace("\n", "").split("\t")
             L[i] = float(s[0])
             phi[i] = float(s[1])
-        if L.size > 3 and eps >= 0.0535:
+        if L.size > 3 and eps >= eps_min:
             dict_eps[eps] = {"L": L, "phi": phi}
 
 
@@ -73,9 +74,10 @@ def plot_L_vs_eps_c(alpha_list):
 
 def find_peak(alpha,
               show=True,
-              output=False,
+              save_data=False,
               ax=None,
               dict_eps=None,
+              eps_min=0.0535,
               ret=False):
     """ Find the peak of phi * L ** alpha against L in log-log scales."""
     if show:
@@ -88,7 +90,7 @@ def find_peak(alpha,
         dict_eps = {}
         files = glob.glob("0*.dat")
         for file in files:
-            read(file, dict_eps)
+            read(file, dict_eps, eps_min=eps_min)
     xm = np.zeros(len(dict_eps.keys()))
     ym = np.zeros_like(xm)
     eps_m = np.zeros_like(xm)
@@ -109,7 +111,7 @@ def find_peak(alpha,
     c, stats = polyfit(np.log10(xm), np.log10(ym), 1, full=True)
     x = np.linspace(np.log10(xm[0]) + 0.05, np.log10(xm[-1]) - 0.05, 1000)
     y = c[0] + c[1] * x
-    if output:
+    if save_data:
         with open("polar_order.dat", "w") as f:
             for i in range(eps_m.size):
                 f.write("%.4f\t%.8f\n" % (eps_m[i], xm[i]))
@@ -129,14 +131,15 @@ def find_peak(alpha,
         return c[1], stats[0][0], eps_m, xm, phi_m
 
 
-def plot_three_panel(alpha):
+def plot_three_panel(alpha, save_fig=False, eps_min=0.0535):
+    """ Plot phi vs. L, L^alpha * phi vs. L and correlation length vs. eps."""
     dict_eps = {}
     files = glob.glob("0*.dat")
     for file in files:
-        read(file, dict_eps)
+        read(file, dict_eps, eps_min=eps_min)
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     c0, res, eps_m, Lm, phi_m = find_peak(
-        alpha, show=True, output=True, ax=ax2, dict_eps=dict_eps, ret=True)
+        alpha, show=True, save_data=True, ax=ax2, dict_eps=dict_eps, ret=True)
     plot_phi_vs_L(ax1, dict_eps, Lm, phi_m)
     ax3.plot(eps_m, Lm, "o")
 
@@ -152,7 +155,10 @@ def plot_three_panel(alpha):
     ax2.set_title("(b)")
     ax3.set_title("(c)")
     fig.tight_layout()
-    plt.show()
+    if save_fig:
+        plt.savefig("polar_order.eps")
+    else:
+        plt.show()
     plt.close()
 
 
@@ -180,7 +186,7 @@ def varied_alpha(nus):
 if __name__ == "__main__":
     os.chdir("data")
     # varied_alpha([0.4, 0.6, 0.8, 1.0, 1.2])
-    # find_peak(0.5, output=True)
-    plot_three_panel(0.5)
+    # find_peak(0.5, save_data=True, eps_min=0.05)
+    plot_three_panel(0.5, save_fig=False)
     # plot_phi_vs_L()
     # plot_L_vs_eps_c([0.35, 0.4, 0.45, 0.5])

@@ -30,6 +30,7 @@ def read(file, dict_L):
         A dict with form {L:{eps: [phi, chi, err_chi, N]}}.
     """
     eps = float(file.replace(".dat", ""))
+    print(file)
     with open(file) as f:
         lines = f.readlines()
         for line in lines:
@@ -317,7 +318,7 @@ def distrubition(L, N):
     plt.close()
 
 
-def average_type_B(save=False):
+def average_type_B(save_data=False, save_fig=False):
     """ Calculate the susceptibility peak by "B" type averaging.
     """
     dict_L = {}
@@ -327,7 +328,7 @@ def average_type_B(save=False):
 
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     # Plot susceptibility peak vs its location.
-    L_arr = np.array([46, 64, 90, 128, 180, 256, 362, 512, 724])
+    L_arr = np.array([46, 64, 90, 128, 180, 256, 362, 512, 724, 1024])
     eps_p, chi_p = np.zeros((2, len(L_arr)))
     for L in sorted(dict_L.keys()):
         if L in L_arr:
@@ -357,11 +358,14 @@ def average_type_B(save=False):
     axes[1].set_title("(b)")
     axes[2].set_title("(c)")
     plt.tight_layout()
-    plt.show()
+    if save_fig:
+        plt.savefig("suscept_peak.eps")
+    else:
+        plt.show()
     plt.close()
 
     # Save data
-    if save:
+    if save_data:
         with open("suscept_peak.dat", "w") as f:
             for i, L in enumerate(L_arr):
                 f.write("%d\t%.8f\t%.8f\n" % (L, eps_p[i], chi_p[i]))
@@ -502,7 +506,7 @@ if __name__ == "__main__":
     os.chdir("data")
     # distrubition(64, 500)
     # varied_sample_size(64, 500)
-    average_type_B(True)
+    average_type_B(save_data=True, save_fig=False)
     # diff_find_peak(90, 4, 10)
     # plot_peak_location_vs_L()
     # read_npz(724)

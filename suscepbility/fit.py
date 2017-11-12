@@ -1,26 +1,51 @@
+'''
+Fit data points (epsilon, correlation length) with KT-like scaling or algebraic
+scaling.
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import os
 
 
-def read():
+def read(head1=0, tail1=0, head2=0, tail2=0):
+    """ Read three set of (epsilon, correlation length) from three files,
+        respectively.
+
+    Parameters:
+    --------
+    head1: int, optional
+        Remove the first `head1` lines from file1.
+    tail1: int, optional
+        Remove the last 'tail1' lines from file1.
+    head2: int, optional
+        Remove the first `head2` lines from file2.
+    tail2: int, optional
+        Remove the last `tail2` lines from file2.
+    """
     with open("suscept_peak.dat") as f:
         lines = f.readlines()
+        n = len(lines)
+        lines = lines[head1:n - tail1]
         L1 = np.zeros(len(lines))
         eps1 = np.zeros_like(L1)
         for i, line in enumerate(lines):
             s = line.replace("\n", "").split("\t")
             L1[i] = float(s[0])
             eps1[i] = float(s[1])
+            print(L1[i], eps1[i])
+    print("--------")
     with open("polar_order.dat") as f:
         lines = f.readlines()
+        n = len(lines)
+        lines = lines[head2:n - tail2]
         L2 = np.zeros(len(lines))
         eps2 = np.zeros_like(L2)
         for i, line in enumerate(lines):
             s = line.replace("\n", "").split("\t")
             L2[i] = float(s[1])
             eps2[i] = float(s[0])
+            print(eps2[i], L2[i])
     with open("correlation_length.dat") as f:
         lines = f.readlines()
         L3 = np.zeros(len(lines))
@@ -213,12 +238,12 @@ def get_cross_point(x, y1, y2):
     return None, None
 
 
-def varied_nu3():
+def varied_nu3(head1=0, tail1=0, head2=1, tail2=0):
     """
     Epsilon evaluated from three different correlation lengths vs. the
     exponent nu.
     """
-    L1, eps1, L2, eps2, L3, eps3 = read()
+    L1, eps1, L2, eps2, L3, eps3 = read(head1, tail1, head2, tail2)
     nus = np.linspace(0.05, 2, 200)
     # nus = np.logspace(np.log10(0.005), np.log10(3), 100)
     eps_c1, eps_c2, eps_c3 = np.zeros((3, nus.size))
@@ -269,35 +294,38 @@ def varied_nu3():
     plt.close()
 
 
-def varied_nu2():
+def varied_nu2(head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
     """
     Epsilon evaluated from two different correlation lengths vs. the
     exponent nu.
     """
-    L1, eps1, L2, eps2, L3, eps3 = read()
-    nu_arr = np.linspace(0.05, 2, 100)
+    L1, eps1, L2, eps2, L3, eps3 = read(
+        head1=head1, tail1=tail1, head2=head2, tail2=tail2)
+    nu_arr = np.linspace(0.01, 3, 200)
     eps_c1 = np.zeros_like(nu_arr)
     eps_c2 = np.zeros_like(nu_arr)
 
     for i, nu in enumerate(nu_arr):
-        popt, perr = fit_exp(eps1[3:], L1[3:], nu)
+        popt, perr = fit_exp(eps1, L1, nu)
         eps_c1[i], lnA, b = popt
-        popt, perr = fit_exp(eps2[:L2.size-3], L2[:L2.size-3], nu)
+        popt, perr = fit_exp(eps2, L2, nu)
         eps_c2[i], lnA, b = popt
 
     fig = plt.figure()
-    plt.plot(nu_arr, eps_c1, "-", label="from susceptibility peak location")
-    lb = "from the correlation length\nevaluated by order parameters"
-    plt.plot(nu_arr, eps_c2, "-", label=lb)
+    lb = r"KT-like scaling for $\epsilon^L_m(L), L=%d,%d,\cdots,%d$"
+    plt.plot(nu_arr, eps_c1, "-", label=lb % (L1[0], L1[1], L1[-1]))
+    lb = r"KT-like scaling for $\xi(\epsilon),\epsilon = %g,%g\cdots,%g$"
+    plt.plot(nu_arr, eps_c2, "-", label=lb % (eps2[0], eps2[1], eps2[-1]))
     plt.xscale("log")
-    plt.xlabel(r"$\nu$")
-    plt.ylabel(r"$\epsilon_c$")
+    plt.yscale("log")
+    plt.xlabel(r"$\nu$", fontsize="x-large")
+    plt.ylabel(r"$\epsilon_c$", fontsize="x-large")
     plt.tight_layout()
-    plt.legend(loc="upper right")
+    plt.legend(loc="best")
 
     xc, yc = get_cross_point(nu_arr, eps_c1, eps_c2)
     if xc is not None:
-        ax = fig.add_axes([0.28, 0.25, 0.4, 0.4])
+        ax = fig.add_axes([0.35, 0.38, 0.4, 0.4])
         ax.plot(nu_arr, eps_c1, "-")
         ax.plot(nu_arr, eps_c2, "-")
         ax.axhline(yc, c="r", linestyle="dashed")
@@ -306,7 +334,10 @@ def varied_nu2():
         ax.set_ylim(yc - 0.0003, yc + 0.0003)
         ax.set_xlabel(r"$\nu$")
         ax.set_ylabel(r"$\epsilon_c$")
-    plt.show()
+    if save_fig:
+        plt.savefig("KT_nu2_%d_%d_%d_%d.eps" % (head1, tail1, head2, tail2))
+    else:
+        plt.show()
     plt.close()
 
 
@@ -380,5 +411,7 @@ if __name__ == "__main__":
     # print(popt, perr)
     # popt, perr = fit_pow(eps3, L3)
     # print(popt, perr)
-    varied_nu2()
-    # show_KT(0.01)
+    varied_nu2(0, 2, 3, 0, False)
+    # varied_nu3()
+    # show_KT(1)
+    # show_algebraic()
