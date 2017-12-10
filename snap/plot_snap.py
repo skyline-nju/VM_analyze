@@ -219,7 +219,7 @@ def plot_serial_snap(file, save=False, rescale=False):
     add_colorbar(cb_ax2, 0, 4, 0, 360, orientation="v")
     if save:
         plt.savefig(
-            r"../fig/snap_%d_%g.jpg" % (L, eta * 100),
+            r"../fig/snap_%d_%g_%g.jpg" % (L, eta * 100, eps * 100),
             bbox_inches="tight",
             pad_inches=0.02,
             dpi=300)
@@ -232,6 +232,11 @@ if __name__ == "__main__":
     os.chdir("data")
     # file = r"cHff_0.1_0_8192_8192_1024_1024_67108864_17102532.bin"
     # file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
+    # file = r"cHff_0.18_0_8192_8192_4096_4096_67108864_17111451.bin"
     file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
+    # file = r"cHff_0.18_0.02_8192_8192_1024_1024_67108864_17120201.bin"
+    # file = r"cHff_0.18_0.04_8192_8192_1024_1024_67108864_17120201.bin"
+    # file = r"cHff_0.18_0.06_8192_8192_1024_1024_67108864_17120201.bin"
+    # file = r"cHff_0.4_0_8192_8192_1024_1024_67108864_17110541.bin"
     # plot_two_panel(file)
-    plot_serial_snap(file, save=False)
+    plot_serial_snap(file, save=True, rescale=False)
