@@ -184,7 +184,8 @@ def varied_alpha(nus):
 
 
 if __name__ == "__main__":
-    os.chdir("data")
+    eta = 0.18
+    os.chdir("data/eta=%.2f" % eta)
     # varied_alpha([0.4, 0.6, 0.8, 1.0, 1.2])
     # find_peak(0.5, save_data=True, eps_min=0.05)
     plot_three_panel(0.5, save_fig=False)

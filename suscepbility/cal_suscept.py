@@ -6,6 +6,7 @@ import argparse
 import glob
 import os
 import sys
+import platform
 
 
 def read(file, ncut=2000):
@@ -110,7 +111,7 @@ def save_serials(L, n, eta=180):
     np.savez(outfile, phi=phi_array, chi=chi_array, eps=eps_array)
 
 
-def sample_average(L, eps, first=None, last=None, eta=180):
+def sample_average_Unix(L, eps, first=None, last=None, eta=180):
     """ Calculate sample-averaged order parameter and susceptibility for given
         system size L and strength of disorder eps.
     """
@@ -134,28 +135,141 @@ def sample_average(L, eps, first=None, last=None, eta=180):
             phi.append(mean)
             chi.append(var)
         except:
-            print(file)
+            print("error in %s" % file)
     phi = np.array(phi)
     chi = np.array(chi) * L**2
     print("%d\t%f\t%f\t%d\t%f\t%f\n" % (L, np.mean(phi), np.std(phi), phi.size,
                                         np.mean(chi), np.std(chi)))
 
 
+def sample_average_Win(eta, L0=None, eps0=None, Lmin=46, use_old_data=False):
+    """ Handle time serials of order parameters and susceptibilities on Windows.
+    """
+
+    def average(L, eps, FILES):
+        """ Average order parameters and susceptibilities over input FILES.
+        """
+        if L == 724:
+            ncut = 3000
+        elif L == 512:
+            ncut = 2500
+        else:
+            ncut = 2000
+        n = len(FILES)
+        print("%d files for L=%d, eta=%g, epsilon=%g..." % (n, L, eta,
+                                                            eps / 10000))
+        mean_arr = np.zeros(n)
+        var_arr = np.zeros(n)
+        for i, file_i in enumerate(FILES):
+            mean_arr[i], var_arr[i] = read(file_i, ncut)
+        var_arr *= L * L
+        phi_mean, phi_std = np.mean(mean_arr), np.std(mean_arr)
+        xi_mean, xi_std = np.mean(var_arr), np.std(var_arr)
+        dict_L[L][eps] = [phi_mean, phi_std, n, xi_mean, xi_std]
+
+    def save_result():
+        """ Save result """
+        dict_eps = {}
+        for L in dict_L:
+            for eps in dict_L[L]:
+                if eps in dict_eps:
+                    dict_eps[eps][L] = dict_L[L][eps]
+                else:
+                    dict_eps[eps] = {L: dict_L[L][eps]}
+        os.chdir(dest_dir)
+        for eps in dict_eps.keys():
+            file_name = "%.4f.dat" % (eps / 10000)
+            try:
+                f = open(file_name)
+                print("read %s" % file_name)
+                lines = f.readlines()
+                for line in lines:
+                    s = line.replace("\n", "").split("\t")
+                    L = int(s[0])
+                    if L not in dict_eps[eps].keys():
+                        dict_eps[eps][L] = [
+                            float(s[1]),
+                            float(s[2]),
+                            int(s[3]),
+                            float(s[4]),
+                            float(s[5])
+                        ]
+                f.close()
+            except:
+                print("%s doesn't exist" % file_name)
+            with open(file_name, "w") as f:
+                print("write to %s" % file_name)
+                for L in sorted(dict_eps[eps].keys()):
+                    data = dict_eps[eps][L]
+                    f.write("%d\t%f\t%f\t%d\t%f\t%f\n" %
+                            (L, data[0], data[1], data[2], data[3], data[4]))
+
+    dest_dir = r"%s\data\eta=%.2f" % (os.getcwd(), eta)
+    data_dir1 = r"E:\data\random_torque\susceptibility\phi\eta=%.2f" % eta
+    data_dir2 = r"E:\data\random_torque\Phi_vs_L\eta=%.2f\serials" % eta
+    if L0 is not None and eps0 is not None:
+        pat = r"%s\p%d.%g.%d.*.dat"
+        files = glob.glob(pat % (data_dir1, L0, eta * 1000, eps0))
+        if use_old_data:
+            files += glob.glob(pat % (data_dir2, L0, eta * 1000, eps0))
+    elif L0 is not None:
+        pat = r"%s\p%d.%g.*.dat"
+        files = glob.glob(pat % (data_dir1, L0, eta * 1000))
+        if use_old_data:
+            files += glob.glob(pat % (data_dir2, L0, eta * 1000))
+    elif eps0 is not None:
+        pat = r"%s\p*.%g.%d.*.dat"
+        files = glob.glob(pat % (data_dir1, eta * 1000, eps0))
+        if use_old_data:
+            files += glob.glob(pat % (data_dir2, eta * 1000, eps0))
+    else:
+        pat = r"%s\p*.%g.*.dat"
+        files = glob.glob(pat % (data_dir1, eta * 1000))
+        if use_old_data:
+            files += glob.glob(pat % (data_dir2, eta * 1000))
+    n_total = len(files)
+    n_count = 0
+    dict_L = {}
+    for file_name in files:
+        s = file_name.split("\\")[-1]
+        s = s.replace("p", "").split(".")
+        L = int(s[0])
+        eps = int(s[2])
+        if L >= Lmin:
+            if L in dict_L:
+                if eps not in dict_L[L]:
+                    dict_L[L][eps] = []
+            else:
+                dict_L[L] = {eps: []}
+    for L in dict_L:
+        for eps in dict_L[L]:
+            files = glob.glob(r"%s\p%d.%g.%d.*.dat" % (data_dir1, L,
+                                                       eta * 1000, eps))
+            if use_old_data:
+                files += glob.glob(r"%s\p%d.%g.%d.*.dat" % (data_dir2, L,
+                                                            eta * 1000, eps))
+            print(r"[%d / %d]" % (n_count, n_total))
+            average(L, eps, files)
+            n_count += len(files)
+    save_result()
+
+
 if __name__ == "__main__":
-    import platform
     if platform.system() == "Windows":
-        os.chdir(r"D:\data\susceptibility")
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-L", type=int, help="System size")
-    parser.add_argument("-n", type=int, help="Number of files")
-    parser.add_argument(
-        "--first", type=int, default=None, help="First index of file")
-    parser.add_argument(
-        "--last", type=int, default=None, help="Last index of file")
-    parser.add_argument(
-        "--eps", type=int, help="Strength of disorder multiplied by 10000")
-    args = parser.parse_args()
-    if args.L and args.n:
-        save_serials(args.L, args.n)
-    elif args.L and args.eps:
-        sample_average(args.L, args.eps, args.first, args.last)
+        sample_average_Win(0.1, L0=46)
+    else:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-L", type=int, help="System size")
+        parser.add_argument("-n", type=int, help="Number of files")
+        parser.add_argument(
+            "--first", type=int, default=None, help="First index of file")
+        parser.add_argument(
+            "--last", type=int, default=None, help="Last index of file")
+        parser.add_argument(
+            "--eps", type=int, help="Strength of disorder multiplied by 10000")
+        args = parser.parse_args()
+
+        if args.L and args.n:
+            save_serials(args.L, args.n)
+        elif args.L and args.eps:
+            sample_average_Unix(args.L, args.eps, args.first, args.last)

@@ -318,6 +318,23 @@ def distrubition(L, N):
     plt.close()
 
 
+def plot_xi_vs_eps(eta):
+    """ Plot sample-averaged susceptibility against epsilon."""
+    dict_L = {}
+    files = glob.glob("0.*.dat")
+    for file in files:
+        read(file, dict_L)
+    for L in dict_L.keys():
+        eps = [i for i in sorted(dict_L[L].keys())]
+        chi = [dict_L[L][i][1] for i in eps]
+        plt.loglog(eps, chi, "-o", label=r"$%d$" % L)
+    plt.xlim(0.035, 0.0875)
+    plt.ylim(2)
+    plt.legend(title=r"$L=$")
+    plt.show()
+    plt.close()
+
+
 def average_type_B(save_data=False, save_fig=False):
     """ Calculate the susceptibility peak by "B" type averaging.
     """
@@ -503,11 +520,13 @@ def compare_two_averaging(L_list, M=500):
 
 
 if __name__ == "__main__":
-    os.chdir("data")
+    eta = 0.10
+    os.chdir("data/eta=%.2f" % eta)
     # distrubition(64, 500)
     # varied_sample_size(64, 500)
-    average_type_B(save_data=True, save_fig=False)
+    # average_type_B(save_data=False, save_fig=False)
     # diff_find_peak(90, 4, 10)
     # plot_peak_location_vs_L()
     # read_npz(724)
     # compare_two_averaging([64, 90])
+    plot_xi_vs_eps(eta)
