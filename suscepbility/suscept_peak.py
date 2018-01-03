@@ -328,7 +328,7 @@ def plot_xi_vs_eps(eta):
         eps = [i for i in sorted(dict_L[L].keys())]
         chi = [dict_L[L][i][1] for i in eps]
         plt.loglog(eps, chi, "-o", label=r"$%d$" % L)
-    plt.xlim(0.035, 0.0875)
+    plt.xlim(0.039, 0.0875)
     plt.ylim(2)
     plt.legend(title=r"$L=$")
     plt.show()

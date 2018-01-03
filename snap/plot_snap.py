@@ -6,7 +6,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
-# import glob
+import glob
 import load_snap
 
 
@@ -67,7 +67,37 @@ def add_colorbar(ax, mmin, mmax, theta_min=0, theta_max=360, orientation="h"):
         ax.set_xlabel(r"module $\rho |v|$", fontsize="large")
 
 
-def plot_two_panel(file, t_list=None, save=False):
+def get_para(filename):
+    s = filename.replace(".bin", "").split("_")
+    dict_para = {}
+    dict_para["eta"] = float(s[1])
+    dict_para["eps"] = float(s[2])
+    dict_para["L"] = int(s[3])
+    dict_para["ncols"] = int(s[5])
+    dict_para["N"] = int(s[7])
+    dict_para["rho0"] = dict_para["N"] / dict_para["L"]**2
+    if len(s) == 10:
+        dict_para["tau"] = float(s[9])
+    return dict_para
+
+
+def get_fig_title(para, phi, t):
+    if "tau" in para:
+        title_template = r"$\eta=%g,\ \epsilon=%g,\ \tau=%g\pi,\ " \
+            + r"\rho_0=%g,\ L=%d,\ \phi=%.4f,\ t=%d$"
+    else:
+        title_template = r"$\eta=%g,\ \epsilon=%g,\ \tau=0,\ " \
+            + r"\rho_0=%g,\ L=%d,\ \phi=%.4f,\ t=%d$"
+    if "tau" in para:
+        title = title_template % (para["eta"], para["eps"], para["tau"],
+                                  para["rho0"], para["L"], phi, t)
+    else:
+        title = title_template % (para["eta"], para["eps"], para["rho0"],
+                                  para["L"], phi, t)
+    return title
+
+
+def plot_two_panel(file, t_list=None, save=False, overwrite=False):
     """ Plot density and velocity filed on left, right pannel, respectively.
         One picture per frame.
 
@@ -76,29 +106,44 @@ def plot_two_panel(file, t_list=None, save=False):
     file: str
         Input file
     t_list: array_like, optional
-        The frames to show. If is None, t_list = [25, 50, 100, 200, 400, 800,
-        1600, 3200]
+        Which frames to show. If None, show all frames.
     save: bool, optional
         Whether to save the figure to disk.
     """
-    if t_list is None:
-        t_list = [25, 50, 100, 200, 400, 800, 1600, 3200]
+    if save:
+        folder = file.replace(".bin", "")
+        path = folder + os.path.sep
+        if file[0] == "c":
+            fig_template = path + "%07d.jpg"
+        elif file[0] == "C":
+            fig_template = path + "%.3f.jpg"
+        old_fig = glob.glob(path + "*.jpg")
+    para = get_para(file)
+
     snap = load_snap.CoarseGrainSnap(file)
     frames = snap.gene_frames()
-    s = file.replace(".bin", "").split("_")
-    eta = float(s[1])
-    eps = float(s[2])
-    L = int(s[3])
-    ncols = int(s[5])
-    domain = [0, L, 0, L]
-    lBox = L // ncols
+    domain = [0, para["L"], 0, para["L"]]
+    lBox = para["L"] // para["ncols"]
     dA = lBox**2
-    x = y = np.linspace(lBox / 2, L - lBox / 2, ncols)
+    x = y = np.linspace(lBox / 2, para["L"] - lBox / 2, para["ncols"])
     # rho_level = np.linspace(0, 5, 11)
-    rho_level = np.linspace(0, 4, 9)
+    if para["rho0"] < 2:
+        rho_level = np.linspace(0, 4, 9)
+    else:
+        rho_level = np.linspace(0, 10, 9)
     for frame in frames:
         t, vxm, vym, num, vx, vy = frame
-        if t in t_list:
+        if t_list is None or t in t_list:
+            if save:
+                fig_name = fig_template % t
+                if fig_name in old_fig:
+                    if overwrite:
+                        print("overwrite the frame at t =", t)
+                    else:
+                        print("skip the frame at t =", t)
+                        continue
+                else:
+                    print("save the frame at t=", t)
             fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 7.5))
             rho = num / dA
             contour = ax1.contourf(x, y, rho, rho_level, extend="max")
@@ -107,16 +152,15 @@ def plot_two_panel(file, t_list=None, save=False):
 
             v_orient = np.arctan2(vy, vx) / np.pi * 180
             v_orient[v_orient < 0] += 360
-            v_module = np.sqrt(vx**2 + vy**2) * rho
+            v_module = np.sqrt(vx**2 + vy**2)
             RGB = get_rgb(v_orient, v_module, m_max=4)
-            ax2.imshow(RGB, extent=[0, L, 0, L], origin="lower")
+            ax2.imshow(RGB, extent=domain, origin="lower")
             ax2.axis('scaled')
             ax2.axis(domain)
+            phi = np.sqrt(vxm**2 + vym**2)
+
             plt.suptitle(
-                r"$\eta=%g,\ \rho_0=1, \epsilon=%g,\ L=%d,\ t=%d$" % (eta, eps,
-                                                                      L, t),
-                fontsize="xx-large",
-                y=0.985)
+                get_fig_title(para, phi, t), fontsize="xx-large", y=0.99)
             plt.tight_layout(rect=[0, 0, 1, 0.98])
 
             bbox1 = ax1.get_position().get_points().flatten()
@@ -130,9 +174,9 @@ def plot_two_panel(file, t_list=None, save=False):
             cb_ax2 = fig.add_axes(bbox2)
             cb1 = fig.colorbar(contour, cax=cb_ax1, orientation="horizontal")
             cb1.set_label(r"density $\rho$", fontsize="x-large")
-            add_colorbar(cb_ax2, v_module.min(), 4, 0, 360)
+            add_colorbar(cb_ax2, 0, para["rho0"], 0, 360)
             if save:
-                plt.savefig("snap_%g_%g_%d_%04d.jpg" % (eta * 100, eps, L, t))
+                plt.savefig(fig_name)
             else:
                 plt.show()
             plt.close()

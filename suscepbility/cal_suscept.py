@@ -256,7 +256,7 @@ def sample_average_Win(eta, L0=None, eps0=None, Lmin=46, use_old_data=False):
 
 if __name__ == "__main__":
     if platform.system() == "Windows":
-        sample_average_Win(0.1, L0=46)
+        sample_average_Win(0.1, L0=None)
     else:
         parser = argparse.ArgumentParser()
         parser.add_argument("-L", type=int, help="System size")

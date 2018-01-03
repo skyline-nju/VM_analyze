@@ -136,7 +136,11 @@ class RawSnap(Snap):
 class CoarseGrainSnap(Snap):
     def __init__(self, file):
         str_list = file.split("_")
-        self.snap_format = str_list[0].replace("c", "")
+        self.snap_format = str_list[0][1:]
+        if (str_list[0][0] == "c"):
+            self.is_continous = False
+        else:
+            self.is_continous = True
         self.ncols = int(str_list[5])
         self.nrows = int(str_list[6])
         self.N = self.ncols * self.nrows
@@ -154,15 +158,22 @@ class CoarseGrainSnap(Snap):
         elif self.snap_format == "B":
             self.fmt = "%dB" % (self.N)
             self.snap_size = self.N
-        self.frame_size = self.snap_size + 20
+        if self.is_continous:
+            self.frame_size = self.snap_size + 24
+        else:
+            self.frame_size = self.snap_size + 20
         self.open_file(file)
         print(file)
 
     def one_frame(self):
-        buff = self.f.read(4)
-        t, = struct.unpack("i", buff)
-        buff = self.f.read(16)
-        vxm, vym = struct.unpack("dd", buff)
+        if self.is_continous:
+            buff = self.f.read(24)
+            t, vxm, vym = struct.unpack("ddd", buff)
+        else:
+            buff = self.f.read(4)
+            t, = struct.unpack("i", buff)
+            buff = self.f.read(16)
+            vxm, vym = struct.unpack("dd", buff)
         buff = self.f.read(self.snap_size)
         data = struct.unpack(self.fmt, buff)
         if self.snap_format == "B":
