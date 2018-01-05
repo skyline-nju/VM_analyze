@@ -11,6 +11,7 @@ Type B:
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from numpy.polynomial.polynomial import polyfit
 from scipy import interpolate
 import os
@@ -19,7 +20,7 @@ import add_line
 from fit import plot_KT_fit, plot_pow_fit
 
 
-def read(file, dict_L):
+def read(infile, dict_L):
     """ Read 0*.dat file.
 
     Parameters:
@@ -29,9 +30,9 @@ def read(file, dict_L):
     dict_L: dict
         A dict with form {L:{eps: [phi, chi, err_chi, N]}}.
     """
-    eps = float(file.replace(".dat", ""))
-    print(file)
-    with open(file) as f:
+    eps = float(os.path.basename(infile).replace(".dat", ""))
+    print(infile)
+    with open(infile) as f:
         lines = f.readlines()
         for line in lines:
             s = line.replace("\n", "").split("\t")
@@ -318,17 +319,36 @@ def distrubition(L, N):
     plt.close()
 
 
-def plot_xi_vs_eps(eta):
+def plot_xi_vs_eps(eta, read_txt=True):
     """ Plot sample-averaged susceptibility against epsilon."""
-    dict_L = {}
-    files = glob.glob("0.*.dat")
-    for file in files:
-        read(file, dict_L)
-    for L in dict_L.keys():
-        eps = [i for i in sorted(dict_L[L].keys())]
-        chi = [dict_L[L][i][1] for i in eps]
-        plt.loglog(eps, chi, "-o", label=r"$%d$" % L)
-    plt.xlim(0.039, 0.0875)
+    if read_txt:
+        dict_L = {}
+        files = glob.glob("eta=%.2f%s0.*.dat" % (eta, os.path.sep))
+        for txt_file in files:
+            read(txt_file, dict_L)
+        for L in dict_L.keys():
+            eps = [i for i in sorted(dict_L[L].keys())]
+            chi = [dict_L[L][i][1] for i in eps]
+            plt.loglog(eps, chi, "-o", label=r"$%d$" % L)
+    else:
+        infile = r"E:\data\random_torque\susceptibility\eta=%g.xlsx" % eta
+        with pd.ExcelFile(infile) as f:
+            # phi_dict = pd.read_excel(f, sheet_name="phi").to_dict()
+            chi_dict = pd.read_excel(f, sheet_name="chi").to_dict()
+            # num_dict = pd.read_excel(f, sheet_name="num").to_dict()
+        for L in sorted(chi_dict.keys()):
+            if L < 46:
+                continue
+            eps_arr = []
+            chi_arr = []
+            for eps in sorted(chi_dict[L].keys()):
+                chi = chi_dict[L][eps]
+                if not np.isnan(chi) and eps > 0.04:
+                    eps_arr.append(eps)
+                    chi_arr.append(chi)
+            plt.loglog(eps_arr, chi_arr, "-o", label=r"$%d$" % L)
+
+    plt.xlim(xmax=0.0875)
     plt.ylim(2)
     plt.legend(title=r"$L=$")
     plt.show()
@@ -488,10 +508,10 @@ def compare_two_averaging(L_list, M=500):
     x0, x1 = ax3.get_xlim()
     x = np.linspace(x0, x1, 1000)
     c = polyfit(np.log10(L_list), np.log10(chi_m1), deg=1)
-    y = 10 ** c[0] * x ** c[1]
+    y = 10**c[0] * x**c[1]
     ax3.plot(x, y, "--")
     c = polyfit(np.log10(L_list), np.log10(chi_m2), deg=1)
-    y = 10 ** c[0] * x ** c[1]
+    y = 10**c[0] * x**c[1]
     ax3.plot(x, y, "--")
     ax3.set_xscale("log")
     ax3.set_yscale("log")
@@ -521,7 +541,7 @@ def compare_two_averaging(L_list, M=500):
 
 if __name__ == "__main__":
     eta = 0.10
-    os.chdir("data/eta=%.2f" % eta)
+    os.chdir("data")
     # distrubition(64, 500)
     # varied_sample_size(64, 500)
     # average_type_B(save_data=False, save_fig=False)
@@ -529,4 +549,4 @@ if __name__ == "__main__":
     # plot_peak_location_vs_L()
     # read_npz(724)
     # compare_two_averaging([64, 90])
-    plot_xi_vs_eps(eta)
+    plot_xi_vs_eps(eta, False)

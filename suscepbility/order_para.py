@@ -39,7 +39,7 @@ def get_ncut(L):
     return ncut
 
 
-def update_phi_and_xi(eta, hdf_dir, csv_dir):
+def update_phi_and_chi(eta, hdf_dir, csv_dir):
     def update_dict(infile):
         basename = os.path.basename(infile)
         s = basename.replace(".h5", "").split("_")
@@ -47,48 +47,50 @@ def update_phi_and_xi(eta, hdf_dir, csv_dir):
         eps = float(s[2])
         ncut = get_ncut(L)
 
-        phi, xi, num = read_hdf5(infile, ncut)
+        phi, phi_var, num = read_hdf5(infile, ncut)
+        xi = phi_var * L * L
         if L in phi_dict:
             phi_dict[L][eps] = phi
-            xi_dict[L][eps] = xi
+            chi_dict[L][eps] = xi
             num_dict[L][eps] = num
         else:
             phi_dict[L] = {eps: phi}
-            xi_dict[L] = {eps: xi}
+            chi_dict[L] = {eps: xi}
             num_dict[L] = {eps: num}
 
     def save_to_excel():
         with pd.ExcelWriter(excel_file) as writer:
             pd.DataFrame.from_dict(phi_dict).to_excel(writer, sheet_name='phi')
-            pd.DataFrame.from_dict(xi_dict).to_excel(writer, sheet_name='xi')
+            pd.DataFrame.from_dict(chi_dict).to_excel(writer, sheet_name='chi')
             pd.DataFrame.from_dict(num_dict).to_excel(writer, sheet_name='num')
 
     def read_excel():
         with pd.ExcelFile(excel_file) as f:
             phi_dict = pd.read_excel(f, sheet_name="phi").to_dict()
-            xi_dict = pd.read_excel(f, sheet_name="xi").to_dict()
+            chi_dict = pd.read_excel(f, sheet_name="chi").to_dict()
             num_dict = pd.read_excel(f, sheet_name="num").to_dict()
-        return phi_dict, xi_dict, num_dict
+        return phi_dict, chi_dict, num_dict
 
     excel_file = csv_dir + os.path.sep + "eta=%g.xlsx" % eta
     hdf_files = glob.glob(hdf_dir + os.path.sep + "*.h5")
 
     phi_dict = {}
-    xi_dict = {}
+    chi_dict = {}
     num_dict = {}
     if not os.path.isfile(excel_file):
         for infile in hdf_files:
             update_dict(infile)
-            print(infile, "updated")
+            print("loading ", os.path.basename(infile))
         save_to_excel()
+        print("create", excel_file)
     else:
-        phi_dict, xi_dict, num_dict = read_excel()
+        phi_dict, chi_dict, num_dict = read_excel()
         excel_statinfo = os.stat(excel_file)
         flag_updated = False
         for hdf_file in hdf_files:
             hdf_statinfo = os.stat(hdf_file)
             if hdf_statinfo.st_mtime > excel_statinfo.st_mtime:
-                print("find new file:", hdf_file)
+                print("loading", os.path.basename(hdf_file))
                 update_dict(hdf_file)
                 flag_updated = True
         if flag_updated:
@@ -98,11 +100,12 @@ def update_phi_and_xi(eta, hdf_dir, csv_dir):
             print("nothing changed")
 
 
-def txt_to_hdf(L, eta, eps, txt_dir, hdf_dir):
+def txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time=True):
     """ Transform txt files contaning order parameters into hdf5 files."""
 
-    def update_dict():
-        phi, theta = read_txt(txt_file)
+    def update_dict(infile):
+        phi, theta = read_txt(infile)
+        basename = os.path.basename(infile)
         n = phi.size
         if n not in phi_dict:
             phi_dict[n] = {basename: phi}
@@ -132,37 +135,49 @@ def txt_to_hdf(L, eta, eps, txt_dir, hdf_dir):
     phi_dict = {}
     theta_dict = {}
     if os.path.isfile(hdf_file):
-        df_phi = pd.read_hdf(hdf_file, "phi")
-        df_theta = pd.read_hdf(hdf_file, "theta")
-        for txt_file in txt_files:
-            basename = os.path.basename(txt_file)
-            if basename not in df_phi.columns:
-                update_dict()
+        if check_by_time:
+            hdf_statinfo = os.stat(hdf_file)
+            for txt_file in txt_files:
+                txt_statinfo = os.stat(txt_file)
+                if txt_statinfo.st_mtime > hdf_statinfo.st_mtime:
+                    update_dict(txt_file)
+            if len(phi_dict) > 0:
+                df_phi = pd.read_hdf(hdf_file, "phi")
+                df_theta = pd.read_hdf(hdf_file, "theta")
+                save_df(df_phi, df_theta)
             else:
-                print(basename, "already exists")
-        if len(phi_dict) > 0:
-            save_df(df_phi, df_theta)
-            print("update", hdf_file)
+                print(os.path.basename(hdf_file), "remain unchanged")
+
         else:
-            print("nothing happen to", hdf_file)
+            df_phi = pd.read_hdf(hdf_file, "phi")
+            df_theta = pd.read_hdf(hdf_file, "theta")
+            for txt_file in txt_files:
+                basename = os.path.basename(txt_file)
+                if basename not in df_phi.columns:
+                    update_dict(txt_file)
+                else:
+                    print(basename, "already exists")
+            if len(phi_dict) > 0:
+                save_df(df_phi, df_theta)
+            else:
+                print(os.path.basename(hdf_file), "remain unchanged")
     else:
         df_phi = None
         df_theta = None
         for txt_file in txt_files:
-            basename = os.path.basename(txt_file)
-            update_dict()
+            update_dict(txt_file)
         save_df(df_phi, df_theta)
         print("create", hdf_file)
 
 
-def update_hdf(eta, txt_dir, hdf_dir):
+def update_hdf(eta, txt_dir, hdf_dir, check_by_time=True):
     """ Update all hdf files """
     files = find_existed_files(eta, txt_dir)
     para = get_available_para(files)
-    for L in para:
+    for L in sorted(para.keys()):
         print("L = ", L)
         for eps in para[L]:
-            txt_to_hdf(L, 0.1, eps / 10000, txt_dir, hdf_dir)
+            txt_to_hdf(L, 0.1, eps / 10000, txt_dir, hdf_dir, check_by_time)
 
 
 def find_existed_files(eta, txt_dir, L0=None, eps1e4=None):
@@ -213,5 +228,5 @@ if __name__ == "__main__":
     hdf_dir = r"E:\data\random_torque\susceptibility\phi_hdf"
     csv_dir = r"E:\data\random_torque\susceptibility"
 
-    # update_hdf(0.1, txt_dir, hdf_dir)
-    update_phi_and_xi(0.1, hdf_dir, csv_dir)
+    # update_hdf(0.1, txt_dir, hdf_dir, True)
+    update_phi_and_chi(0.1, hdf_dir, csv_dir)
