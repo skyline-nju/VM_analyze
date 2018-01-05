@@ -2,17 +2,18 @@
 import os
 import plot_snap
 import glob
-import load_snap
-import matplotlib.pyplot as plt
+# import load_snap
+# import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     # os.chdir(r"E:\data\random_torque\metric_free\snapshot")
     os.chdir(r"E:\data\random_torque\metric_free\rotate_metric_free")
-    filename = "cHff_0.4_0_512_512_512_512_1048576_124.bin"
-    path = filename.replace(".bin", "")
-    if not os.path.exists(path):
-        os.mkdir("%s" % (path))
-    plot_snap.plot_two_panel(filename, save=True, overwrite=True)
+    files = glob.glob("*.bin")
+    for filename in files:
+        path = filename.replace(".bin", "")
+        if not os.path.exists(path):
+            os.mkdir("%s" % (path))
+        plot_snap.plot_two_panel(filename, save=True, overwrite=False)
     # snap = load_snap.CoarseGrainSnap(filename)
     # frames = snap.gene_frames()
     # for frame in frames:
