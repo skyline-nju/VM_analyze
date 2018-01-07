@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 import os
 
 
-def read(head1=0, tail1=0, head2=0, tail2=0):
+def read(eta, head1=0, tail1=0, head2=0, tail2=0):
     """ Read three set of (epsilon, correlation length) from three files,
         respectively.
 
@@ -23,7 +23,8 @@ def read(head1=0, tail1=0, head2=0, tail2=0):
     tail2: int, optional
         Remove the last `tail2` lines from file2.
     """
-    with open("suscept_peak.dat") as f:
+    path = r"data\eta=%.2f" % eta
+    with open(path + os.path.sep + "suscept_peak.dat") as f:
         lines = f.readlines()
         n = len(lines)
         lines = lines[head1:n - tail1]
@@ -35,7 +36,7 @@ def read(head1=0, tail1=0, head2=0, tail2=0):
             eps1[i] = float(s[1])
             print(L1[i], eps1[i])
     print("--------")
-    with open("polar_order.dat") as f:
+    with open(path + os.path.sep + "polar_order.dat") as f:
         lines = f.readlines()
         n = len(lines)
         lines = lines[head2:n - tail2]
@@ -46,18 +47,21 @@ def read(head1=0, tail1=0, head2=0, tail2=0):
             L2[i] = float(s[1])
             eps2[i] = float(s[0])
             print(eps2[i], L2[i])
-    with open("correlation_length.dat") as f:
-        lines = f.readlines()
-        L3 = np.zeros(len(lines))
-        eps3 = np.zeros_like(L3)
-        for i, line in enumerate(lines):
-            s = line.replace("\n", "").split("\t")
-            eps3[i] = float(s[0])
-            if len(s) == 3:
-                L3[i] = 0.5 * (float(s[1]) + float(s[2]))
-            else:
-                L3[i] = float(s[1])
-    return L1, eps1, L2, eps2, L3, eps3
+    if eta == 0.1:
+        return L1, eps1, L2, eps2
+    else:
+        with open(path + os.path.sep + "correlation_length.dat") as f:
+            lines = f.readlines()
+            L3 = np.zeros(len(lines))
+            eps3 = np.zeros_like(L3)
+            for i, line in enumerate(lines):
+                s = line.replace("\n", "").split("\t")
+                eps3[i] = float(s[0])
+                if len(s) == 3:
+                    L3[i] = 0.5 * (float(s[1]) + float(s[2]))
+                else:
+                    L3[i] = float(s[1])
+        return L1, eps1, L2, eps2, L3, eps3
 
 
 def fit_exp(eps, l, beta=None, reverse=False, ret_res=False):
@@ -148,9 +152,9 @@ def fit_pow(eps, l, beta=None):
     return popt, perr
 
 
-def plot_KT_fit(nu, ax, eps, xi, reversed=False):
+def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_m=0.05):
     popt, perr = fit_exp(eps, xi, beta=nu)
-    x = np.linspace(0.05, 0.087, 100)
+    x = np.linspace(eps_m, 0.087, 100)
     y = np.exp(popt[1] + popt[2] * (x - popt[0])**(-nu))
     label = r"$\xi=%.3f \times e^{%.3f(\epsilon - %.4f)^{-%g}}$" % (
         np.exp(popt[1]), popt[2], popt[0], nu)
@@ -160,9 +164,9 @@ def plot_KT_fit(nu, ax, eps, xi, reversed=False):
         ax.plot(x, y, "--", label=label)
 
 
-def plot_pow_fit(ax, eps, xi, reversed=False):
+def plot_pow_fit(ax, eps, xi, reversed=False, eps_m=0.05):
     popt, perr = fit_pow(eps, xi)
-    x = np.linspace(0.05, 0.087, 100)
+    x = np.linspace(eps_m, 0.087, 100)
     y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
     label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
                                                             popt[0], popt[2])
@@ -294,13 +298,15 @@ def varied_nu3(head1=0, tail1=0, head2=1, tail2=0):
     plt.close()
 
 
-def varied_nu2(head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
+def varied_nu2(eta, head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
     """
     Epsilon evaluated from two different correlation lengths vs. the
     exponent nu.
     """
-    L1, eps1, L2, eps2, L3, eps3 = read(
-        head1=head1, tail1=tail1, head2=head2, tail2=tail2)
+    if eta == 0.18:
+        L1, eps1, L2, eps2, L3, eps3 = read(eta, head1, tail1, head2, tail2)
+    else:
+        L1, eps1, L2, eps2 = read(eta, head1, tail1, head2, tail2)
     nu_arr = np.linspace(0.01, 3, 200)
     eps_c1 = np.zeros_like(nu_arr)
     eps_c2 = np.zeros_like(nu_arr)
@@ -397,7 +403,6 @@ def show_algebraic():
 
 
 if __name__ == "__main__":
-    os.chdir("data")
     # L1, eps1, L2, eps2, L3, eps3 = read()
     # popt, perr = fit_exp(eps1, L1, 1)
     # print(popt, perr)
@@ -411,7 +416,8 @@ if __name__ == "__main__":
     # print(popt, perr)
     # popt, perr = fit_pow(eps3, L3)
     # print(popt, perr)
-    varied_nu2(0, 2, 3, 0, False)
+    eta = 0.10
+    varied_nu2(eta, 0, 0, 0, 0, False)
     # varied_nu3()
     # show_KT(1)
     # show_algebraic()

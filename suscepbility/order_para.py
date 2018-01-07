@@ -1,12 +1,18 @@
+"""
+The time serials of order parameter and polar angle are stored in the txt file
+such as `p46.100.480.11940000.dat`, which is for `L=46`, `eta=0.18`,`eps=0.048`
+and `seed=11940000`.
+For the sake of efficiency, transiform the time serials into `hdf5` file.
+Handing the `.h5` files, the results are saved into a excel file.
+"""
+
 import numpy as np
 import glob
 import os
 import pandas as pd
 
-# from openpyxl.writer.excel import ExcelWriter
 
-
-def read_txt(filename):
+def read_serials_from_txt(filename):
     """ Get array of order parameter and angle from txt file."""
     with open(filename) as f:
         lines = f.readlines()
@@ -100,11 +106,13 @@ def update_phi_and_chi(eta, hdf_dir, csv_dir):
             print("nothing changed")
 
 
-def txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time=True):
-    """ Transform txt files contaning order parameters into hdf5 files."""
+def serials_txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time=True):
+    """ Load the time serials in the matched txt files and write them into a
+        single `.h5` file.
+    """
 
     def update_dict(infile):
-        phi, theta = read_txt(infile)
+        phi, theta = read_serials_from_txt(infile)
         basename = os.path.basename(infile)
         n = phi.size
         if n not in phi_dict:
@@ -155,8 +163,6 @@ def txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time=True):
                 basename = os.path.basename(txt_file)
                 if basename not in df_phi.columns:
                     update_dict(txt_file)
-                else:
-                    print(basename, "already exists")
             if len(phi_dict) > 0:
                 save_df(df_phi, df_theta)
             else:
@@ -171,53 +177,22 @@ def txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time=True):
 
 
 def update_hdf(eta, txt_dir, hdf_dir, check_by_time=True):
-    """ Update all hdf files """
-    files = find_existed_files(eta, txt_dir)
-    para = get_available_para(files)
+    """ Update all `.h5` files """
+    txt_files = glob.glob(txt_dir + os.path.sep + "p*.%d.*dat" % (eta * 1000))
+    para = {}
+    for txt_file in txt_files:
+        s = os.path.basename(txt_file).replace("p", "").split(".")
+        L = int(s[0])
+        eps = int(s[2]) / 10000
+        if L in para:
+            if eps not in para[L]:
+                para[L].append(eps)
+        else:
+            para[L] = [eps]
     for L in sorted(para.keys()):
         print("L = ", L)
         for eps in para[L]:
-            txt_to_hdf(L, 0.1, eps / 10000, txt_dir, hdf_dir, check_by_time)
-
-
-def find_existed_files(eta, txt_dir, L0=None, eps1e4=None):
-    """ find existed files at `txt_dir` with given parameters."""
-    prefix = txt_dir + os.path.sep
-    if L0 is not None and eps1e4 is not None:
-        files = glob.glob(prefix + "p%d.%g.%g.*.dat" % (L0, eta * 1000,
-                                                        eps1e4))
-    elif L0 is not None:
-        files = glob.glob(prefix + "p%d.%g.*.dat" % (L0, eta * 1000))
-    elif eps1e4 is not None:
-        files = glob.glob(prefix + "p*.%g.%g.*.dat" % (eta * 1000, eps1e4))
-    else:
-        files = glob.glob(prefix + "p*.%g.*.dat" % (eta * 1000))
-    return files
-
-
-def get_available_para(files, is_txt=True):
-    """ Get dict `para` having the form {L: [eps1, eps2]} from `files`."""
-    para = {}
-    for full_name in files:
-        basename = os.path.basename(full_name)
-        if is_txt:
-            s = basename.replace("p", "").split(".")
-            L = int(s[0])
-            eps = int(s[2])
-            if L in para:
-                if eps not in para[L]:
-                    para[L].append(eps)
-            else:
-                para[L] = [eps]
-        else:
-            s = basename.replace(".h5", "").split("_")
-            L = int(s[0])
-            eps = float(s[2])
-            if L in para:
-                para[L].append(eps)
-            else:
-                para[L] = [eps]
-    return para
+            serials_txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time)
 
 
 if __name__ == "__main__":
@@ -228,5 +203,5 @@ if __name__ == "__main__":
     hdf_dir = r"E:\data\random_torque\susceptibility\phi_hdf"
     csv_dir = r"E:\data\random_torque\susceptibility"
 
-    # update_hdf(0.1, txt_dir, hdf_dir, True)
+    # update_hdf(0.1, txt_dir, hdf_dir, check_by_time=True)
     update_phi_and_chi(0.1, hdf_dir, csv_dir)

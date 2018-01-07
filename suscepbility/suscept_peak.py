@@ -11,40 +11,40 @@ Type B:
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from numpy.polynomial.polynomial import polyfit
 from scipy import interpolate
 import os
-import glob
+import sys
+# import glob
 import add_line
-from fit import plot_KT_fit, plot_pow_fit
 
 
-def read(infile, dict_L):
-    """ Read 0*.dat file.
-
-    Parameters:
-    --------
-    file: str
-        File to read, with pattern 0.*.dat
-    dict_L: dict
-        A dict with form {L:{eps: [phi, chi, err_chi, N]}}.
+def get_chi_dict(eta):
     """
-    eps = float(os.path.basename(infile).replace(".dat", ""))
-    print(infile)
-    with open(infile) as f:
-        lines = f.readlines()
-        for line in lines:
-            s = line.replace("\n", "").split("\t")
-            L = int(s[0])
-            phi = float(s[1])
-            chi = float(s[4])
-            err_chi = float(s[5])
-            N = int(s[3])
-            if L in dict_L:
-                dict_L[L][eps] = [phi, chi, err_chi, N]
-            else:
-                dict_L[L] = {eps: [phi, chi, err_chi, N]}
+    Get dict of chi with key `eps`. chi_dict[eps] is a 2 * n array,
+    L_arr=chi_dict[eps][0], chi_arr = chi_dict[eps][1].
+    """
+    if eta == 0.18:
+        from create_dict import create_dict_from_txt
+        path = r"data\eta=%.2f" % eta
+        eps_min = 0.045
+        L_min = 46
+        chi_dict = create_dict_from_txt(path, "chi", "L", eps_min, L_min,
+                                        "dict-arr", 5)
+    elif eta == 0.10:
+        from create_dict import create_dict_from_xlsx
+        path = r"E:\data\random_torque\susceptibility"
+        infile = path + os.path.sep + r"eta=%g.xlsx" % eta
+        eps_min = 0.045
+        L_min = 46
+        chi_dict = create_dict_from_xlsx(infile, "chi", "L", eps_min, L_min)
+        for L in chi_dict:
+            if L > 90:
+                chi_dict[L] = chi_dict[L][:, :-2]
+    else:
+        print("eta should be one of 0.1, 0.18")
+        sys.exit()
+    return chi_dict
 
 
 def read_npz(L):
@@ -77,7 +77,8 @@ def find_peak_by_polyfit(xdata,
                          order=5,
                          xscale="lin",
                          yscale="lin",
-                         full=False):
+                         full=False,
+                         size_fit=10000):
     """ Find the peak by polyfit.
 
     Parameters:
@@ -96,14 +97,14 @@ def find_peak_by_polyfit(xdata,
     xp, yp : float
         The peak of input data.
     xfit, yfit : array_like
-        Fitting curve of input data.
+        Fitting curve of input data. Return if `full` is True.
     """
     if xscale == "log":
         xdata = np.log10(xdata)
     if yscale == "log":
         ydata = np.log10(ydata)
     c = polyfit(xdata, ydata, order)
-    xfit = np.linspace(xdata.min(), xdata.max(), 10000)
+    xfit = np.linspace(xdata.min(), xdata.max(), size_fit)
     yfit = c[0] * np.ones(xfit.size)
     for i in range(1, order + 1):
         yfit += c[i] * xfit**i
@@ -319,35 +320,11 @@ def distrubition(L, N):
     plt.close()
 
 
-def plot_xi_vs_eps(eta, read_txt=True):
+def plot_xi_vs_eps(eta, chi_dict, read_txt=True):
     """ Plot sample-averaged susceptibility against epsilon."""
-    if read_txt:
-        dict_L = {}
-        files = glob.glob("eta=%.2f%s0.*.dat" % (eta, os.path.sep))
-        for txt_file in files:
-            read(txt_file, dict_L)
-        for L in dict_L.keys():
-            eps = [i for i in sorted(dict_L[L].keys())]
-            chi = [dict_L[L][i][1] for i in eps]
-            plt.loglog(eps, chi, "-o", label=r"$%d$" % L)
-    else:
-        infile = r"E:\data\random_torque\susceptibility\eta=%g.xlsx" % eta
-        with pd.ExcelFile(infile) as f:
-            # phi_dict = pd.read_excel(f, sheet_name="phi").to_dict()
-            chi_dict = pd.read_excel(f, sheet_name="chi").to_dict()
-            # num_dict = pd.read_excel(f, sheet_name="num").to_dict()
-        for L in sorted(chi_dict.keys()):
-            if L < 46:
-                continue
-            eps_arr = []
-            chi_arr = []
-            for eps in sorted(chi_dict[L].keys()):
-                chi = chi_dict[L][eps]
-                if not np.isnan(chi) and eps > 0.04:
-                    eps_arr.append(eps)
-                    chi_arr.append(chi)
-            plt.loglog(eps_arr, chi_arr, "-o", label=r"$%d$" % L)
-
+    for L in sorted(chi_dict.keys()):
+        plt.plot(chi_dict[L][0], chi_dict[L][1], "-o", label=r"$%d$" % L)
+    plt.yscale("log")
     plt.xlim(xmax=0.0875)
     plt.ylim(2)
     plt.legend(title=r"$L=$")
@@ -355,34 +332,23 @@ def plot_xi_vs_eps(eta, read_txt=True):
     plt.close()
 
 
-def average_type_B(save_data=False, save_fig=False):
-    """ Calculate the susceptibility peak by "B" type averaging.
+def plot_sample_averaged_chi(chi_dict, save_data=False, save_fig=False):
     """
-    dict_L = {}
-    files = glob.glob("0*.dat")
-    for file in files:
-        read(file, dict_L)
-
+    Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
+    first panel. Mean while, show susceptibility peak vs. L in the second
+    panel and location of susceptibility peak vs. L in the third panel.
+    """
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     # Plot susceptibility peak vs its location.
-    L_arr = np.array([46, 64, 90, 128, 180, 256, 362, 512, 724, 1024])
-    eps_p, chi_p = np.zeros((2, len(L_arr)))
-    for L in sorted(dict_L.keys()):
-        if L in L_arr:
-            chi_list = []
-            eps_list = []
-            for eps in dict_L[L]:
-                if eps >= 0.045:
-                    chi_list.append(dict_L[L][eps][1])
-                    eps_list.append(eps)
-            chi = np.array(chi_list)
-            # err_xi = np.array(err_xi_list)
-            eps = np.array(eps_list)
-            line, = axes[0].plot(eps, chi, "o", label=r"$%d$" % L)
-            i = np.argwhere(L_arr == L)
-            eps_p[i], chi_p[i], x, y = find_peak_by_polyfit(
-                eps, chi, 5, yscale="log", full=True)
-            axes[0].plot(x, y, color=line.get_color())
+    L_arr = np.array([i for i in sorted(chi_dict.keys())])
+    eps_p, chi_p = np.zeros((2, len(L_arr)))  # record the location of peak
+    for L in sorted(chi_dict.keys()):
+        eps_arr, chi_arr = chi_dict[L]
+        line, = axes[0].plot(eps_arr, chi_arr, "o", label=r"$%d$" % L)
+        i = np.argwhere(L_arr == L)
+        eps_p[i], chi_p[i], x, y = find_peak_by_polyfit(
+            eps_arr, chi_arr, 5, yscale="log", full=True)
+        axes[0].plot(x, y, color=line.get_color())
 
     axes[0].plot(eps_p, chi_p, "ks--", fillstyle="none")
     axes[0].set_yscale("log")
@@ -390,7 +356,7 @@ def average_type_B(save_data=False, save_fig=False):
     axes[0].set_xlim(xmax=0.09)
     axes[0].set_xlabel(r"$\epsilon$", fontsize="x-large")
     axes[0].set_ylabel("Sample-averaged susceptibility", fontsize="x-large")
-    plot_peak_location_vs_L(L_arr, eps_p, chi_p, ax=axes[1:])
+    plot_peak_location_vs_L(eta, L_arr, eps_p, chi_p, ax=axes[1:])
     axes[0].set_title("(a)")
     axes[1].set_title("(b)")
     axes[2].set_title("(c)")
@@ -403,26 +369,27 @@ def average_type_B(save_data=False, save_fig=False):
 
     # Save data
     if save_data:
-        with open("suscept_peak.dat", "w") as f:
+        with open(r"data\eta=%.2f\suscept_peak.dat" % eta, "w") as f:
             for i, L in enumerate(L_arr):
                 f.write("%d\t%.8f\t%.8f\n" % (L, eps_p[i], chi_p[i]))
 
 
-def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None, ax=None):
-    """ Plot susceptibility peak and its loaction against system size,
+def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
+    """
+        Plot susceptibility peak and its loaction against system size,
         respectively.
 
-    Parameters:
-    --------
-    L : array_like, optional
-        Array of system sizes.
-    eps_p : array_like, optional
-        Locations of susceptibility peak.
-    chi_p : array_like, optional
-        Values of susceptibility peak.
+        Parameters:
+        --------
+        L : array_like, optional
+            Array of system sizes.
+        eps_p : array_like, optional
+            Locations of susceptibility peak.
+        chi_p : array_like, optional
+            Values of susceptibility peak.
     """
     if L is None or eps_p is None or chi_p is None:
-        with open("suscept_peak.dat") as f:
+        with open(r"data\eta=%.2f\suscept_peak.dat" % eta) as f:
             lines = f.readlines()
             L, eps_p, chi_p = np.zeros((3, len(lines)))
             for i, line in enumerate(lines):
@@ -437,7 +404,7 @@ def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None, ax=None):
     else:
         flag_show = False
     ax[0].loglog(L, chi_p, "o")
-    c = polyfit(np.log10(L), np.log10(chi_p), deg=1)
+    c = polyfit(np.log10(L[:]), np.log10(chi_p[:]), deg=1)
     x0, x1 = ax[0].get_xlim()
     x = np.linspace(x0, x1, 1000)
     y = 10**c[0] * x**c[1]
@@ -452,8 +419,13 @@ def plot_peak_location_vs_L(L=None, eps_p=None, chi_p=None, ax=None):
         fontsize="x-large")
 
     ax[1].plot(L, eps_p, "o")
-    plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True)
-    plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True)
+    from fit import plot_KT_fit, plot_pow_fit
+    if eta == 0.18:
+        eps_m = 0.05
+    elif eta == 0.1:
+        eps_m = 0.045
+    plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True, eps_m=eps_m)
+    plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True, eps_m=eps_m)
     plot_pow_fit(ax[1], eps_p, L, reversed=True)
     ax[1].set_xscale("log")
     ax[1].set_xlabel(r"$L$", fontsize="x-large")
@@ -540,8 +512,9 @@ def compare_two_averaging(L_list, M=500):
 
 
 if __name__ == "__main__":
-    eta = 0.10
-    os.chdir("data")
+    eta = 0.1
+    chi_dict = get_chi_dict(eta)
+    # os.chdir("data")
     # distrubition(64, 500)
     # varied_sample_size(64, 500)
     # average_type_B(save_data=False, save_fig=False)
@@ -549,4 +522,5 @@ if __name__ == "__main__":
     # plot_peak_location_vs_L()
     # read_npz(724)
     # compare_two_averaging([64, 90])
-    plot_xi_vs_eps(eta, False)
+    # plot_xi_vs_eps(eta, chi_dict, False)
+    plot_sample_averaged_chi(chi_dict, True, False)

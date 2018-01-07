@@ -4,20 +4,28 @@
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import hsv_to_rgb
 import glob
 import load_snap
+import platform
+import matplotlib
+if platform.system() is not "Windows":
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import hsv_to_rgb
+else:
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import hsv_to_rgb
 
 
-def get_rgb(theta0, module0, m_max=None):
-    """ Transform orientation and magnitude of velocity into rgb.
+def map_v_to_rgb(theta, module, m_max=None):
+    """
+    Transform orientation and magnitude of velocity into rgb.
 
     Parameters:
     --------
-    theta0: array_like
+    theta: array_like
         Orietation of velocity field.
-    module0: array_like
+    module: array_like
         Magnitude of velocity field.
     m_max: float, optional
         Max magnitude to show.
@@ -27,7 +35,6 @@ def get_rgb(theta0, module0, m_max=None):
     RGB: array_like
         RGB corresponding to velocity fields.
     """
-    theta, module = theta0.copy(), module0.copy()
     H = theta / 360
     V = module
     if m_max is not None:
@@ -67,6 +74,48 @@ def add_colorbar(ax, mmin, mmax, theta_min=0, theta_max=360, orientation="h"):
         ax.set_xlabel(r"module $\rho |v|$", fontsize="large")
 
 
+def map_sin2theta_to_rgb(theta, module, Hue, m_max):
+    """
+    Map sin(2 theta)^2 and module into rgb.
+    """
+    S0 = np.sin(2 * theta)**2 - 0.5
+    S = np.abs(S0) * 2
+    V = module / m_max
+    H = np.ones_like(S) * Hue
+    Hue2 = Hue + 0.5
+    if Hue2 > 1:
+        Hue2 -= 1
+    H[S0 > 0] = Hue + 0.5
+    HSV = np.dstack((H, S, V))
+    RGB = hsv_to_rgb(HSV)
+    return RGB
+
+
+def add_cb_sin2theta(ax, Hue):
+    S, V = np.mgrid[0:1:50j, 0:1:50j]
+    box = [0, 1, 0, 1]
+    H = np.ones_like(V) * Hue
+    HSV = np.dstack((H, V, S))
+    RGB = hsv_to_rgb(HSV)
+    ax.imshow(RGB, origin="lower", extent=box, aspect="auto")
+
+
+def plot_sin2theta(bin_file):
+    para = get_para(bin_file)
+    domain = [0, para["L"], 0, para["L"]]
+    snap = load_snap.CoarseGrainSnap(bin_file)
+    frames = snap.gene_frames()
+    for frame in frames:
+        t, vxm, vym, num, vx, vy = frame
+        ax = plt.subplot(111)
+        theta = np.arctan2(vy, vx)
+        module = np.sqrt(vx**2 + vy**2)
+        RGB = map_sin2theta_to_rgb(theta, module, 0, para["rho0"])
+        ax.imshow(RGB, origin="lower", extent=domain, interpolation="none")
+        plt.show()
+        plt.close()
+
+
 def get_para(filename):
     s = filename.replace(".bin", "").split("_")
     dict_para = {}
@@ -81,46 +130,55 @@ def get_para(filename):
     return dict_para
 
 
-def get_fig_title(para, phi, t):
+def get_fig_title(para, phi, t, show_tau=False, prefix=""):
+    t1 = r"$\eta=%g,\ \epsilon=%g,\ " % (para["eta"], para["eps"])
+    t2 = r"\rho_0=%g,\ L=%d,\ \phi=%.4f,\ t=%d$" % (para["rho0"], para["L"],
+                                                    phi, t)
     if "tau" in para:
-        title_template = r"$\eta=%g,\ \epsilon=%g,\ \tau=%g\pi,\ " \
-            + r"\rho_0=%g,\ L=%d,\ \phi=%.4f,\ t=%d$"
+        title = prefix + t1 + r"\tau=%g\pi,\ " % (para["tau"]) + t2
     else:
-        title_template = r"$\eta=%g,\ \epsilon=%g,\ \tau=0,\ " \
-            + r"\rho_0=%g,\ L=%d,\ \phi=%.4f,\ t=%d$"
-    if "tau" in para:
-        title = title_template % (para["eta"], para["eps"], para["tau"],
-                                  para["rho0"], para["L"], phi, t)
-    else:
-        title = title_template % (para["eta"], para["eps"], para["rho0"],
-                                  para["L"], phi, t)
+        if show_tau:
+            title = prefix + t1 + r"\tau=0,\ " + t2
+        else:
+            title = prefix + t1 + t2
     return title
 
 
-def plot_two_panel(file, t_list=None, save=False, overwrite=False):
+def plot_two_panel(bin_file,
+                   t_list=None,
+                   save=False,
+                   overwrite=False,
+                   v_normed=True,
+                   show_tau=False,
+                   title_prefix=""):
     """ Plot density and velocity filed on left, right pannel, respectively.
         One picture per frame.
 
     Parameters:
     ---------
-    file: str
-        Input file
+    bin_file: str
+        Input binary file.
     t_list: array_like, optional
         Which frames to show. If None, show all frames.
     save: bool, optional
-        Whether to save the figure to disk.
+        Whether to save the images to disk.
+    overwrite: bool, optional
+        Whether to overwrite old images.
+    v_normed: bool, optional
+        Whether the velocities have been normed by density.
+    show_tau: bool, optional
+         If True, show the value of `tau` in the title of image.
+    title_prefix: string, optional
+        The prefix of image title.
     """
     if save:
-        folder = file.replace(".bin", "")
+        folder = bin_file.replace(".bin", "")
         path = folder + os.path.sep
-        if file[0] == "c":
-            fig_template = path + "%07d.jpg"
-        elif file[0] == "C":
-            fig_template = path + "%.3f.jpg"
+        fig_template = path + "%04d.jpg"
         old_fig = glob.glob(path + "*.jpg")
-    para = get_para(file)
+    para = get_para(bin_file)
 
-    snap = load_snap.CoarseGrainSnap(file)
+    snap = load_snap.CoarseGrainSnap(bin_file)
     frames = snap.gene_frames()
     domain = [0, para["L"], 0, para["L"]]
     lBox = para["L"] // para["ncols"]
@@ -131,19 +189,23 @@ def plot_two_panel(file, t_list=None, save=False, overwrite=False):
         rho_level = np.linspace(0, 4, 9)
     else:
         rho_level = np.linspace(0, 10, 9)
+    iframe = 1
     for frame in frames:
         t, vxm, vym, num, vx, vy = frame
         if t_list is None or t in t_list:
             if save:
-                fig_name = fig_template % t
+                fig_name = fig_template % iframe
                 if fig_name in old_fig:
                     if overwrite:
-                        print("overwrite the frame at t =", t)
+                        print("overwrite the %d-th frame at t = %d" % (iframe,
+                                                                       t))
                     else:
-                        print("skip the frame at t =", t)
+                        print("skip the %d-th frame at t = %d" % (iframe, t))
+                        iframe += 1
                         continue
                 else:
-                    print("save the frame at t=", t)
+                    print("save the %d-th frame at t = %d" % (iframe, t))
+                iframe += 1
             fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 7.5))
             rho = num / dA
             contour = ax1.contourf(x, y, rho, rho_level, extend="max")
@@ -152,15 +214,20 @@ def plot_two_panel(file, t_list=None, save=False, overwrite=False):
 
             v_orient = np.arctan2(vy, vx) / np.pi * 180
             v_orient[v_orient < 0] += 360
-            v_module = np.sqrt(vx**2 + vy**2)
-            RGB = get_rgb(v_orient, v_module, m_max=4)
+            if v_normed:
+                v_module = np.sqrt(vx**2 + vy**2)
+            else:
+                v_module = np.sqrt(vx**2 + vy**2) * rho
+            RGB = map_v_to_rgb(v_orient, v_module, m_max=4)
             ax2.imshow(RGB, extent=domain, origin="lower")
             ax2.axis('scaled')
             ax2.axis(domain)
             phi = np.sqrt(vxm**2 + vym**2)
 
             plt.suptitle(
-                get_fig_title(para, phi, t), fontsize="xx-large", y=0.99)
+                get_fig_title(para, phi, t, show_tau, title_prefix),
+                fontsize="xx-large",
+                y=0.99)
             plt.tight_layout(rect=[0, 0, 1, 0.98])
 
             bbox1 = ax1.get_position().get_points().flatten()
@@ -228,7 +295,7 @@ def plot_serial_snap(file, save=False, rescale=False):
             v_orient[v_orient < 0] += 360
             v_module = np.sqrt(vx[0:i, 0:i]**2 + vy[0:i, 0:i]**2) * rho[0:i, 0:
                                                                         i]
-            RGB = get_rgb(v_orient, v_module, m_max=4)
+            RGB = map_v_to_rgb(v_orient, v_module, m_max=4)
             axes[1][col].axis('scaled')
             axes[1][col].imshow(
                 RGB, extent=[0, i * lBox, 0, i * lBox], origin="lower")
@@ -272,15 +339,32 @@ def plot_serial_snap(file, save=False, rescale=False):
     plt.close()
 
 
+def make_movie(img_template, mv_name, start_num=0, rate=10, vframes=None):
+    """ Make a movie by merging the images utilizing ffmpeg. """
+    import subprocess
+    strcmd = r"ffmpeg -f image2 -r %d -start_number %d -i %s " % (rate,
+                                                                  start_num,
+                                                                  img_template)
+    if vframes is None:
+        strcmd = strcmd + mv_name
+    else:
+        strcmd = strcmd + "-vframes %d %s" % (vframes, mv_name)
+    subprocess.call(strcmd, shell=True)
+
+
 if __name__ == "__main__":
-    os.chdir("data")
+    # os.chdir("data")
     # file = r"cHff_0.1_0_8192_8192_1024_1024_67108864_17102532.bin"
     # file = r"cHff_0.18_0_8192_8192_1024_1024_67108864_17091901.bin"
     # file = r"cHff_0.18_0_8192_8192_4096_4096_67108864_17111451.bin"
-    file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
+    # file = r"cHff_0.35_0_8192_8192_1024_1024_67108864_17092802.bin"
     # file = r"cHff_0.18_0.02_8192_8192_1024_1024_67108864_17120201.bin"
     # file = r"cHff_0.18_0.04_8192_8192_1024_1024_67108864_17120201.bin"
     # file = r"cHff_0.18_0.06_8192_8192_1024_1024_67108864_17120201.bin"
     # file = r"cHff_0.4_0_8192_8192_1024_1024_67108864_17110541.bin"
-    # plot_two_panel(file)
-    plot_serial_snap(file, save=True, rescale=False)
+    # plot_two_panel(file, v_normed=False)
+    # plot_serial_snap(file, save=True, rescale=False)
+
+    os.chdir(r"E:\data\random_torque\metric_free\rotate_metric_free")
+    bin_file = r"cHff_0.1_0_512_512_512_512_1048576_124_0.1.bin"
+    plot_sin2theta(bin_file)

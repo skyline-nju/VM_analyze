@@ -3,47 +3,50 @@ Estimate the correlation length beyond which the order parameter begin to decay
 with a power law.
 """
 import matplotlib.pyplot as plt
-import numpy as np
-import glob
 import os
+import numpy as np
 from numpy.polynomial.polynomial import polyfit
 from add_line import add_line
 from suscept_peak import find_peak_by_polyfit
 from fit import plot_KT_fit, plot_pow_fit, fit_exp
 
 
-def read(file, dict_eps, eps_min=0.0535):
-    """ Read `phi` and `L` from `file` and add them into `dict_eps`."""
-    eps = float(file.replace(".dat", ""))
-    with open(file) as f:
-        lines = f.readlines()
-        L = np.zeros(len(lines))
-        phi = np.zeros_like(L)
-        for i, line in enumerate(lines):
-            s = line.replace("\n", "").split("\t")
-            L[i] = float(s[0])
-            phi[i] = float(s[1])
-        if L.size > 3 and eps >= eps_min:
-            dict_eps[eps] = {"L": L, "phi": phi}
+def get_phi_dict(eta):
+    """
+    Get dict of phi with key `eps`. phi_dict[eps] is a 2 * n array,
+    L_arr=phi_dict[eps][0], phi_arr = phi_dict[eps][1].
+    """
+    if eta == 0.18:
+        from create_dict import create_dict_from_txt
+        path = r"data\eta=%.2f" % eta
+        eps_min = 0.0535
+        L_min = None
+        phi_dict = create_dict_from_txt(path, "phi", "eps", eps_min, L_min,
+                                        "dict-arr", 5)
+    else:
+        from create_dict import create_dict_from_xlsx
+        path = r"E:\data\random_torque\susceptibility"
+        infile = path + os.path.sep + r"eta=%g.xlsx" % eta
+        eps_min = 0.048
+        L_min = None
+        phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
+                                         "dict-arr", 5)
+        # del phi_dict[0.065]
+        del phi_dict[0.054]
+    return phi_dict
 
 
-def plot_phi_vs_L(ax=None, dict_eps=None, Lc=None, phi_c=None):
+def plot_phi_vs_L(phi_dict, ax=None, eta=None, Lc=None, phi_c=None):
     """ PLot phi against L with varied epsilon in log-log scales."""
     if ax is None:
         ax = plt.gca()
         flag_show = True
     else:
         flag_show = False
-    if dict_eps is None:
-        dict_eps = {}
-        files = glob.glob("0*.dat")
-        for file in files:
-            read(file, dict_eps)
-
-    color = plt.cm.gist_rainbow(np.linspace(0, 1, len(dict_eps)))
-    for i, eps in enumerate(sorted(dict_eps.keys())):
-        L = dict_eps[eps]["L"]
-        phi = dict_eps[eps]["phi"]
+    color = plt.cm.gist_rainbow(np.linspace(0, 1, len(phi_dict)))
+    for i, eps in enumerate(sorted(phi_dict.keys())):
+        L = phi_dict[eps][0]
+        phi = phi_dict[eps][1]
         ax.plot(L, phi, "-o", label="%.4f" % eps, color=color[i])
     if Lc is not None and phi_c is not None:
         ax.plot(Lc, phi_c, "--ks", fillstyle="none")
@@ -59,25 +62,12 @@ def plot_phi_vs_L(ax=None, dict_eps=None, Lc=None, phi_c=None):
         plt.close()
 
 
-def plot_L_vs_eps_c(alpha_list):
-    dict_eps = {}
-    files = glob.glob("0*.dat")
-    for file in files:
-        read(file, dict_eps)
-    for alpha in alpha_list:
-        c, res, eps_m, Lm, phi_m = find_peak(alpha, show=False, ret=True)
-        plt.plot(eps_m, Lm, "-o")
-    plt.yscale("log")
-    plt.show()
-    plt.close()
-
-
-def find_peak(alpha,
+def find_peak(eta,
+              phi_dict,
+              alpha,
               show=True,
               save_data=False,
               ax=None,
-              dict_eps=None,
-              eps_min=0.0535,
               ret=False):
     """ Find the peak of phi * L ** alpha against L in log-log scales."""
     if show:
@@ -86,19 +76,14 @@ def find_peak(alpha,
             flag_show = True
         else:
             flag_show = False
-    if dict_eps is None:
-        dict_eps = {}
-        files = glob.glob("0*.dat")
-        for file in files:
-            read(file, dict_eps, eps_min=eps_min)
-    xm = np.zeros(len(dict_eps.keys()))
+    xm = np.zeros(len(phi_dict.keys()))
     ym = np.zeros_like(xm)
     eps_m = np.zeros_like(xm)
     phi_m = np.zeros_like(xm)
     color = plt.cm.gist_rainbow(np.linspace(0, 1, xm.size))
-    for i, key in enumerate(dict_eps):
-        L = dict_eps[key]["L"]
-        phi = dict_eps[key]["phi"]
+    for i, key in enumerate(sorted(phi_dict.keys())):
+        L = phi_dict[key][0]
+        phi = phi_dict[key][1]
         Y = phi * L**alpha
         xm[i], ym[i], x, y = find_peak_by_polyfit(
             L, Y, order=5, xscale="log", yscale="log", full=True)
@@ -112,7 +97,7 @@ def find_peak(alpha,
     x = np.linspace(np.log10(xm[0]) + 0.05, np.log10(xm[-1]) - 0.05, 1000)
     y = c[0] + c[1] * x
     if save_data:
-        with open("polar_order.dat", "w") as f:
+        with open(r"data\eta=%.2f\polar_order.dat" % eta, "w") as f:
             for i in range(eps_m.size):
                 f.write("%.4f\t%.8f\n" % (eps_m[i], xm[i]))
     if show:
@@ -131,16 +116,36 @@ def find_peak(alpha,
         return c[1], stats[0][0], eps_m, xm, phi_m
 
 
-def plot_three_panel(alpha, save_fig=False, eps_min=0.0535):
+def find_peak2(phi_dict, alpha, ret_fit=False):
+    """ Find the peak of phi * L ** alpha vs L in log-log scales."""
+    Lm = np.zeros(len(phi_dict))
+    ym = np.zeros_like(Lm)
+    eps_m = np.zeros_like(Lm)
+    size_fit = 10000
+    if ret_fit:
+        x_fit = np.zeros((Lm.size, size_fit))
+        y_fit = np.zeros_like(x_fit)
+    for i, eps in enumerate(sorted(phi_dict.keys())):
+        eps_m[i] = eps
+        L, phi = phi_dict[eps]
+        y = phi * L**alpha
+        if ret_fit:
+            Lm[i], ym[i], x_fit[i], y_fit[i] = find_peak_by_polyfit(
+                L, y, 5, "log", "log", True, size_fit)
+        else:
+            Lm[i], ym[i] = find_peak_by_polyfit(L, y, 5, "log", "log")
+    if ret_fit:
+        return Lm, ym, eps_m, x_fit, y_fit
+    else:
+        return Lm, ym, eps_m
+
+
+def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     """ Plot phi vs. L, L^alpha * phi vs. L and correlation length vs. eps."""
-    dict_eps = {}
-    files = glob.glob("0*.dat")
-    for file in files:
-        read(file, dict_eps, eps_min=eps_min)
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-    c0, res, eps_m, Lm, phi_m = find_peak(
-        alpha, show=True, save_data=True, ax=ax2, dict_eps=dict_eps, ret=True)
-    plot_phi_vs_L(ax1, dict_eps, Lm, phi_m)
+    c0, res, eps_m, Lm, phi_m = find_peak(eta, phi_dict, alpha, True,
+                                          save_data, ax2, True)
+    plot_phi_vs_L(phi_dict, ax1, eta, Lm, phi_m)
     ax3.plot(eps_m, Lm, "o")
 
     plot_KT_fit(0.5, ax3, eps_m, Lm)
@@ -156,23 +161,18 @@ def plot_three_panel(alpha, save_fig=False, eps_min=0.0535):
     ax3.set_title("(c)")
     fig.tight_layout()
     if save_fig:
-        plt.savefig("polar_order.eps")
+        plt.savefig(r"data\eta=%.2f\polar_order.eps" % eta)
     else:
         plt.show()
     plt.close()
 
 
-def varied_alpha(nus):
+def varied_alpha(nus, phi_dict):
     alpha = np.linspace(0.4, 0.6, 100)
     squared_res = np.zeros_like(alpha)
-    dict_eps = {}
-    files = glob.glob("0*.dat")
-    for file in files:
-        read(file, dict_eps)
     for nu in nus:
         for i in range(alpha.size):
-            c, res, eps_m, Lm, phi_m = find_peak(
-                alpha[i], show=False, ret=True, dict_eps=dict_eps)
+            Lm, ym, eps_m = find_peak2(phi_dict, alpha[i])
             popt, perr, squared_res[i] = fit_exp(
                 eps_m, Lm, beta=nu, ret_res=True)
         plt.plot(alpha, squared_res, label="%g" % nu)
@@ -184,10 +184,13 @@ def varied_alpha(nus):
 
 
 if __name__ == "__main__":
-    eta = 0.18
-    os.chdir("data/eta=%.2f" % eta)
+    eta = 0.1
+    phi_dict = get_phi_dict(eta)
+    # eta = 0.18
+    # os.chdir("data/eta=%.2f" % eta)
     # varied_alpha([0.4, 0.6, 0.8, 1.0, 1.2])
     # find_peak(0.5, save_data=True, eps_min=0.05)
-    plot_three_panel(0.5, save_fig=False)
     # plot_phi_vs_L()
     # plot_L_vs_eps_c([0.35, 0.4, 0.45, 0.5])
+    # plot_phi_vs_L(phi_dict, None, eta, None, None)
+    plot_three_panel(eta, phi_dict, 0.5, save_fig=False, save_data=True)
