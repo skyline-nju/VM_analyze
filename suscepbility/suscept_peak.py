@@ -36,11 +36,17 @@ def get_chi_dict(eta):
         path = r"E:\data\random_torque\susceptibility"
         infile = path + os.path.sep + r"eta=%g.xlsx" % eta
         eps_min = 0.045
-        L_min = 46
+        L_min = 45
         chi_dict = create_dict_from_xlsx(infile, "chi", "L", eps_min, L_min)
         for L in chi_dict:
             if L > 90:
                 chi_dict[L] = chi_dict[L][:, :-2]
+        # del chi_dict[16]
+        # del chi_dict[22]
+        # del chi_dict[26]
+        # del chi_dict[32]
+        del chi_dict[54]
+        del chi_dict[108]
     else:
         print("eta should be one of 0.1, 0.18")
         sys.exit()
@@ -332,7 +338,7 @@ def plot_xi_vs_eps(eta, chi_dict, read_txt=True):
     plt.close()
 
 
-def plot_sample_averaged_chi(chi_dict, save_data=False, save_fig=False):
+def plot_sample_averaged_chi(eta, chi_dict, save_data=False, save_fig=False):
     """
     Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
     first panel. Mean while, show susceptibility peak vs. L in the second
@@ -360,9 +366,18 @@ def plot_sample_averaged_chi(chi_dict, save_data=False, save_fig=False):
     axes[0].set_title("(a)")
     axes[1].set_title("(b)")
     axes[2].set_title("(c)")
+
+    # add inset axes
     plt.tight_layout()
+    ax_in = plt.axes([0.55, 0.2, 0.1, 0.3])
+    ax_in.loglog(L_arr, chi_p / L_arr**1.75, "-o")
+    ax_in.set_xlabel(r"$L$")
+    ax_in.set_ylabel(r"$\chi_m L^{-1.75}$")
+    if eta == 0.1:
+        add_line.add_line(
+            ax_in, 0, 0.3, 1, 0.05, label=r"$L^{0.05}$", scale="log")
     if save_fig:
-        plt.savefig("suscept_peak.eps")
+        plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)
     else:
         plt.show()
     plt.close()
@@ -411,12 +426,14 @@ def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
     ax[0].loglog(
         x, y, "--", label=r"$\langle \chi_m\rangle^B_s\sim L^{%.4f}$" % c[1])
     ax[0].set_xlim(x0, x1)
-    ax[0].legend(loc="lower right", title="linear fit", fontsize="large")
+    ax[0].legend(loc="upper left", title="linear fit", fontsize="large")
     add_line.add_line(ax[0], 0, 0.2, 1, 1.75, label=r"$L^{1.75}$", scale="log")
     ax[0].set_xlabel(r"$L$", fontsize="x-large")
+    # ax[0].set_ylabel(
+    #     r"${\rm susceptibility\ peak\ }\langle\chi_m\rangle^B_s$",
+    #     fontsize="x-large")
     ax[0].set_ylabel(
-        r"${\rm susceptibility\ peak\ }\langle\chi_m\rangle^B_s$",
-        fontsize="x-large")
+        r"${\rm susceptibility\ peak\ }\chi_m$", fontsize="x-large")
 
     ax[1].plot(L, eps_p, "o")
     from fit import plot_KT_fit, plot_pow_fit
@@ -424,14 +441,15 @@ def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
         eps_m = 0.05
     elif eta == 0.1:
         eps_m = 0.045
-    plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True, eps_m=eps_m)
-    plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True, eps_m=eps_m)
+    plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
+    plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
     plot_pow_fit(ax[1], eps_p, L, reversed=True)
     ax[1].set_xscale("log")
     ax[1].set_xlabel(r"$L$", fontsize="x-large")
-    ax[1].set_ylabel(
-        r"${\rm peak\ location\ }\langle \epsilon_m\rangle^B_s$",
-        fontsize="x-large")
+    ax[1].set_ylabel(r"${\rm peak\ location\ }\epsilon_m$", fontsize="x-large")
+    # ax[1].set_ylabel(
+    #     r"${\rm peak\ location\ }\langle \epsilon_m\rangle^B_s$",
+    #     fontsize="x-large")
     ax[1].legend(fontsize="large", title="fitting curve")
     if flag_show:
         plt.tight_layout()
@@ -523,4 +541,4 @@ if __name__ == "__main__":
     # read_npz(724)
     # compare_two_averaging([64, 90])
     # plot_xi_vs_eps(eta, chi_dict, False)
-    plot_sample_averaged_chi(chi_dict, True, False)
+    plot_sample_averaged_chi(eta, chi_dict, True, False)

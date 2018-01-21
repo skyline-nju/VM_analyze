@@ -32,7 +32,7 @@ def get_phi_dict(eta):
         phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
                                          "dict-arr", 5)
         # del phi_dict[0.065]
-        del phi_dict[0.054]
+        # del phi_dict[0.048]
     return phi_dict
 
 
@@ -121,7 +121,7 @@ def find_peak2(phi_dict, alpha, ret_fit=False):
     Lm = np.zeros(len(phi_dict))
     ym = np.zeros_like(Lm)
     eps_m = np.zeros_like(Lm)
-    size_fit = 10000
+    size_fit = 5000
     if ret_fit:
         x_fit = np.zeros((Lm.size, size_fit))
         y_fit = np.zeros_like(x_fit)
@@ -148,9 +148,15 @@ def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     plot_phi_vs_L(phi_dict, ax1, eta, Lm, phi_m)
     ax3.plot(eps_m, Lm, "o")
 
-    plot_KT_fit(0.5, ax3, eps_m, Lm)
-    plot_KT_fit(1.0, ax3, eps_m, Lm)
-    plot_pow_fit(ax3, eps_m, Lm)
+    if eta == 0.18:
+        eps_min = 0.05
+        eps_max = 0.087
+    elif eta == 0.1:
+        eps_min = 0.047
+        eps_max = 0.076
+    plot_KT_fit(0.5, ax3, eps_m, Lm, eps_min=eps_min, eps_max=eps_max)
+    plot_KT_fit(1.0, ax3, eps_m, Lm, eps_min=eps_min, eps_max=eps_max)
+    plot_pow_fit(ax3, eps_m, Lm, eps_min=eps_min, eps_max=eps_max)
 
     ax3.set_yscale("log")
     ax3.set_xlabel(r"$\epsilon$", fontsize="x-large")
@@ -161,26 +167,59 @@ def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     ax3.set_title("(c)")
     fig.tight_layout()
     if save_fig:
-        plt.savefig(r"data\eta=%.2f\polar_order.eps" % eta)
+        plt.savefig(r"data\polar_order_eta%g.eps" % (eta * 100))
     else:
         plt.show()
     plt.close()
 
 
-def varied_alpha(nus, phi_dict):
-    alpha = np.linspace(0.4, 0.6, 100)
+def varied_alpha(nus, eta, phi_dict, ax=None, alpha_size=20):
+    if ax is None:
+        is_show = True
+        ax = plt.subplot(111)
+    else:
+        is_show = False
+    if eta == 0.18:
+        alpha = np.linspace(0.4, 0.6, alpha_size)
+    elif eta == 0.10:
+        alpha = np.linspace(0.5, 0.7, alpha_size)
     squared_res = np.zeros_like(alpha)
     for nu in nus:
         for i in range(alpha.size):
             Lm, ym, eps_m = find_peak2(phi_dict, alpha[i])
             popt, perr, squared_res[i] = fit_exp(
                 eps_m, Lm, beta=nu, ret_res=True)
-        plt.plot(alpha, squared_res, label="%g" % nu)
-    plt.xlabel(r"$\alpha$")
-    plt.ylabel("Squared residuals for KT-like fitting")
-    plt.legend(title=r"$\nu=$")
+        ax.plot(alpha, squared_res, label=r"$\nu=%g$" % nu)
+    ax.set_xlabel(r"$\alpha$", fontsize="x-large")
+    ax.set_ylabel("sum of squared residuals", fontsize="x-large")
+    ax.legend(title=r"$\eta=%.2f$" % eta)
+    if is_show:
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
+
+def varied_alpha_two():
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+    nus = [0.4, 0.6, 0.8, 1.0, 1.2]
+    for i, eta in enumerate([0.1, 0.18]):
+        phi_dict = get_phi_dict(eta)
+        varied_alpha(nus, eta, phi_dict, ax[i], 100)
     plt.tight_layout()
     plt.show()
+    plt.close()    
+
+
+def changing_alpha(phi_dict):
+    alpha = np.linspace(0.4, 0.6, 100)
+    residuals = np.zeros_like(alpha)
+    for i in range(alpha.size):
+        Lm, ym, eps_m = find_peak2(phi_dict, alpha[i])
+        p, residuals[i], rank, s, rcond = np.polyfit(
+            np.log(Lm), np.log(ym), deg=1, full=True)
+    plt.plot(alpha, residuals)
+    plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -188,9 +227,10 @@ if __name__ == "__main__":
     phi_dict = get_phi_dict(eta)
     # eta = 0.18
     # os.chdir("data/eta=%.2f" % eta)
-    # varied_alpha([0.4, 0.6, 0.8, 1.0, 1.2])
+    # varied_alpha([0.4, 0.6, 0.8, 1.0, 1.2], eta, phi_dict)
+    # varied_alpha_two()
     # find_peak(0.5, save_data=True, eps_min=0.05)
     # plot_phi_vs_L()
     # plot_L_vs_eps_c([0.35, 0.4, 0.45, 0.5])
     # plot_phi_vs_L(phi_dict, None, eta, None, None)
-    plot_three_panel(eta, phi_dict, 0.5, save_fig=False, save_data=True)
+    plot_three_panel(eta, phi_dict, 0.65, save_fig=False, save_data=True)

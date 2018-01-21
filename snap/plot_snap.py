@@ -125,6 +125,7 @@ def get_para(filename):
     dict_para["ncols"] = int(s[5])
     dict_para["N"] = int(s[7])
     dict_para["rho0"] = dict_para["N"] / dict_para["L"]**2
+    dict_para["seed"] = int(s[8])
     if len(s) == 10:
         dict_para["tau"] = float(s[9])
     return dict_para
@@ -187,6 +188,8 @@ def plot_two_panel(bin_file,
     # rho_level = np.linspace(0, 5, 11)
     if para["rho0"] < 2:
         rho_level = np.linspace(0, 4, 9)
+    elif para["rho0"] < 4:
+        rho_level = np.linspace(0, 6, 13)
     else:
         rho_level = np.linspace(0, 10, 9)
     iframe = 1
@@ -339,16 +342,15 @@ def plot_serial_snap(file, save=False, rescale=False):
     plt.close()
 
 
-def make_movie(img_template, mv_name, start_num=0, rate=10, vframes=None):
+def make_movie(img_template, mv_name, start_num=0, rate=15, vframes=None):
     """ Make a movie by merging the images utilizing ffmpeg. """
     import subprocess
     strcmd = r"ffmpeg -f image2 -r %d -start_number %d -i %s " % (rate,
                                                                   start_num,
                                                                   img_template)
-    if vframes is None:
-        strcmd = strcmd + mv_name
-    else:
-        strcmd = strcmd + "-vframes %d %s" % (vframes, mv_name)
+    if vframes is not None:
+        strcmd += "-vframes %d %s " % vframes
+    strcmd += "-preset veryslow -crf 34 %s" % (mv_name)
     subprocess.call(strcmd, shell=True)
 
 

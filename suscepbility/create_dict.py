@@ -177,6 +177,8 @@ def create_dict_from_txt(path,
                     value = float(s[4])
                 elif value_name == "phi":
                     value = float(s[1])
+                elif value_name == "num":
+                    value = int(s[3])
                 if eps in raw_dict:
                     raw_dict[eps][L] = value
                 else:
@@ -187,3 +189,16 @@ def create_dict_from_txt(path,
         raw_dict = pd.DataFrame.from_dict(raw_dict, orient='index').to_dict()
         res = reform_dict(raw_dict, L_min, eps_min, form, len_m)
     return res
+
+
+if __name__ == "__main__":
+    eta = 0.18
+    path = r"data\eta=%g" % eta
+    phi_dict = create_dict_from_txt(path, value_name="phi", form="dict-dict")
+    chi_dict = create_dict_from_txt(path, value_name="chi", form="dict-dict")
+    num_dict = create_dict_from_txt(path, value_name="num", form="dict-dict")
+    with pd.ExcelWriter(r"data\eta=0.18.xlsx") as w:
+        pd.DataFrame.from_dict(phi_dict).to_excel(w, sheet_name="phi")
+        pd.DataFrame.from_dict(chi_dict).to_excel(w, sheet_name="chi")
+        pd.DataFrame.from_dict(num_dict).to_excel(w, sheet_name="num")
+        

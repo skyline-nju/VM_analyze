@@ -152,9 +152,9 @@ def fit_pow(eps, l, beta=None):
     return popt, perr
 
 
-def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_m=0.05):
+def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
     popt, perr = fit_exp(eps, xi, beta=nu)
-    x = np.linspace(eps_m, 0.087, 100)
+    x = np.linspace(eps_min, eps_max, 100)
     y = np.exp(popt[1] + popt[2] * (x - popt[0])**(-nu))
     label = r"$\xi=%.3f \times e^{%.3f(\epsilon - %.4f)^{-%g}}$" % (
         np.exp(popt[1]), popt[2], popt[0], nu)
@@ -164,9 +164,9 @@ def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_m=0.05):
         ax.plot(x, y, "--", label=label)
 
 
-def plot_pow_fit(ax, eps, xi, reversed=False, eps_m=0.05):
+def plot_pow_fit(ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
     popt, perr = fit_pow(eps, xi)
-    x = np.linspace(eps_m, 0.087, 100)
+    x = np.linspace(eps_min, eps_max, 100)
     y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
     label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
                                                             popt[0], popt[2])
@@ -307,15 +307,20 @@ def varied_nu2(eta, head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
         L1, eps1, L2, eps2, L3, eps3 = read(eta, head1, tail1, head2, tail2)
     else:
         L1, eps1, L2, eps2 = read(eta, head1, tail1, head2, tail2)
-    nu_arr = np.linspace(0.01, 3, 200)
+    nu_arr = np.linspace(0.1, 3, 200)
     eps_c1 = np.zeros_like(nu_arr)
     eps_c2 = np.zeros_like(nu_arr)
 
     for i, nu in enumerate(nu_arr):
-        popt, perr = fit_exp(eps1, L1, nu)
-        eps_c1[i], lnA, b = popt
-        popt, perr = fit_exp(eps2, L2, nu)
-        eps_c2[i], lnA, b = popt
+        try:
+            popt, perr = fit_exp(eps1, L1, nu)
+            eps_c1[i], lnA, b = popt
+            popt, perr = fit_exp(eps2, L2, nu)
+            eps_c2[i], lnA, b = popt
+        except:
+            eps_c1[i] = np.nan
+            eps_c2[i] = np.nan
+            print(nu)
 
     fig = plt.figure()
     lb = r"KT-like scaling for $\epsilon^L_m(L), L=%d,%d,\cdots,%d$"
@@ -344,6 +349,73 @@ def varied_nu2(eta, head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
         plt.savefig("KT_nu2_%d_%d_%d_%d.eps" % (head1, tail1, head2, tail2))
     else:
         plt.show()
+    plt.close()
+
+
+def varied_alpha(eta, h1=0, t1=0, h2=0, t2=0, save_fig=False):
+    if eta == 0.18:
+        L1, eps1, L2, eps2, L3, eps3 = read(eta, h1, t1, h2, t2)
+        alpha_arr = np.linspace(0.45, 0.7, 26)
+    else:
+        L1, eps1, L2, eps2 = read(eta, h1, t1, h2, t2)
+        alpha_arr = np.linspace(0.6, 0.72, 25)
+    from polar_order import get_phi_dict, find_peak2
+    phi_dict = get_phi_dict(eta)
+
+    nu_arr = np.linspace(0.1, 3, 150)
+    eps_c_arr = np.zeros_like(alpha_arr)
+    nu_c_arr = np.zeros_like(alpha_arr)
+    eps_c1 = np.zeros_like(nu_arr)
+    for j, nu in enumerate(nu_arr):
+        popt, perr = fit_exp(eps1, L1, nu)
+        eps_c1[j], lnA, b = popt
+    for i, alpha in enumerate(alpha_arr):
+        try:
+            eps_c2 = np.zeros_like(nu_arr)
+            for j, nu in enumerate(nu_arr):
+                L2, ym, eps2 = find_peak2(phi_dict, alpha)
+                popt, perr = fit_exp(eps2, L2, nu)
+                eps_c2[j], lnA, b = popt
+            nu_c_arr[i], eps_c_arr[i] = get_cross_point(nu_arr, eps_c1, eps_c2)
+            print("success for i =", i, "alpha =", alpha)
+        except:
+            nu_c_arr[i] = np.nan
+            eps_c_arr[i] = np.nan
+    with open(r"data\varied_alpha_eta=%g.dat" % eta, "w") as f:
+        for i, alpha in enumerate(alpha_arr):
+            f.write("%f\t%f\t%f\n" % (alpha, nu_c_arr[i], eps_c_arr[i]))
+
+
+def plot_nu_and_eps_c_vs_alpha():
+    def read_data(eta):
+        with open(r"data\varied_alpha_eta=%g.dat" % eta) as f:
+            lines = f.readlines()
+            alpha, nu, eps_c = np.zeros((3, len(lines)))
+            for i, line in enumerate(lines):
+                s = line.replace("\n", "").split("\t")
+                alpha[i] = float(s[0])
+                nu[i] = float(s[1])
+                eps_c[i] = float(s[2])
+        return alpha, nu, eps_c
+
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+    for eta in [0.1, 0.18]:
+        alpha, nu, eps_c = read_data(eta)
+        ax1.plot(alpha, nu, "-o", label=r"$\eta=%.2f$" % eta)
+        ax2.plot(alpha, eps_c, "-s", label=r"$\eta=%.2f$" % eta)
+        ax3.plot(eps_c, nu, ">", label=r"$\eta=%.2f$" % eta)
+    ax1.set_xlabel(r"$\alpha$", fontsize="x-large")
+    ax2.set_xlabel(r"$\alpha$", fontsize="x-large")
+    ax1.set_ylabel(r"$\nu^*$", fontsize="x-large")
+    ax2.set_ylabel(r"$\epsilon_c^*$", fontsize="x-large")
+    ax3.set_xlabel(r"$\epsilon_c^*$", fontsize="x-large")
+    ax3.set_ylabel(r"$\nu^*$", fontsize="x-large")
+    
+    ax1.legend(fontsize="large")
+    ax2.legend(fontsize="large")
+    ax3.legend(fontsize="large")
+    plt.tight_layout()
+    plt.show()
     plt.close()
 
 
@@ -416,8 +488,10 @@ if __name__ == "__main__":
     # print(popt, perr)
     # popt, perr = fit_pow(eps3, L3)
     # print(popt, perr)
-    eta = 0.10
+    eta = 0.1
     varied_nu2(eta, 0, 0, 0, 0, False)
+    # varied_alpha(eta)
+    # plot_nu_and_eps_c_vs_alpha()
     # varied_nu3()
     # show_KT(1)
     # show_algebraic()
