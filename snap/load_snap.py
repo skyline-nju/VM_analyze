@@ -158,57 +158,75 @@ class CoarseGrainSnap(Snap):
         elif self.snap_format == "B":
             self.fmt = "%dB" % (self.N)
             self.snap_size = self.N
-        if self.is_continous:
-            self.frame_size = self.snap_size + 24
+        elif self.snap_format == "fff":
+            self.fmt = "%df" % (self.N * 3)
+            self.snap_size = self.N * 3 * 4
+        if self.snap_format == "fff":
+            self.frame_size = self.snap_size
         else:
-            self.frame_size = self.snap_size + 20
+            if self.is_continous:
+                self.frame_size = self.snap_size + 24
+            else:
+                self.frame_size = self.snap_size + 20
         self.open_file(file)
         print(file)
 
     def one_frame(self):
-        if self.is_continous:
-            buff = self.f.read(24)
-            t, vxm, vym = struct.unpack("ddd", buff)
-        else:
-            buff = self.f.read(4)
-            t, = struct.unpack("i", buff)
-            buff = self.f.read(16)
-            vxm, vym = struct.unpack("dd", buff)
-        buff = self.f.read(self.snap_size)
-        data = struct.unpack(self.fmt, buff)
-        if self.snap_format == "B":
-            num = np.array(data, int).reshape(self.nrows, self.ncols)
-            frame = [t, vxm, vym, num]
-        else:
-            num = np.array(data[:self.N], int).reshape(self.nrows, self.ncols)
-            vx = np.array(data[self.N:2 * self.N], float).reshape(
+        if self.snap_format == "fff":
+            buff = self.f.read(self.snap_size)
+            data = struct.unpack(self.fmt, buff)
+            num = np.array(data[:self.N], float).reshape(
                 self.nrows, self.ncols)
-            vy = np.array(data[2 * self.N:3 * self.N], float).reshape(
+            vx = np.array(data[self.N:self.N * 2], float).reshape(
                 self.nrows, self.ncols)
-            if self.snap_format == "Bbb":
-                vx /= 128
-                vy /= 128
-            frame = [t, vxm, vym, num, vx, vy]
+            vy = np.array(data[self.N * 2:self.N * 3], float).reshape(
+                self.nrows, self.ncols)
+            frame = [num, vx, vy]
+        else:
+            if self.is_continous:
+                buff = self.f.read(24)
+                t, vxm, vym = struct.unpack("ddd", buff)
+            else:
+                buff = self.f.read(4)
+                t, = struct.unpack("i", buff)
+                buff = self.f.read(16)
+                vxm, vym = struct.unpack("dd", buff)
+            buff = self.f.read(self.snap_size)
+            data = struct.unpack(self.fmt, buff)
+            if self.snap_format == "B":
+                num = np.array(data, int).reshape(self.nrows, self.ncols)
+                frame = [t, vxm, vym, num]
+            else:
+                num = np.array(data[:self.N], int).reshape(
+                    self.nrows, self.ncols)
+                vx = np.array(data[self.N:2 * self.N], float).reshape(
+                    self.nrows, self.ncols)
+                vy = np.array(data[2 * self.N:3 * self.N], float).reshape(
+                    self.nrows, self.ncols)
+                if self.snap_format == "Bbb":
+                    vx /= 128
+                    vy /= 128
+                frame = [t, vxm, vym, num, vx, vy]
         return frame
 
 
 if __name__ == "__main__":
     # os.chdir(r"D:\code\corr2d\data")
-    os.chdir(r"D:\code\VM_MPI\VM_MPI\coarse")
+    # os.chdir(r"D:\code\VM_MPI\VM_MPI\coarse")
     # os.chdir(r"E:\data\random_torque\ordering")
-    file = r"cHff_0.18_0.02_512_512_128_128_262144_1.bin"
+    os.chdir(r"C:\Users\user\Desktop\vicsekShake")
+    file = r"cfff_0.29_0_512_512_512_512_262144_111.bin"
     snap = CoarseGrainSnap(file)
     frames = snap.gene_frames(beg_idx=0)
     for frame in frames:
-        t, vxm, vym, num, vx, vy = frame
-        print("t=%d\tdN=%d\tdvx=%f\tdvy=%f" %
-              (t, np.sum(num) - 512 * 512,
-               np.sum(vx * num) / np.sum(num) - vxm,
-               np.sum(vy * num) / np.sum(num) - vym))
-
-    # file = r"cB_0.18_0.02_512_512_256_256_262144_2.bin"
-    # snap = CoarseGrainSnap(file)
-    # frames = snap.gene_frames(beg_idx=0)
-    # for frame in frames:
-    #     t, vxm, vym, num = frame
-    #     print(t, np.sum(num), 512 * 512)
+        num, vx, vy = frame
+        theta = np.arctan2(vy, vx) / np.pi * 180
+        theta[theta < 0] += 360
+        plt.subplot(121)
+        plt.contourf(num, cmap="hot")
+        plt.colorbar(orientation="horizontal")
+        plt.subplot(122)
+        plt.contourf(theta, cmap="hsv", vmin=0, vmax=360)
+        plt.colorbar(orientation="horizontal")
+        plt.show()
+        plt.close()

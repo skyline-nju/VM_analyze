@@ -146,7 +146,7 @@ def create_dict_from_txt(path,
         path: str
             Input file path.
         value_name: str, optional
-            "chi" or "phi".
+            "chi", "chi_dis", "phi"
         key_name: str, optional
             "L" or "eps".
         eps_min: float, optional
@@ -175,6 +175,8 @@ def create_dict_from_txt(path,
                 L = int(s[0])
                 if value_name == "chi":
                     value = float(s[4])
+                elif value_name == "chi_dis":
+                    value = (float(s[2]) * L) ** 2
                 elif value_name == "phi":
                     value = float(s[1])
                 elif value_name == "num":

@@ -19,17 +19,32 @@ import sys
 import add_line
 
 
-def get_chi_dict(eta):
+def get_chi_dict(eta, is_dis=False):
+    """ Get dict of chi with key `eps`. chi_dict[eps] is a 2 * n array,
+        L_arr=chi_dict[eps][0], chi_arr = chi_dict[eps][1].
+    
+    Parameters
+    --------
+    eta: float
+        Strength of noise.
+    is_dis: bool
+        If True, return xi_dis, else return xi
+
+    Returns:
+    --------
+    chi_dict: dict
+        xi or xi_dis        
     """
-    Get dict of chi with key `eps`. chi_dict[eps] is a 2 * n array,
-    L_arr=chi_dict[eps][0], chi_arr = chi_dict[eps][1].
-    """
+    if is_dis:
+        chi_type = "chi_dis"
+    else:
+        chi_type = "chi"
     if eta == 0.18:
         from create_dict import create_dict_from_txt
         path = r"data\eta=%.2f" % eta
         eps_min = 0.045
         L_min = 46
-        chi_dict = create_dict_from_txt(path, "chi", "L", eps_min, L_min,
+        chi_dict = create_dict_from_txt(path, chi_type, "L", eps_min, L_min,
                                         "dict-arr", 5)
     elif eta == 0.10:
         from create_dict import create_dict_from_xlsx
@@ -37,7 +52,7 @@ def get_chi_dict(eta):
         infile = path + os.path.sep + r"eta=%g.xlsx" % eta
         eps_min = 0.045
         L_min = 45
-        chi_dict = create_dict_from_xlsx(infile, "chi", "L", eps_min, L_min)
+        chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
         for L in chi_dict:
             if L > 90:
                 chi_dict[L] = chi_dict[L][:, :-2]
@@ -338,7 +353,11 @@ def plot_xi_vs_eps(eta, chi_dict, read_txt=True):
     plt.close()
 
 
-def plot_sample_averaged_chi(eta, chi_dict, save_data=False, save_fig=False):
+def plot_sample_averaged_chi(eta,
+                             chi_dict,
+                             chi_dis_dict=None,
+                             save_data=False,
+                             save_fig=False):
     """
     Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
     first panel. Mean while, show susceptibility peak vs. L in the second
@@ -351,6 +370,9 @@ def plot_sample_averaged_chi(eta, chi_dict, save_data=False, save_fig=False):
     for L in sorted(chi_dict.keys()):
         eps_arr, chi_arr = chi_dict[L]
         line, = axes[0].plot(eps_arr, chi_arr, "o", label=r"$%d$" % L)
+        if chi_dis_dict is not None:
+            eps_arr2, chi_arr2 = chi_dis_dict[L]
+            axes[0].plot(eps_arr2, chi_arr2, "-s")
         i = np.argwhere(L_arr == L)
         eps_p[i], chi_p[i], x, y = find_peak_by_polyfit(
             eps_arr, chi_arr, 5, yscale="log", full=True)
@@ -443,7 +465,11 @@ def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
         eps_m = 0.045
     plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
     plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
-    plot_pow_fit(ax[1], eps_p, L, reversed=True)
+    if eta == 0.18:
+        print(L)
+        plot_pow_fit(ax[1], eps_p[4:], L[4:], reversed=True)
+    else:
+        plot_pow_fit(ax[1], eps_p[3:], L[3:], reversed=True)
     ax[1].set_xscale("log")
     ax[1].set_xlabel(r"$L$", fontsize="x-large")
     ax[1].set_ylabel(r"${\rm peak\ location\ }\epsilon_m$", fontsize="x-large")
@@ -529,16 +555,31 @@ def compare_two_averaging(L_list, M=500):
     plt.close()
 
 
+def read_suscept_peak(eta, head, tail):
+    path = r"data\eta=%.2f" % eta
+    with open(path + os.path.sep + "suscept_peak.dat") as f:
+        lines = f.readlines()
+        lines = lines[head:len(lines) - tail]
+        L = np.zeros(len(lines))
+        eps = np.zeros_like(L)
+        for i, line in enumerate(lines):
+            s = line.replace("\n", "").split("\t")
+            L[i] = float(s[0])
+            eps[i] = float(s[1])
+            print(L[i], eps[i])
+    return L, eps
+
+
 if __name__ == "__main__":
-    eta = 0.1
-    chi_dict = get_chi_dict(eta)
+    eta = 0.18
+    chi_dict = get_chi_dict(eta, False)
+    chi_dis_dict = get_chi_dict(eta, True)
     # os.chdir("data")
     # distrubition(64, 500)
     # varied_sample_size(64, 500)
-    # average_type_B(save_data=False, save_fig=False)
     # diff_find_peak(90, 4, 10)
     # plot_peak_location_vs_L()
     # read_npz(724)
     # compare_two_averaging([64, 90])
     # plot_xi_vs_eps(eta, chi_dict, False)
-    plot_sample_averaged_chi(eta, chi_dict, True, False)
+    plot_sample_averaged_chi(eta, chi_dict, None, False, False)

@@ -13,7 +13,7 @@ import pandas as pd
 
 
 def read_serials_from_txt(filename):
-    """ Get array of order parameter and angle from txt file."""
+    """ Get arrays of the order parameter and polar angle from txt file."""
     with open(filename) as f:
         lines = f.readlines()
         n = len(lines)
@@ -32,11 +32,11 @@ def read_hdf5(infile, ncut=0):
     phi_mean = np.array(df[ncut:].mean())
     phi_var = np.array(df[ncut:].var(ddof=0))
     n = phi_mean.size
-    return np.mean(phi_mean), np.mean(phi_var), n
+    return np.mean(phi_mean), np.var(phi_mean), np.mean(phi_var), n
 
 
 def get_ncut(L):
-    if L == 724:
+    if L >= 724:
         ncut = 3000
     elif L == 512:
         ncut = 2500
@@ -45,7 +45,7 @@ def get_ncut(L):
     return ncut
 
 
-def update_phi_and_chi(eta, hdf_dir, csv_dir):
+def update_excel(eta, hdf_dir, csv_dir, system_size=None):
     def update_dict(infile):
         basename = os.path.basename(infile)
         s = basename.replace(".h5", "").split("_")
@@ -53,36 +53,45 @@ def update_phi_and_chi(eta, hdf_dir, csv_dir):
         eps = float(s[2])
         ncut = get_ncut(L)
 
-        phi, phi_var, num = read_hdf5(infile, ncut)
-        xi = phi_var * L * L
+        phi, chi_dis, phi_var, num = read_hdf5(infile, ncut)
+        print(eps, phi, num)
+        chi = phi_var * L * L
+        chi_dis *= L * L
         if L in phi_dict:
             phi_dict[L][eps] = phi
-            chi_dict[L][eps] = xi
+            chi_dict[L][eps] = chi
+            chi_dis_dict[L][eps] = chi_dis
             num_dict[L][eps] = num
         else:
             phi_dict[L] = {eps: phi}
-            chi_dict[L] = {eps: xi}
+            chi_dict[L] = {eps: chi}
+            chi_dis_dict[L] = {eps: chi_dis}
             num_dict[L] = {eps: num}
 
     def save_to_excel():
         with pd.ExcelWriter(excel_file) as writer:
             pd.DataFrame.from_dict(phi_dict).to_excel(writer, sheet_name='phi')
             pd.DataFrame.from_dict(chi_dict).to_excel(writer, sheet_name='chi')
+            pd.DataFrame.from_dict(chi_dis_dict).to_excel(
+                writer, sheet_name='chi_dis')
             pd.DataFrame.from_dict(num_dict).to_excel(writer, sheet_name='num')
 
     def read_excel():
         with pd.ExcelFile(excel_file) as f:
             phi_dict = pd.read_excel(f, sheet_name="phi").to_dict()
             chi_dict = pd.read_excel(f, sheet_name="chi").to_dict()
+            chi_dis_dict = pd.read_excel(f, sheet_name="chi_dis").to_dict()
             num_dict = pd.read_excel(f, sheet_name="num").to_dict()
-        return phi_dict, chi_dict, num_dict
+        return phi_dict, chi_dict, chi_dis_dict, num_dict
 
     excel_file = csv_dir + os.path.sep + "eta=%g.xlsx" % eta
-    hdf_files = glob.glob(hdf_dir + os.path.sep + "*.h5")
+    if system_size is None:
+        hdf_files = glob.glob(hdf_dir + os.path.sep + "*_%g_*.h5" % eta)
+    else:
+        hdf_files = glob.glob(hdf_dir + os.path.sep + "%d_%g_*.h5" %
+                              (eta, system_size))
 
-    phi_dict = {}
-    chi_dict = {}
-    num_dict = {}
+    phi_dict, chi_dict, chi_dis_dict, num_dict = {}, {}, {}, {}
     if not os.path.isfile(excel_file):
         for infile in hdf_files:
             update_dict(infile)
@@ -90,7 +99,7 @@ def update_phi_and_chi(eta, hdf_dir, csv_dir):
         save_to_excel()
         print("create", excel_file)
     else:
-        phi_dict, chi_dict, num_dict = read_excel()
+        phi_dict, chi_dict, chi_dis_dict, num_dict = read_excel()
         excel_statinfo = os.stat(excel_file)
         flag_updated = False
         for hdf_file in hdf_files:
@@ -176,13 +185,15 @@ def serials_txt_to_hdf(L, eta, eps, txt_dir, hdf_dir, check_by_time=True):
         print("create", hdf_file)
 
 
-def update_hdf(eta, txt_dir, hdf_dir, check_by_time=True):
+def update_hdf(eta, txt_dir, hdf_dir, check_by_time=True, L0=None):
     """ Update all `.h5` files """
     txt_files = glob.glob(txt_dir + os.path.sep + "p*.%d.*dat" % (eta * 1000))
     para = {}
     for txt_file in txt_files:
         s = os.path.basename(txt_file).replace("p", "").split(".")
         L = int(s[0])
+        if L0 is not None and L != L0:
+            continue
         eps = int(s[2]) / 10000
         if L in para:
             if eps not in para[L]:
@@ -199,9 +210,13 @@ if __name__ == "__main__":
     # txt_dir = r"C:\Users\user\Desktop\test\phi"
     # hdf_dir = r"C:\Users\user\Desktop\test\phi_h5"
     # txt_dir = r"E:\data\random_torque\Phi_vs_L\eta=0.10\serials"
-    txt_dir = r"E:\data\random_torque\susceptibility\phi\eta=0.10"
+    eta = 0.1
+    txt_dir = r"E:\data\random_torque\susceptibility\phi\eta=%.2f" % eta
     hdf_dir = r"E:\data\random_torque\susceptibility\phi_hdf"
     csv_dir = r"E:\data\random_torque\susceptibility"
 
-    # update_hdf(0.1, txt_dir, hdf_dir, check_by_time=True)
-    update_phi_and_chi(0.1, hdf_dir, csv_dir)
+    update_hdf(eta, txt_dir, hdf_dir, check_by_time=True)
+    update_excel(eta, hdf_dir, csv_dir, system_size=None)
+    # file0 = hdf_dir + r"\724_0.1_0.045.h5"
+    # mean, var_mean, mean_var, n = read_hdf5(file0)
+    # print(mean, var_mean, mean_var, n)

@@ -24,17 +24,19 @@ def read(eta, head1=0, tail1=0, head2=0, tail2=0):
         Remove the last `tail2` lines from file2.
     """
     path = r"data\eta=%.2f" % eta
-    with open(path + os.path.sep + "suscept_peak.dat") as f:
-        lines = f.readlines()
-        n = len(lines)
-        lines = lines[head1:n - tail1]
-        L1 = np.zeros(len(lines))
-        eps1 = np.zeros_like(L1)
-        for i, line in enumerate(lines):
-            s = line.replace("\n", "").split("\t")
-            L1[i] = float(s[0])
-            eps1[i] = float(s[1])
-            print(L1[i], eps1[i])
+    # with open(path + os.path.sep + "suscept_peak.dat") as f:
+    #     lines = f.readlines()
+    #     n = len(lines)
+    #     lines = lines[head1:n - tail1]
+    #     L1 = np.zeros(len(lines))
+    #     eps1 = np.zeros_like(L1)
+    #     for i, line in enumerate(lines):
+    #         s = line.replace("\n", "").split("\t")
+    #         L1[i] = float(s[0])
+    #         eps1[i] = float(s[1])
+    #         print(L1[i], eps1[i])
+    from suscept_peak import read_suscept_peak
+    L1, eps1 = read_suscept_peak(eta, head1, tail1)
     print("--------")
     with open(path + os.path.sep + "polar_order.dat") as f:
         lines = f.readlines()
@@ -298,7 +300,14 @@ def varied_nu3(head1=0, tail1=0, head2=1, tail2=0):
     plt.close()
 
 
-def varied_nu2(eta, head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
+def varied_nu2(eta,
+               head1=0,
+               tail1=0,
+               head2=1,
+               tail2=0,
+               save_fig=False,
+               alpha=None,
+               KT_scaling=True):
     """
     Epsilon evaluated from two different correlation lengths vs. the
     exponent nu.
@@ -307,26 +316,46 @@ def varied_nu2(eta, head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
         L1, eps1, L2, eps2, L3, eps3 = read(eta, head1, tail1, head2, tail2)
     else:
         L1, eps1, L2, eps2 = read(eta, head1, tail1, head2, tail2)
-    nu_arr = np.linspace(0.1, 3, 200)
+    if alpha is not None:
+        from corr_len import get_phi_dict, find_peak2
+        phi_dict = get_phi_dict(eta)
+        L2, ym, eps2 = find_peak2(phi_dict, alpha)
+        L2 = L2[head2:L2.size - tail2]
+        eps2 = eps2[head2:eps2.size - tail2]
+
+    if KT_scaling:
+        nu_arr = np.linspace(0.1, 3, 200)
+    else:
+        nu_arr = np.linspace(1, 3, 100)
     eps_c1 = np.zeros_like(nu_arr)
     eps_c2 = np.zeros_like(nu_arr)
 
     for i, nu in enumerate(nu_arr):
         try:
-            popt, perr = fit_exp(eps1, L1, nu)
-            eps_c1[i], lnA, b = popt
-            popt, perr = fit_exp(eps2, L2, nu)
-            eps_c2[i], lnA, b = popt
+            if KT_scaling:
+                popt, perr = fit_exp(eps1, L1, nu)
+                eps_c1[i], lnA, b = popt
+                popt, perr = fit_exp(eps2, L2, nu)
+                eps_c2[i], lnA, b = popt
+            else:
+                popt, perr = fit_pow(eps1, L1, nu)
+                eps_c1[i], lnA = popt
+                popt, perr = fit_pow(eps2, L2, nu)
+                eps_c2[i], lnA = popt
         except:
             eps_c1[i] = np.nan
             eps_c2[i] = np.nan
             print(nu)
 
     fig = plt.figure()
-    lb = r"KT-like scaling for $\epsilon^L_m(L), L=%d,%d,\cdots,%d$"
-    plt.plot(nu_arr, eps_c1, "-", label=lb % (L1[0], L1[1], L1[-1]))
-    lb = r"KT-like scaling for $\xi(\epsilon),\epsilon = %g,%g\cdots,%g$"
-    plt.plot(nu_arr, eps_c2, "-", label=lb % (eps2[0], eps2[1], eps2[-1]))
+    if KT_scaling:
+        lb1 = r"KT-like scaling for $\epsilon^L_m(L), L=%d,%d,\cdots,%d$"
+        lb2 = r"KT-like scaling for $\xi(\epsilon),\epsilon = %g,%g\cdots,%g$"
+    else:
+        lb1 = r"algebraic scaling for $\epsilon^L_m(L), L=%d,%d,\cdots,%d$"
+        lb2 = r"algebraic scaling for $\xi(\epsilon),\epsilon=%g,%g\cdots,%g$"
+    plt.plot(nu_arr, eps_c1, "-", label=lb1 % (L1[0], L1[1], L1[-1]))
+    plt.plot(nu_arr, eps_c2, "-", label=lb2 % (eps2[0], eps2[1], eps2[-1]))
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$\nu$", fontsize="x-large")
@@ -352,36 +381,68 @@ def varied_nu2(eta, head1=0, tail1=0, head2=1, tail2=0, save_fig=False):
     plt.close()
 
 
-def varied_alpha(eta, h1=0, t1=0, h2=0, t2=0, save_fig=False):
+def cross_point_w_varied_alpha(eta,
+                               h1=0,
+                               t1=0,
+                               h2=0,
+                               t2=0,
+                               save_fig=False,
+                               KT_scaling=True):
+    """ Get cross point of epsilon_c vs. nu curves for the susceptibility peak
+        and correlation length, respectively.
+    """
+    from suscept_peak import read_suscept_peak
+    from corr_len import get_phi_dict, find_peak2
+    L1, eps1 = read_suscept_peak(eta, h1, t1)
     if eta == 0.18:
-        L1, eps1, L2, eps2, L3, eps3 = read(eta, h1, t1, h2, t2)
-        alpha_arr = np.linspace(0.45, 0.7, 26)
+        if KT_scaling:
+            alpha_arr = np.linspace(0.45, 0.7, 26)
+        else:
+            alpha_arr = np.linspace(0.45, 0.8, 36)
     else:
-        L1, eps1, L2, eps2 = read(eta, h1, t1, h2, t2)
-        alpha_arr = np.linspace(0.6, 0.72, 25)
-    from polar_order import get_phi_dict, find_peak2
+        if KT_scaling:
+            alpha_arr = np.linspace(0.6, 0.72, 25)
+        else:
+            alpha_arr = np.linspace(0.5, 0.85, 40)
     phi_dict = get_phi_dict(eta)
 
-    nu_arr = np.linspace(0.1, 3, 150)
+    if KT_scaling:
+        nu_arr = np.linspace(0.1, 3, 150)
+        f_pat = r"data\varied_alpha_eta=%g_%d_%d_%d_%d.dat"
+    else:
+        nu_arr = np.linspace(1, 2, 80)
+        f_pat = r"data\varied_alpha_pow_eta=%g_%d_%d_%d_%d.dat"
+    filename = f_pat % (eta, h1, t1, h2, t2)
     eps_c_arr = np.zeros_like(alpha_arr)
     nu_c_arr = np.zeros_like(alpha_arr)
     eps_c1 = np.zeros_like(nu_arr)
     for j, nu in enumerate(nu_arr):
-        popt, perr = fit_exp(eps1, L1, nu)
-        eps_c1[j], lnA, b = popt
+        if KT_scaling:
+            popt, perr = fit_exp(eps1, L1, nu)
+            eps_c1[j], lnA, b = popt
+        else:
+            popt, perr = fit_pow(eps1, L1, nu)
+            eps_c1[j], lnA = popt
+
     for i, alpha in enumerate(alpha_arr):
         try:
             eps_c2 = np.zeros_like(nu_arr)
             for j, nu in enumerate(nu_arr):
                 L2, ym, eps2 = find_peak2(phi_dict, alpha)
-                popt, perr = fit_exp(eps2, L2, nu)
-                eps_c2[j], lnA, b = popt
+                if KT_scaling:
+                    popt, perr = fit_exp(eps2[h2:eps2.size - t2],
+                                         L2[h2:L2.size - t2], nu)
+                    eps_c2[j], lnA, b = popt
+                else:
+                    popt, perr = fit_pow(eps2[h2:eps2.size - t2],
+                                         L2[h2:L2.size - t2], nu)
+                    eps_c2[j], lnA = popt
             nu_c_arr[i], eps_c_arr[i] = get_cross_point(nu_arr, eps_c1, eps_c2)
             print("success for i =", i, "alpha =", alpha)
         except:
             nu_c_arr[i] = np.nan
             eps_c_arr[i] = np.nan
-    with open(r"data\varied_alpha_eta=%g.dat" % eta, "w") as f:
+    with open(filename, "w") as f:
         for i, alpha in enumerate(alpha_arr):
             f.write("%f\t%f\t%f\n" % (alpha, nu_c_arr[i], eps_c_arr[i]))
 
@@ -410,7 +471,7 @@ def plot_nu_and_eps_c_vs_alpha():
     ax2.set_ylabel(r"$\epsilon_c^*$", fontsize="x-large")
     ax3.set_xlabel(r"$\epsilon_c^*$", fontsize="x-large")
     ax3.set_ylabel(r"$\nu^*$", fontsize="x-large")
-    
+
     ax1.legend(fontsize="large")
     ax2.legend(fontsize="large")
     ax3.legend(fontsize="large")
@@ -474,6 +535,48 @@ def show_algebraic():
     plt.show()
 
 
+def plot_cross_point(eta, KT_scaling=True):
+    def read_data(infile):
+        with open(infile) as f:
+            lines = f.readlines()
+            alpha, nu, eps_c = np.zeros((3, len(lines)))
+            for i, line in enumerate(lines):
+                s = line.replace("\n", "").split("\t")
+                alpha[i] = float(s[0])
+                nu[i] = float(s[1])
+                eps_c[i] = float(s[2])
+        return alpha, nu, eps_c
+
+    if KT_scaling:
+        f_pre = r"data/varied_alpha_eta="
+    else:
+        f_pre = r"data/varied_alpha_pow_eta="
+    if (eta == 0.10):
+        alpha1, nu1, eps_c1 = read_data(f_pre + r"%g_3_0_0_0.dat" % eta)
+        alpha2, nu2, eps_c2 = read_data(f_pre + r"%g_3_0_3_0.dat" % eta)
+        alpha3, nu3, eps_c3 = read_data(f_pre + r"%g_3_0_0_3.dat" % eta)
+    else:
+        alpha1, nu1, eps_c1 = read_data(f_pre + r"%g_1_1_0_0.dat" % eta)
+        alpha2, nu2, eps_c2 = read_data(f_pre + r"%g_1_1_3_0.dat" % eta)
+        alpha3, nu3, eps_c3 = read_data(f_pre + r"%g_1_1_0_3.dat" % eta)
+
+    fig, (ax1, ax2) = plt.subplots(figsize=(8, 4), nrows=1, ncols=2)
+    ax1.plot(alpha1, nu1, "o")
+    ax1.plot(alpha2, nu2, "s")
+    ax1.plot(alpha3, nu3, "<")
+    ax2.plot(alpha1, eps_c1, "o")
+    ax2.plot(alpha2, eps_c2, "s")
+    ax2.plot(alpha3, eps_c3, "<")
+    ax1.set_xlabel(r"$\alpha$", fontsize="x-large")
+    ax2.set_xlabel(r"$\alpha$", fontsize="x-large")
+    ax1.set_ylabel(r"$\nu^*$", fontsize="x-large")
+    ax2.set_ylabel(r"$\epsilon^*_c$", fontsize="x-large")
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+    plt.suptitle(r"$\eta=%g$" % eta, fontsize="x-large", y=0.995)
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     # L1, eps1, L2, eps2, L3, eps3 = read()
     # popt, perr = fit_exp(eps1, L1, 1)
@@ -489,8 +592,9 @@ if __name__ == "__main__":
     # popt, perr = fit_pow(eps3, L3)
     # print(popt, perr)
     eta = 0.1
-    varied_nu2(eta, 0, 0, 0, 0, False)
-    # varied_alpha(eta)
+    # varied_nu2(0.18, 1, 1, 0, 0, False, 0.6, KT_scaling=True)
+    # cross_point_w_varied_alpha(0.1, 3, 0, 3, 0, False, KT_scaling=False)
+    plot_cross_point(0.1, KT_scaling=False)
     # plot_nu_and_eps_c_vs_alpha()
     # varied_nu3()
     # show_KT(1)
