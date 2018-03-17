@@ -6,9 +6,14 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
-from add_line import add_line
 from suscept_peak import find_peak_by_polyfit
 from fit import plot_KT_fit, plot_pow_fit, fit_exp, fit_pow, get_cross_point
+import sys
+sys.path.append("..")
+try:
+    from corr2d.add_line import add_line
+except:
+    print("error when import add_line")
 
 
 def get_phi_dict(eta):
@@ -142,7 +147,8 @@ def find_peak2(phi_dict, alpha, ret_fit=False):
 
 def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     """ Plot phi vs. L, L^alpha * phi vs. L and correlation length vs. eps."""
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        nrows=1, ncols=3, figsize=(15, 5), tight_layout=True)
     c0, res, eps_m, Lm, phi_m = find_peak(eta, phi_dict, alpha, True,
                                           save_data, ax2, True)
     plot_phi_vs_L(phi_dict, ax1, eta, Lm, phi_m)
@@ -166,7 +172,6 @@ def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     ax1.set_title("(a)")
     ax2.set_title("(b)")
     ax3.set_title("(c)")
-    fig.tight_layout()
     if save_fig:
         plt.savefig(r"data\polar_order_eta%g.eps" % (eta * 100))
     else:
@@ -232,7 +237,8 @@ def powfit_varied_alpha(eta, phi_dict, h1=0, t1=0, h2=0, t2=0):
     alpha = np.linspace(0.5, 0.9, 100)
     eps_xi_c = np.zeros_like(alpha)
     nu_xi_c = np.zeros_like(alpha)
-    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=2, ncols=1, sharex=True, constrained_layout=True)
     ax1.axhline(eps_chi_c, linestyle="--", c="k")
     ax2.axhline(nu_chi_c, linestyle="--", c="k")
 
@@ -259,14 +265,14 @@ def powfit_varied_alpha(eta, phi_dict, h1=0, t1=0, h2=0, t2=0):
     ax2.set_xlabel(r"$\alpha$", fontsize="x-large")
     ax2.set_ylabel(r"$\nu$", fontsize="x-large")
 
-    plt.tight_layout(rect=[0, 0, 1, 0.98])
-    plt.suptitle(r"$\eta=%.2f$" % eta, fontsize="x-large", y=0.99)
+    plt.suptitle(r"$\eta=%.2f$" % eta, fontsize="x-large")
     plt.show()
     plt.close()
 
 
 def xi_vs_eps_varied_alpha(eta, phi_dict):
-    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8, 4))
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2, nrows=1, figsize=(8, 4), constrained_layout=True)
     alpha_arr = np.linspace(0.5, 0.85, 8)
     Lm_max, ym, eps_m = find_peak2(phi_dict, 0.85)
     for i, alpha in enumerate(alpha_arr):
@@ -283,8 +289,7 @@ def xi_vs_eps_varied_alpha(eta, phi_dict):
 
     ax2.set_xlabel(r"$\epsilon$", fontsize="x-large")
     ax2.set_ylabel(r"$\xi / \xi_{\alpha=0.85}$", fontsize="x-large")
-    plt.tight_layout(rect=[0, 0, 1, 0.98])
-    plt.suptitle(r"$\eta=%g$" % eta, fontsize="x-large", y=0.99)
+    plt.suptitle(r"$\eta=%g$" % eta, fontsize="x-large")
     plt.show()
     plt.close()
 
@@ -303,4 +308,4 @@ if __name__ == "__main__":
     plot_three_panel(eta, phi_dict, 0.82, save_fig=False, save_data=True)
     # xi_vs_eps_varied_alpha(eta, phi_dict)
     # changing_alpha(phi_dict)
-    # powfit_varied_alpha(eta, phi_dict, h1=3, t1=0, h2=[0, 3, 0], t2=[0, 0, 3])
+    # powfit_varied_alpha(eta, phi_dict, h1=3, t1=0, h2=[0,3,0], t2=[0,0,3])

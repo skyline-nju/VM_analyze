@@ -36,9 +36,9 @@ def reform_dict(raw_dict,
         form: str, optional
             The form of result dict, one of "dict-arr" and "dict-dict".
         len_m: int, optional
-            Remove the array whose size is less than len_m. Only play a role when
-            form is "dict-arr".  
-        
+            Remove the array whose size is less than len_m. Only play a role
+            when form is "dict-arr".
+
         Returns:
         --------
         res: dict
@@ -176,7 +176,7 @@ def create_dict_from_txt(path,
                 if value_name == "chi":
                     value = float(s[4])
                 elif value_name == "chi_dis":
-                    value = (float(s[2]) * L) ** 2
+                    value = (float(s[2]) * L)**2
                 elif value_name == "phi":
                     value = float(s[1])
                 elif value_name == "num":
@@ -203,4 +203,3 @@ if __name__ == "__main__":
         pd.DataFrame.from_dict(phi_dict).to_excel(w, sheet_name="phi")
         pd.DataFrame.from_dict(chi_dict).to_excel(w, sheet_name="chi")
         pd.DataFrame.from_dict(num_dict).to_excel(w, sheet_name="num")
-        

@@ -24,17 +24,6 @@ def read(eta, head1=0, tail1=0, head2=0, tail2=0):
         Remove the last `tail2` lines from file2.
     """
     path = r"data\eta=%.2f" % eta
-    # with open(path + os.path.sep + "suscept_peak.dat") as f:
-    #     lines = f.readlines()
-    #     n = len(lines)
-    #     lines = lines[head1:n - tail1]
-    #     L1 = np.zeros(len(lines))
-    #     eps1 = np.zeros_like(L1)
-    #     for i, line in enumerate(lines):
-    #         s = line.replace("\n", "").split("\t")
-    #         L1[i] = float(s[0])
-    #         eps1[i] = float(s[1])
-    #         print(L1[i], eps1[i])
     from suscept_peak import read_suscept_peak
     L1, eps1 = read_suscept_peak(eta, head1, tail1)
     print("--------")

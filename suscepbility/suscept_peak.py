@@ -15,14 +15,17 @@ from numpy.polynomial.polynomial import polyfit
 from scipy import interpolate
 import os
 import sys
-# import glob
-import add_line
+sys.path.append("..")
+try:
+    from corr2d.add_line import add_line
+except:
+    print("error when import add_line")
 
 
 def get_chi_dict(eta, is_dis=False):
     """ Get dict of chi with key `eps`. chi_dict[eps] is a 2 * n array,
         L_arr=chi_dict[eps][0], chi_arr = chi_dict[eps][1].
-    
+
     Parameters
     --------
     eta: float
@@ -33,19 +36,32 @@ def get_chi_dict(eta, is_dis=False):
     Returns:
     --------
     chi_dict: dict
-        xi or xi_dis        
+        xi or xi_dis.
     """
     if is_dis:
         chi_type = "chi_dis"
     else:
         chi_type = "chi"
     if eta == 0.18:
-        from create_dict import create_dict_from_txt
-        path = r"data\eta=%.2f" % eta
+        # from create_dict import create_dict_from_txt
+        # path = r"data\eta=%.2f" % eta
+        # eps_min = 0.045
+        # L_min = 46
+        # chi_dict = create_dict_from_txt(path, chi_type, "L", eps_min, L_min,
+        #                                 "dict-arr", 5)
+        from create_dict import create_dict_from_xlsx
+        path = r"E:\data\random_torque\susceptibility\sample_average"
+        infile = path + os.path.sep + r"eta=%g.xlsx" % eta
         eps_min = 0.045
         L_min = 46
-        chi_dict = create_dict_from_txt(path, chi_type, "L", eps_min, L_min,
-                                        "dict-arr", 5)
+        chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
+        del_keys = []
+        for L in chi_dict.keys():
+            if L not in [46, 64, 90, 128, 180, 256, 362, 512, 724, 1024]:
+                del_keys.append(L)
+        for L in del_keys:
+            del chi_dict[L]
+
     elif eta == 0.10:
         from create_dict import create_dict_from_xlsx
         path = r"E:\data\random_torque\susceptibility"
@@ -56,10 +72,6 @@ def get_chi_dict(eta, is_dis=False):
         for L in chi_dict:
             if L > 90:
                 chi_dict[L] = chi_dict[L][:, :-2]
-        # del chi_dict[16]
-        # del chi_dict[22]
-        # del chi_dict[26]
-        # del chi_dict[32]
         del chi_dict[54]
         del chi_dict[108]
     else:
@@ -396,8 +408,7 @@ def plot_sample_averaged_chi(eta,
     ax_in.set_xlabel(r"$L$")
     ax_in.set_ylabel(r"$\chi_m L^{-1.75}$")
     if eta == 0.1:
-        add_line.add_line(
-            ax_in, 0, 0.3, 1, 0.05, label=r"$L^{0.05}$", scale="log")
+        add_line(ax_in, 0, 0.3, 1, 0.05, label=r"$L^{0.05}$", scale="log")
     if save_fig:
         plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)
     else:
@@ -449,7 +460,7 @@ def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
         x, y, "--", label=r"$\langle \chi_m\rangle^B_s\sim L^{%.4f}$" % c[1])
     ax[0].set_xlim(x0, x1)
     ax[0].legend(loc="upper left", title="linear fit", fontsize="large")
-    add_line.add_line(ax[0], 0, 0.2, 1, 1.75, label=r"$L^{1.75}$", scale="log")
+    add_line(ax[0], 0, 0.2, 1, 1.75, label=r"$L^{1.75}$", scale="log")
     ax[0].set_xlabel(r"$L$", fontsize="x-large")
     # ax[0].set_ylabel(
     #     r"${\rm susceptibility\ peak\ }\langle\chi_m\rangle^B_s$",
@@ -467,7 +478,7 @@ def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
     plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
     if eta == 0.18:
         print(L)
-        plot_pow_fit(ax[1], eps_p[4:], L[4:], reversed=True)
+        plot_pow_fit(ax[1], eps_p[3:-1], L[3:-1], reversed=True)
     else:
         plot_pow_fit(ax[1], eps_p[3:], L[3:], reversed=True)
     ax[1].set_xscale("log")
