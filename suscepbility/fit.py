@@ -4,7 +4,8 @@ scaling.
 '''
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize_scalar
+from numpy import polyfit
 import os
 
 
@@ -53,6 +54,58 @@ def read(eta, head1=0, tail1=0, head2=0, tail2=0):
                 else:
                     L3[i] = float(s[1])
         return L1, eps1, L2, eps2, L3, eps3
+
+
+def find_peak_polyfit(xdata, ydata, xscale="lin", yscale="lin"):
+    def fun(x, c):
+        return -np.polyval(c, x)
+
+    def cal_peak_error(x, c, cov_mat):
+        deg = len(c) - 1
+        y_var = 0
+        X = np.array([x**(deg - i) for i in range(len(c))])
+        for i in range(deg + 1):
+            for j in range(deg + 1):
+                y_var += cov_mat[i, j] * X[i] * X[j]
+        y_err = np.sqrt(y_var)
+        return y_err
+
+    def cal_loc_error(x, c, cov_mat):
+        deg = len(c) - 1
+        var1 = 0
+        X = np.array([(deg - i) * x**(deg - 1 - i) for i in range(deg)])
+        for i in range(deg):
+            for j in range(deg):
+                var1 += cov_mat[i, j] * X[i] * X[j]
+        var2 = 0
+        for i in range(deg - 1):
+            var2 += c[i] * x**(deg - 2 - i) * (deg - i) * (deg - i - 1)
+        var2 = var2**2
+        x_err = np.sqrt(var1 / var2)
+        return x_err
+
+    if xscale == "log":
+        xdata = np.log(xdata)
+    if yscale == "log":
+        ydata = np.log(ydata)
+    if xdata.size >= 9:
+        deg = 5
+    else:
+        deg = 3
+    c, V = polyfit(xdata, ydata, deg, cov=True)
+    res = minimize_scalar(
+        fun, bounds=(xdata.min(), xdata.max()), args=c, method="bounded")
+    xp = res.x
+    yp = np.polyval(c, xp)
+    y_err = cal_peak_error(xp, c, V)
+    x_err = cal_loc_error(xp, c, V)
+    if xscale == "log":
+        xp = np.exp(xp)
+        x_err *= xp
+    if yscale == "log":
+        yp = np.exp(yp)
+        y_err *= yp
+    return xp, yp, x_err, y_err, c
 
 
 def fit_exp(eps, l, beta=None, reverse=False, ret_res=False):
@@ -120,7 +173,7 @@ def fit_exp(eps, l, beta=None, reverse=False, ret_res=False):
         return popt, perr
 
 
-def fit_pow(eps, l, beta=None):
+def fit_pow(eps, xi, beta=None, xi_err=None):
     def fun1(x, xc, lnA):
         return lnA - beta * np.log(x - xc)
 
@@ -128,17 +181,29 @@ def fit_pow(eps, l, beta=None):
         return lnA - beta * np.log(x - xc)
 
     x = eps
-    y = np.log(l)
+    if xi_err is not None:
+        y_err = xi_err / xi
+    y = np.log(xi)
     if beta is not None:
         p0 = [0.03, 0.01]
         p_min = [0, -np.inf]
         p_max = [0.05, np.inf]
-        popt, pcov = curve_fit(fun1, x, y, p0, bounds=(p_min, p_max))
+        b = (p_min, p_max)
+        if xi_err is None:
+            popt, pcov = curve_fit(fun1, x, y, p0, bounds=b)
+        else:
+            popt, pcov = curve_fit(
+                fun1, x, y, p0, sigma=y_err, absolute_sigma=True, bounds=b)
     else:
         p0 = [0.03, 0.01, 1]
         p_min = [0, -np.inf, 0]
         p_max = [0.05, np.inf, np.inf]
-        popt, pcov = curve_fit(fun2, x, y, p0, bounds=(p_min, p_max))
+        b = (p_min, p_max)
+        if xi_err is None:
+            popt, pcov = curve_fit(fun2, x, y, p0, bounds=b)
+        else:
+            popt, pcov = curve_fit(
+                fun2, x, y, p0, sigma=y_err, absolute_sigma=True, bounds=b)
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
@@ -567,24 +632,19 @@ def plot_cross_point(eta, KT_scaling=True):
 
 
 if __name__ == "__main__":
-    # L1, eps1, L2, eps2, L3, eps3 = read()
-    # popt, perr = fit_exp(eps1, L1, 1)
-    # print(popt, perr)
-    # popt, perr = fit_exp(eps2, L2, 1)
-    # print(popt, perr)
-    # popt, perr = fit_exp(eps3, L3, 1)
-    # print(popt, perr)
-    # popt, perr = fit_pow(eps1, L1)
-    # print(popt, perr)
-    # popt, perr = fit_pow(eps2, L2)
-    # print(popt, perr)
-    # popt, perr = fit_pow(eps3, L3)
-    # print(popt, perr)
-    eta = 0.1
+    # eta = 0.1
     # varied_nu2(0.18, 1, 1, 0, 0, False, 0.6, KT_scaling=True)
     # cross_point_w_varied_alpha(0.1, 3, 0, 3, 0, False, KT_scaling=False)
-    plot_cross_point(0.1, KT_scaling=False)
+    # plot_cross_point(0.1, KT_scaling=False)
     # plot_nu_and_eps_c_vs_alpha()
     # varied_nu3()
     # show_KT(1)
     # show_algebraic()
+    x = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    y = 1 * x**3 - 12.3 * x**2 + (47 + np.random.randn(x.size) * 0.4) * x + 3
+    res = find_peak_polyfit(x, y)
+    print(res)
+    plt.plot(x, y, 'o')
+    plt.plot(res[0], res[1], "s")
+    plt.errorbar(res[0], res[1], xerr=res[2], yerr=res[3])
+    plt.show()

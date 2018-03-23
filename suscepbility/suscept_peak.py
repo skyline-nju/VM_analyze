@@ -11,8 +11,7 @@ Type B:
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.polynomial.polynomial import polyfit
-from scipy import interpolate
+from numpy import polyfit
 import os
 import sys
 sys.path.append("..")
@@ -38,20 +37,14 @@ def get_chi_dict(eta, is_dis=False):
     chi_dict: dict
         xi or xi_dis.
     """
+    from create_dict import create_dict_from_xlsx
+    path = r"E:\data\random_torque\susceptibility\sample_average"
+    infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if is_dis:
         chi_type = "chi_dis"
     else:
         chi_type = "chi"
     if eta == 0.18:
-        # from create_dict import create_dict_from_txt
-        # path = r"data\eta=%.2f" % eta
-        # eps_min = 0.045
-        # L_min = 46
-        # chi_dict = create_dict_from_txt(path, chi_type, "L", eps_min, L_min,
-        #                                 "dict-arr", 5)
-        from create_dict import create_dict_from_xlsx
-        path = r"E:\data\random_torque\susceptibility\sample_average"
-        infile = path + os.path.sep + r"eta=%g.xlsx" % eta
         eps_min = 0.045
         L_min = 46
         chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
@@ -63,9 +56,6 @@ def get_chi_dict(eta, is_dis=False):
             del chi_dict[L]
 
     elif eta == 0.10:
-        from create_dict import create_dict_from_xlsx
-        path = r"E:\data\random_torque\susceptibility"
-        infile = path + os.path.sep + r"eta=%g.xlsx" % eta
         eps_min = 0.045
         L_min = 45
         chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
@@ -74,9 +64,13 @@ def get_chi_dict(eta, is_dis=False):
                 chi_dict[L] = chi_dict[L][:, :-2]
         del chi_dict[54]
         del chi_dict[108]
-    else:
-        print("eta should be one of 0.1, 0.18")
-        sys.exit()
+    elif eta == 0.05:
+        eps_min = 0.03
+        L_min = 45
+        chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
+        # del chi_dict[180]
+        # del chi_dict[256]
+        del chi_dict[362]
     return chi_dict
 
 
@@ -105,254 +99,6 @@ def read_npz(L):
                      chi_std[i]))
 
 
-def find_peak_by_polyfit(xdata,
-                         ydata,
-                         order=5,
-                         xscale="lin",
-                         yscale="lin",
-                         full=False,
-                         size_fit=10000):
-    """ Find the peak by polyfit.
-
-    Parameters:
-    --------
-    xdata, ydata : array_like
-        Input data to fit.
-    order : int, optional
-        The order of polynomi.
-    xscale, yscale : str, optional
-        ""lin"" or "log".
-    full : bool
-        If true, return xp, yp, xfit, yfit, else only return xp, yp.
-
-    Returns:
-    --------
-    xp, yp : float
-        The peak of input data.
-    xfit, yfit : array_like
-        Fitting curve of input data. Return if `full` is True.
-    """
-    if xscale == "log":
-        xdata = np.log10(xdata)
-    if yscale == "log":
-        ydata = np.log10(ydata)
-    c = polyfit(xdata, ydata, order)
-    xfit = np.linspace(xdata.min(), xdata.max(), size_fit)
-    yfit = c[0] * np.ones(xfit.size)
-    for i in range(1, order + 1):
-        yfit += c[i] * xfit**i
-    idx = np.argmax(yfit)
-    xp = xfit[idx]
-    yp = yfit[idx]
-    if xscale == "log":
-        xp = 10**xp
-        xfit = 10**xfit
-    if yscale == "log":
-        yp = 10**yp
-        yfit = 10**yfit
-    if full:
-        return xp, yp, xfit, yfit
-    else:
-        return xp, yp
-
-
-def find_peak_by_spline(xdata, ydata, xscale="lin", yscale="lin", full=False):
-    """ Find the peak by interpolation with spline.
-
-    Parameters:
-    --------
-    xdata, ydata : array_like
-        Input data to fit.
-    xscale, yscale : str, optional
-        ""lin"" or "log".
-    full : bool
-        If true, return xp, yp, xfit, yfit, else only return xp, yp.
-
-    Returns:
-    --------
-    xp, yp : float
-        The peak of input data.
-    xfit, yfit : array_like
-        Fitting curve of input data.
-    """
-    if xscale == "log":
-        xdata = np.log10(xdata)
-    if yscale == "log":
-        ydata = np.log10(ydata)
-    f = interpolate.interp1d(xdata, ydata, kind="cubic")
-    xfit = np.linspace(xdata.min(), xdata.max(), 2000)
-    yfit = f(xfit)
-    idxm = yfit.argmax()
-    xp = xfit[idxm]
-    yp = yfit[idxm]
-    if xscale == "log":
-        xp = 10**xp
-        xfit = 10**xfit
-    if yscale == "log":
-        yp = 10**yp
-        yfit = 10**yfit
-    if full:
-        return xp, yp, xfit, yfit
-    else:
-        return xp, yp
-
-
-def diff_find_peak(L, *idx):
-    """ Show the effects of different fitting.
-
-    For a given L, we fit the curve of chi vs. eps, and find where chi gets
-    its maximum value.
-
-    Parameters:
-    --------
-    L : int
-        System size.
-    *idx : argment list
-        List of sample to show.
-    """
-    data = np.load("%d.npz" % L)
-    chi0 = data["chi"]
-    eps0 = data["eps"] / 10000
-
-    for j, i in enumerate(idx):
-        line, = plt.plot(eps0, chi0[i], "o", label="Sample %d" % j)
-        c = line.get_color()
-        eps_p, chi_p, eps, chi = find_peak_by_polyfit(
-            eps0, chi0[i], order=3, yscale="log", full=True)
-        plt.plot(eps, chi, linestyle="dashed", color=c)
-        eps_p, chi_p, eps, chi = find_peak_by_polyfit(
-            eps0, chi0[i], order=5, yscale="log", full=True)
-        plt.plot(eps, chi, linestyle="solid", color=c)
-    plt.xlabel(r"$\epsilon$")
-    plt.ylabel(r"$\chi$")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-    plt.close()
-
-
-def varied_sample_size(L, M):
-    """ Show how the difference between two methods changes with increasing
-        sample size.
-
-    Parameterss:
-    --------
-    L : int
-        System size
-    M : int
-        Max sample size.
-    """
-    data = np.load("%d.npz" % L)
-    chi = data["chi"]
-    eps = data["eps"] / 10000
-
-    N = (np.arange(M // 50) + 1) * 50
-    eps_p1 = np.zeros(N.size)
-    eps_p2 = np.zeros(N.size)
-    chi_p1 = np.zeros(N.size)
-    chi_p2 = np.zeros(N.size)
-
-    for i, n in enumerate(N):
-        eps_p = np.zeros(n)
-        chi_p = np.zeros(n)
-        for j in range(n):
-            eps_p[j], chi_p[j] = find_peak_by_polyfit(
-                eps, chi[j], order=5, yscale="log")
-        eps_p1[i] = np.mean(eps_p)
-        chi_p1[i] = np.mean(chi_p)
-
-        chi_mean = np.mean(chi[:n], axis=0)
-        eps_p2[i], chi_p2[i] = find_peak_by_polyfit(
-            eps, chi_mean, order=5, yscale="log")
-
-    plt.subplot(221)
-    plt.plot(N, chi_p1, "-o", label=r"$\langle \chi_m\rangle^A_s$")
-    plt.plot(N, chi_p2, "-s", label=r"$\langle \chi_m\rangle^B_s$")
-    plt.xlabel("Sample size")
-    plt.ylabel("Susceptibility peak")
-    plt.legend()
-
-    plt.subplot(222)
-    plt.plot(N, eps_p1, "-o", label=r"$\langle \epsilon_m\rangle^A_s$")
-    plt.plot(N, eps_p2, "-s", label=r"$\langle \epsilon_m\rangle^B_s$")
-    plt.xlabel("Sample size")
-    plt.ylabel("Peak location")
-    plt.legend()
-
-    plt.subplot(223)
-    plt.plot(N, (chi_p1 - chi_p2) / chi_p2, "k-o")
-    plt.xlabel("Sample size")
-    ylabel = r"$|\langle \chi_m\rangle^A_s - \langle\chi_m\rangle^B_s|"\
-        + r"/ \langle \chi_m\rangle ^B_s$"
-    plt.ylabel(ylabel)
-
-    plt.subplot(224)
-    plt.plot(N, -(eps_p1 - eps_p2) / eps_p2, "k-o")
-    plt.xlabel("Sample size")
-    ylabel = r"$|\langle\epsilon_m\rangle^A_s - \langle\epsilon_m\rangle^B_s|"\
-        + r"/ \langle\epsilon_m\rangle^B_s$"
-    plt.ylabel(ylabel)
-
-    plt.suptitle(r"$L=%d$" % L, fontsize="x-large")
-    plt.tight_layout(rect=[0, 0, 1, 0.98])
-    plt.show()
-    plt.close()
-
-
-def distrubition(L, N):
-    """ Show the distrubition of susceptibility peaks and locations estimated
-        from each sample.
-    """
-    data = np.load("%d.npz" % L)
-    chi = data["chi"]
-    eps = data["eps"] / 10000
-    chi_m, eps_m, chi_m2, eps_m2 = np.zeros((4, N))
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(9, 3))
-    for i in range(N):
-        eps_m[i], chi_m[i] = find_peak_by_polyfit(
-            eps, chi[i], order=5, yscale="log")
-        eps_m2[i], chi_m2[i] = find_peak_by_spline(eps, chi[i], yscale="log")
-    # chi_m2 = np.exp(chi_m2)
-    ax[0].plot(eps_m, chi_m, "o", markersize=3)
-    ax[0].set_xlabel(r"$\epsilon_m$")
-    ax[0].set_ylabel(r"$\chi_m$")
-    # ax[0].set_ylim(ymax=250)
-    # plt.yscale("log")
-    hist_eps, bin_eps = np.histogram(eps_m, bins=10)
-    ax[1].plot(0.5 * (bin_eps[:-1] + bin_eps[1:]),
-               hist_eps / N / (bin_eps[1] - bin_eps[0]), "-o")
-    ax[1].set_xlabel(r"$\epsilon_m$")
-    ax[1].set_ylabel(r"PDF$(\epsilon_m)$")
-
-    hist_xi, bin_xi = np.histogram(chi_m, bins=10)
-    ax[2].plot(0.5 * (bin_xi[:-1] + bin_xi[1:]),
-               hist_xi / N / (bin_xi[1] - bin_xi[0]), "-o")
-    ax[2].set_xlabel(r"$\chi_m$")
-    ax[2].set_ylabel(r"PDF$(\chi_m)$")
-    plt.tight_layout()
-    plt.show()
-    plt.close()
-
-    print("A: chi_m=%f\teps_m=%f" % (np.mean(chi_m), np.mean(eps_m)))
-    chi_mean = np.mean(chi, axis=0)
-    eps_peak, chi_peak = find_peak_by_polyfit(
-        eps, chi_mean, order=5, yscale="log")
-    eps_peak2, chi_peak2 = find_peak_by_spline(eps, chi_mean, yscale="log")
-    print("B: chi_m=%f\teps_m=%f" % (chi_peak, eps_peak))
-    print("C: chi_m=%f\teps_m=%f" % (np.mean(chi_m2), np.mean(eps_m2)))
-
-    plt.plot(eps, chi_mean, "-o")
-    plt.plot(eps_peak, chi_peak, "s", eps_peak2, chi_peak2, "<")
-    plt.plot(np.mean(eps_m), np.mean(chi_m), "p")
-    plt.plot(np.mean(eps_m2), np.mean(chi_m2), ">")
-    plt.yscale("log")
-    plt.xlabel(r"$\epsilon$")
-    plt.ylabel(r"Sample-averaged $\chi$")
-    plt.tight_layout()
-    plt.show()
-    plt.close()
-
-
 def plot_xi_vs_eps(eta, chi_dict, read_txt=True):
     """ Plot sample-averaged susceptibility against epsilon."""
     for L in sorted(chi_dict.keys()):
@@ -365,64 +111,66 @@ def plot_xi_vs_eps(eta, chi_dict, read_txt=True):
     plt.close()
 
 
-def plot_sample_averaged_chi(eta,
-                             chi_dict,
-                             chi_dis_dict=None,
-                             save_data=False,
-                             save_fig=False):
-    """
-    Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
-    first panel. Mean while, show susceptibility peak vs. L in the second
-    panel and location of susceptibility peak vs. L in the third panel.
-    """
-    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-    # Plot susceptibility peak vs its location.
+def find_peak(eta, chi_dict, ax=None):
+    from fit import find_peak_polyfit
     L_arr = np.array([i for i in sorted(chi_dict.keys())])
-    eps_p, chi_p = np.zeros((2, len(L_arr)))  # record the location of peak
+    eps_p = np.zeros(L_arr.size)
+    chi_p = np.zeros_like(eps_p)
+    eps_err = np.zeros_like(eps_p)
+    chi_err = np.zeros_like(eps_p)
     for L in sorted(chi_dict.keys()):
         eps_arr, chi_arr = chi_dict[L]
-        line, = axes[0].plot(eps_arr, chi_arr, "o", label=r"$%d$" % L)
-        if chi_dis_dict is not None:
-            eps_arr2, chi_arr2 = chi_dis_dict[L]
-            axes[0].plot(eps_arr2, chi_arr2, "-s")
         i = np.argwhere(L_arr == L)
-        eps_p[i], chi_p[i], x, y = find_peak_by_polyfit(
-            eps_arr, chi_arr, 5, yscale="log", full=True)
-        axes[0].plot(x, y, color=line.get_color())
+        eps_p[i], chi_p[i], eps_err[i], chi_err[i], c = find_peak_polyfit(
+            eps_arr, chi_arr, yscale="log")
+        if ax is not None:
+            x = np.linspace(eps_arr.min(), eps_arr.max(), 1000)
+            y = np.exp(np.polyval(c, x))
+            line, = ax.plot(eps_arr, chi_arr, "o", label=r"$%d$" % L)
+            ax.plot(x, y, color=line.get_color())
+    if ax is not None:
+        ax.plot(eps_p, chi_p, "ks--", fillstyle='none')
+        ax.errorbar(eps_p, chi_p, yerr=chi_err, xerr=eps_err, fmt='none')
+        ax.set_yscale("log")
+        ax.legend(loc="upper right", title=r"$L=$")
+        ax.set_xlim(xmax=0.09)
+        ax.set_xlabel(r"$\epsilon$", fontsize="xx-large")
+        ax.set_ylabel("Sample-averaged susceptibility", fontsize="xx-large")
+    return eps_p, chi_p, eps_err, chi_err
 
-    axes[0].plot(eps_p, chi_p, "ks--", fillstyle="none")
-    axes[0].set_yscale("log")
-    axes[0].legend(loc="upper right", title=r"$L=$")
-    axes[0].set_xlim(xmax=0.09)
-    axes[0].set_xlabel(r"$\epsilon$", fontsize="x-large")
-    axes[0].set_ylabel("Sample-averaged susceptibility", fontsize="x-large")
-    plot_peak_location_vs_L(eta, L_arr, eps_p, chi_p, ax=axes[1:])
-    axes[0].set_title("(a)")
-    axes[1].set_title("(b)")
-    axes[2].set_title("(c)")
 
-    # add inset axes
-    plt.tight_layout()
-    ax_in = plt.axes([0.55, 0.2, 0.1, 0.3])
-    ax_in.loglog(L_arr, chi_p / L_arr**1.75, "-o")
-    ax_in.set_xlabel(r"$L$")
-    ax_in.set_ylabel(r"$\chi_m L^{-1.75}$")
-    if eta == 0.1:
-        add_line(ax_in, 0, 0.3, 1, 0.05, label=r"$L^{0.05}$", scale="log")
-    if save_fig:
-        plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)
+def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, ax, is_chi_dis=False):
+    ax.plot(L, chi_p, "o")
+    x0, x1 = L[0] - 2, L[-1] + 50
+    ax.errorbar(L, chi_p, yerr=chi_err, fmt="none")
+    c = polyfit(np.log10(L[:]), np.log10(chi_p[:]), deg=1)
+    x = np.linspace(x0, x1, 1000)
+    y = 10**c[1] * x**c[0]
+    ax.plot(x, y, "--", label=r"$\chi_{\rm p}\sim L^{%.4f}$" % c[0])
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlim(x0, x1)
+    ax.legend(loc="upper left", title="linear fit", fontsize="x-large")
+    if is_chi_dis:
+        slope = 2.0
     else:
-        plt.show()
-    plt.close()
+        slope = 1.75
+    label = r"$\chi_p \propto L^{%g}$" % slope
+    add_line(ax, 0, 0.2, 1, slope, label=label, scale="log")
+    ax.set_xlabel(r"$L$", fontsize="xx-large")
+    ax.set_ylabel(
+        r"${\rm susceptibility\ peak\ }\chi_{\rm p}$", fontsize="xx-large")
+    # add inset axes
+    # plt.tight_layout()
+    # ax_in = plt.axes([0.55, 0.2, 0.1, 0.3])
+    # ax_in.loglog(L_arr, chi_p / L_arr**1.75, "-o")
+    # ax_in.set_xlabel(r"$L$")
+    # ax_in.set_ylabel(r"$\chi_m L^{-1.75}$")
+    # if eta == 0.1:
+    #     add_line(ax_in, 0, 0.3, 1, 0.05, label=r"$L^{0.05}$", scale="log")
 
-    # Save data
-    if save_data:
-        with open(r"data\eta=%.2f\suscept_peak.dat" % eta, "w") as f:
-            for i, L in enumerate(L_arr):
-                f.write("%d\t%.8f\t%.8f\n" % (L, eps_p[i], chi_p[i]))
 
-
-def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
+def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     """
         Plot susceptibility peak and its loaction against system size,
         respectively.
@@ -436,134 +184,26 @@ def plot_peak_location_vs_L(eta, L=None, eps_p=None, chi_p=None, ax=None):
         chi_p : array_like, optional
             Values of susceptibility peak.
     """
-    if L is None or eps_p is None or chi_p is None:
-        with open(r"data\eta=%.2f\suscept_peak.dat" % eta) as f:
-            lines = f.readlines()
-            L, eps_p, chi_p = np.zeros((3, len(lines)))
-            for i, line in enumerate(lines):
-                s = line.replace("\n", "").split("\t")
-                L[i] = float(s[0])
-                eps_p[i] = float(s[1])
-                chi_p[i] = float(s[2])
-
-    if ax is None:
-        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
-        flag_show = True
-    else:
-        flag_show = False
-    ax[0].loglog(L, chi_p, "o")
-    c = polyfit(np.log10(L[:]), np.log10(chi_p[:]), deg=1)
-    x0, x1 = ax[0].get_xlim()
-    x = np.linspace(x0, x1, 1000)
-    y = 10**c[0] * x**c[1]
-    ax[0].loglog(
-        x, y, "--", label=r"$\langle \chi_m\rangle^B_s\sim L^{%.4f}$" % c[1])
-    ax[0].set_xlim(x0, x1)
-    ax[0].legend(loc="upper left", title="linear fit", fontsize="large")
-    add_line(ax[0], 0, 0.2, 1, 1.75, label=r"$L^{1.75}$", scale="log")
-    ax[0].set_xlabel(r"$L$", fontsize="x-large")
-    # ax[0].set_ylabel(
-    #     r"${\rm susceptibility\ peak\ }\langle\chi_m\rangle^B_s$",
-    #     fontsize="x-large")
-    ax[0].set_ylabel(
-        r"${\rm susceptibility\ peak\ }\chi_m$", fontsize="x-large")
-
-    ax[1].plot(L, eps_p, "o")
+    ax.plot(L, eps_p, "o")
+    ax.errorbar(L, eps_p, yerr=eps_err, fmt="none")
     from fit import plot_KT_fit, plot_pow_fit
     if eta == 0.18:
         eps_m = 0.05
+        x = eps_p[3:]
+        y = L[3:]
     elif eta == 0.1:
+        x = eps_p[3:]
+        y = L[3:]
         eps_m = 0.045
-    plot_KT_fit(0.5, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
-    plot_KT_fit(1.0, ax[1], eps_p, L, reversed=True, eps_min=eps_m)
-    if eta == 0.18:
-        print(L)
-        plot_pow_fit(ax[1], eps_p[3:-1], L[3:-1], reversed=True)
-    else:
-        plot_pow_fit(ax[1], eps_p[3:], L[3:], reversed=True)
-    ax[1].set_xscale("log")
-    ax[1].set_xlabel(r"$L$", fontsize="x-large")
-    ax[1].set_ylabel(r"${\rm peak\ location\ }\epsilon_m$", fontsize="x-large")
-    # ax[1].set_ylabel(
-    #     r"${\rm peak\ location\ }\langle \epsilon_m\rangle^B_s$",
-    #     fontsize="x-large")
-    ax[1].legend(fontsize="large", title="fitting curve")
-    if flag_show:
-        plt.tight_layout()
-        plt.show()
-        plt.close()
-
-
-def compare_two_averaging(L_list, M=500):
-    plt.rc('text', usetex=True)
-    if isinstance(L_list, list):
-        L_list = np.array(L_list)
-    chi_m1 = np.zeros(L_list.size)
-    chi_m2 = np.zeros_like(chi_m1)
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-    for idx_L, L in enumerate(L_list):
-        data = np.load("%d.npz" % L)
-        chi = data["chi"]
-        eps = data["eps"] / 10000
-
-        N = (np.arange(M // 50) + 1) * 50
-        eps_p1 = np.zeros(N.size)
-        eps_p2 = np.zeros(N.size)
-        chi_p1 = np.zeros(N.size)
-        chi_p2 = np.zeros(N.size)
-
-        for i, n in enumerate(N):
-            eps_p = np.zeros(n)
-            chi_p = np.zeros(n)
-            for j in range(n):
-                eps_p[j], chi_p[j] = find_peak_by_polyfit(
-                    eps, chi[j], order=5, yscale="log")
-            eps_p1[i] = np.mean(eps_p)
-            chi_p1[i] = np.mean(chi_p)
-
-            chi_mean = np.mean(chi[:n], axis=0)
-            eps_p2[i], chi_p2[i] = find_peak_by_polyfit(
-                eps, chi_mean, order=5, yscale="log")
-
-        ax1.plot(N, (chi_p1 - chi_p2) / chi_p2, "-o", label=r"$L=%d$" % L)
-        ax2.plot(N, -(eps_p1 - eps_p2) / eps_p2, "-o", label=r"$L=%d$" % L)
-        chi_m1[idx_L] = chi_p1[-1]
-        chi_m2[idx_L] = chi_p2[-1]
-    ax3.plot(L_list, chi_m1, "o", label="averaging A")
-    ax3.plot(L_list, chi_m2, "o", label="averaging B")
-
-    x0, x1 = ax3.get_xlim()
-    x = np.linspace(x0, x1, 1000)
-    c = polyfit(np.log10(L_list), np.log10(chi_m1), deg=1)
-    y = 10**c[0] * x**c[1]
-    ax3.plot(x, y, "--")
-    c = polyfit(np.log10(L_list), np.log10(chi_m2), deg=1)
-    y = 10**c[0] * x**c[1]
-    ax3.plot(x, y, "--")
-    ax3.set_xscale("log")
-    ax3.set_yscale("log")
-
-    ax1.set_xlabel("sample size", fontsize="x-large")
-    ax2.set_xlabel("sample size", fontsize="x-large")
-    ax3.set_xlabel(r"$L$", fontsize="x-large")
-    ax3.set_ylabel("Susceptibility Peak", fontsize="x-large")
-    ylabel = r"$\left. \left|\langle \chi_m\rangle^\mathrm{A}_\mathrm{s}-"\
-        + r" \langle\chi_m\rangle^\mathrm{B}_\mathrm{s}\right|"\
-        + r" \middle/\langle \chi_m\rangle ^\mathrm{B}_\mathrm{s}\right.$"
-    ax1.set_ylabel(ylabel, fontsize="xx-large")
-    ylabel = r"$\left. \left|\langle\epsilon_m\rangle^\mathrm{A}_\mathrm{s}-"\
-        + r" \langle\epsilon_m\rangle^\mathrm{B}_\mathrm{s}\right|"\
-        + r" \middle/ \langle\epsilon_m\rangle^\mathrm{B}_\mathrm{s}\right.$"
-    ax2.set_ylabel(ylabel, fontsize="xx-large")
-    ax1.set_title("(a)")
-    ax2.set_title("(b)")
-    ax3.set_title("(c)")
-    ax1.legend(fontsize="large")
-    ax2.legend(fontsize="large")
-    ax3.legend(fontsize="large")
-    plt.tight_layout()
-    plt.show()
-    plt.close()
+    ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
+    plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m)
+    plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m)
+    plot_pow_fit(ax, x, y, reversed=True)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$L$", fontsize="xx-large")
+    ax.set_ylabel(
+        r"${\rm peak\ location\ }\epsilon_{\rm p}$", fontsize="xx-large")
+    ax.legend(fontsize="large", title="fitting curve")
 
 
 def read_suscept_peak(eta, head, tail):
@@ -581,16 +221,130 @@ def read_suscept_peak(eta, head, tail):
     return L, eps
 
 
+def plot_3_panels(eta, save_fig=False, is_dis=False):
+    """
+    Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
+    first panel. Mean while, show susceptibility peak vs. L in the second
+    panel and location of susceptibility peak vs. L in the third panel.
+    """
+    chi_dict = get_chi_dict(eta, is_dis)
+    if eta == 0.05:
+        fig, axes = plt.subplots(
+            nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
+    else:
+        fig, axes = plt.subplots(
+            nrows=1, ncols=3, figsize=(15, 5), constrained_layout=True)
+    L_arr = np.array([i for i in sorted(chi_dict.keys())])
+    eps_p, chi_p, eps_err, chi_err = find_peak(eta, chi_dict, axes[0])
+    axes[0].set_title("(a)", fontsize="xx-large")
+    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, axes[1], is_dis)
+    axes[1].set_title("(b)", fontsize="xx-large")
+    if eta != 0.05:
+        plot_peak_loc_vs_L(eta, L_arr, eps_p, eps_err, axes[2])
+        axes[2].set_title("(c)", fontsize="xx-large")
+        ax_in = fig.add_axes([0.55, 0.2, 0.1, 0.3])
+    else:
+        ax_in = fig.add_axes([0.8, 0.18, 0.18, 0.32])
+    if is_dis:
+        slope = 2.0
+    else:
+        slope = 1.75
+    ax_in.loglog(L_arr, chi_p / L_arr**slope, "o")
+    ylabel = r"$\chi_p / L^{%g}$" % slope
+    ax_in.text(0.05, 0.8, ylabel, transform=ax_in.transAxes, fontsize="large")
+    ax_in.text(0.85, 0.05, r"$L$", transform=ax_in.transAxes, fontsize="large")
+    if save_fig:
+        plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)
+    else:
+        plt.show()
+
+
+def collapse(eta, chi_dict):
+    if eta == 0.18:
+        gamma_over_nu = 1.7489
+        eps_c1 = 0.0448
+        nu1 = 1.873
+        eps_c2 = 0.0345
+        nu2 = 1
+        A2 = 8.005
+        eps_c3 = 0.0397
+        nu3 = 0.5
+        A3 = 1.258
+    elif eta == 0.1:
+        gamma_over_nu = 1.798
+        eps_c1 = 0.0397
+        nu1 = 1.988
+        nu2 = 1
+        eps_c2 = 0.0292
+        A2 = 5.844
+        nu3 = 0.5
+        eps_c3 = 0.0345
+        A3 = 0.813
+
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        nrows=1,
+        ncols=3,
+        figsize=(12, 4.5),
+        constrained_layout=True,
+        sharey=True)
+    for L in sorted(chi_dict.keys()):
+        if L < 128:
+            continue
+        eps_arr, chi_arr = chi_dict[L]
+        y = chi_arr * L**(-gamma_over_nu)
+        x1 = np.absolute(eps_arr - eps_c1) * L**(1 / nu1)
+        x2 = (np.log(L) - np.log(A2))**(
+            1 / nu2) * np.absolute(eps_arr - eps_c2)
+        x3 = (np.log(L) - np.log(A3))**(
+            1 / nu3) * np.absolute(eps_arr - eps_c3)
+        ax1.plot(x1, y, "o", label="%d" % L, fillstyle="none")
+        ax2.plot(x2, y, "o", label="%d" % L, fillstyle="none")
+        ax3.plot(x3, y, "o", label="%d" % L, fillstyle="none")
+    ax1.legend(title=r"$L=$", fontsize="large")
+    ax2.legend(title=r"$L=$", fontsize="large")
+    ax3.legend(title=r"$L=$", fontsize="large")
+    ylabel = r"$\chi L ^ {-\gamma / \nu}$"
+    xlabel = r"$|\epsilon-\epsilon_c| L ^ {1/\nu}$"
+    xlabel2 = r"$|\epsilon-\epsilon_c|\left[\ln L - \ln A_\chi\right]^{1/\nu}$"
+    ax1.set_ylabel(ylabel, fontsize="x-large")
+    ax1.set_xlabel(xlabel, fontsize="x-large")
+    ax2.set_xlabel(xlabel2, fontsize="x-large")
+    ax3.set_xlabel(xlabel2, fontsize="x-large")
+    ax1.set_title(r"(a) algebraic scaling")
+    ax2.set_title(r"(b) KT scaling")
+    ax3.set_title(r"(c) KT scaling")
+    pat = r"$\nu=%g$" + "\n" + r"$\epsilon_c=%g$"
+    ax1.text(
+        0.65,
+        0.8,
+        pat % (nu1, eps_c1),
+        transform=ax1.transAxes,
+        fontsize="x-large")
+    pat += "\n" + r"$A_\chi=%g$"
+    ax2.text(
+        0.65,
+        0.75,
+        pat % (nu2, eps_c2, A2),
+        transform=ax2.transAxes,
+        fontsize="x-large")
+    ax3.text(
+        0.65,
+        0.75,
+        pat % (nu3, eps_c3, A3),
+        transform=ax3.transAxes,
+        fontsize="x-large")
+    plt.suptitle(
+        r"$\eta=%g,\gamma / \nu =%g$" % (eta, gamma_over_nu),
+        fontsize="xx-large")
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
-    eta = 0.18
-    chi_dict = get_chi_dict(eta, False)
-    chi_dis_dict = get_chi_dict(eta, True)
-    # os.chdir("data")
-    # distrubition(64, 500)
-    # varied_sample_size(64, 500)
+    eta = 0.05
     # diff_find_peak(90, 4, 10)
-    # plot_peak_location_vs_L()
-    # read_npz(724)
+    # plot_peak_location_vs_L(eta)
     # compare_two_averaging([64, 90])
     # plot_xi_vs_eps(eta, chi_dict, False)
-    plot_sample_averaged_chi(eta, chi_dict, None, False, False)
+    plot_3_panels(eta, save_fig=False, is_dis=False)
+    # collapse(eta, chi_dict)
