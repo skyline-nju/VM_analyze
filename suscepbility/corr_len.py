@@ -15,25 +15,28 @@ except:
     print("error when import add_line")
 
 
-def get_phi_dict(eta):
+def get_phi_dict(eta, eps_min=None):
     """
     Get dict of phi with key `eps`. phi_dict[eps] is a 2 * n array,
     L_arr=phi_dict[eps][0], phi_arr = phi_dict[eps][1].
     """
+    from create_dict import create_dict_from_xlsx
+    path = r"E:\data\random_torque\susceptibility\sample_average"
+    infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if eta == 0.18:
-        from create_dict import create_dict_from_txt
-        path = r"data\eta=%.2f" % eta
-        # eps_min = 0.01
-        eps_min = 0.0535
+        # from create_dict import create_dict_from_txt
+        # path = r"data\eta=%.2f" % eta
+        if eps_min is None:
+            eps_min = 0.052
         L_min = None
-        phi_dict = create_dict_from_txt(path, "phi", "eps", eps_min, L_min,
-                                        "dict-arr", 5)
+        phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
+                                         "dict-arr", 7)
     else:
-        from create_dict import create_dict_from_xlsx
-        path = r"E:\data\random_torque\susceptibility"
-        infile = path + os.path.sep + r"eta=%g.xlsx" % eta
-        # eps_min = 0.01
-        eps_min = 0.048
+        # from create_dict import create_dict_from_xlsx
+        # path = r"E:\data\random_torque\susceptibility"
+        # infile = path + os.path.sep + r"eta=%g.xlsx" % eta
+        if eps_min is None:
+            eps_min = 0.048
         L_min = None
         phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
                                          "dict-arr", 5)
@@ -129,8 +132,9 @@ def find_peak(eta,
         return c[1], stats[0][0], eps_m, xm, phi_m, xerr
 
 
-def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
+def plot_three_panel(eta, alpha, save_fig=False, save_data=False):
     """ Plot phi vs. L, L^alpha * phi vs. L and correlation length vs. eps."""
+    phi_dict = get_phi_dict(eta)
     fig, (ax1, ax2, ax3) = plt.subplots(
         nrows=1, ncols=3, figsize=(15, 5), constrained_layout=True)
     c0, res, eps_m, Lm, phi_m, xi_err = find_peak(eta, phi_dict, alpha, True,
@@ -145,19 +149,18 @@ def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     if eta == 0.18:
         eps_min = 0.05
         eps_max = 0.087
-        x = eps_m[:-4]
-        y = Lm[:-4]
     elif eta == 0.1:
         eps_min = 0.047
         eps_max = 0.076
-        x = eps_m[:-7]
-        y = Lm[:-7]
+    xi_min = 100
+    mask = Lm >= xi_min
+    x = eps_m[mask]
+    y = Lm[mask]
 
     ax3.axhspan(y[-1] - 10, y[0] + 100, alpha=0.2)
     plot_KT_fit(0.5, ax3, x, y, eps_min=eps_min, eps_max=eps_max)
     plot_KT_fit(1.0, ax3, x, y, eps_min=eps_min, eps_max=eps_max)
     plot_pow_fit(ax3, x, y, eps_min=eps_min, eps_max=eps_max)
-    print(Lm[:-5])
 
     ax3.set_yscale("log")
     ax3.set_xlabel(r"$\epsilon$", fontsize="x-large")
@@ -173,116 +176,81 @@ def plot_three_panel(eta, phi_dict, alpha, save_fig=False, save_data=False):
     plt.close()
 
 
-def collapse(eta, phi_dict):
+def collapse(ax, eta, phi_dict, text_pos, beta_over_nu, eps_c, nu, A=None):
+    if eta == 0.18:
+        eps_max = 0.07
+    elif eta == 0.1:
+        eps_max = 0.057
+    for eps in sorted(phi_dict.keys()):
+        if eps < eps_max:
+            L_arr, phi_arr = phi_dict[eps]
+            y = phi_arr * L_arr**(beta_over_nu)
+            if A is None:
+                x = L_arr**(1 / nu) * np.absolute(eps - eps_c)
+                # x = np.log(L_arr ** (1/nu)) * np.absolute(eps - eps_c)
+            else:
+                x = (np.log(L_arr) - np.log(A))**(
+                    1 / nu) * np.absolute(eps - eps_c)
+            if eps < eps_c:
+                ax.plot(x, y, "s", ms=5, label="%.3f" % eps, fillstyle="none")
+            else:
+                ax.plot(x, y, "o", ms=5, label="%.3f" % eps, fillstyle="none")
+    text = r"$\nu=%g$" % nu + "\n" + r"$\epsilon_c=%g$" % eps_c
+    if A is None:
+        xlabel = r"$|\epsilon-\epsilon_c| L ^ {1/\nu}$"
+    else:
+        xlabel = r"$|\epsilon-\epsilon_c|\left[\ln L-\ln A_\xi\right]^{1/\nu}$"
+        text += "\n" + r"$A_\xi=%g$" % A
+    ax.set_xlabel(xlabel, fontsize="x-large")
+    ax.text(
+        text_pos[0],
+        text_pos[1],
+        text,
+        transform=ax.transAxes,
+        fontsize="x-large")
+    ax.legend(
+        title=r"$\epsilon=$",
+        loc="best",
+        ncol=2,
+        columnspacing=0.5,
+        handletextpad=0.05)
+    # ax.set_xscale("log")
+    # ax.set_yscale("log")
+
+
+def collapse3(eta):
+    phi_dict = get_phi_dict(eta, 0.01)
     if eta == 0.18:
         beta_over_nu = 0.05
-        eps_c1 = 0.0443
-        nu1 = 1.829
-        eps_c2 = 0.0306
-        nu2 = 1
-        A2 = 5.246
-        eps_c3 = 0.0375
-        nu3 = 0.5
-        A3 = 0.851
-        eps_min = 0.07
+        # eps_c = [0.0443, 0.0306, 0.0375]
+        # nu = [1.829, 1, 0.5]
+        eps_c = [0.0448, 0.0306, 0.0375]
+        nu = [1.873, 1, 0.5]
+        A = [None, 5.246, 0.851]
     elif eta == 0.1:
         beta_over_nu = 0.05
-        eps_c1 = 0.0403
-        nu1 = 2.048
-        nu2 = 1
-        eps_c2 = 0.0307
-        A2 = 3.695
-        nu3 = 0.5
-        eps_c3 = 0.0355
-        A3 = 0.48
-        eps_min = 0.057
-
-    fig, (ax1, ax2, ax3) = plt.subplots(
+        eps_c = [0.0403, 0.0307, 0.0361]
+        nu = [2.048, 1, 0.5]
+        A = [None, 3.695, 0.745]
+    text_pos = [(0.65, 0.7), (0.65, 0.6), (0.1, 0.1)]
+    fig, axes = plt.subplots(
         nrows=1,
         ncols=3,
         figsize=(12, 4.5),
         constrained_layout=True,
         sharey=True)
-    for eps in sorted(phi_dict.keys()):
-        if eps >= eps_min:
-            continue
-        L_arr, phi_arr = phi_dict[eps]
-        y = phi_arr * L_arr**(beta_over_nu)
-        x1 = np.absolute(eps - eps_c1) * L_arr**(1 / nu1)
-        x2 = (np.log(L_arr) - np.log(A2))**(
-            1 / nu2) * np.absolute(eps - eps_c2)
-        x3 = (np.log(L_arr) - np.log(A3))**(
-            1 / nu3) * np.absolute(eps - eps_c3)
-        if eps < eps_c1:
-            ax1.plot(x1, y, "s", label="%.3f" % eps, fillstyle="none")
-        else:
-            ax1.plot(x1, y, "o", label="%.3f" % eps, fillstyle="none")
-        if eps < eps_c2:
-            ax2.plot(x2, y, "s", label="%.3f" % eps, fillstyle="none")
-        else:
-            ax2.plot(x2, y, "o", label="%.3f" % eps, fillstyle="none")
-        if eps < eps_c3:
-            ax3.plot(x3, y, "s", label="%.3f" % eps, fillstyle="none")
-        else:
-            ax3.plot(x3, y, "o", label="%.3f" % eps, fillstyle="none")
-    ax1.legend(
-        title=r"$\epsilon=$",
-        loc="lower right",
-        ncol=2,
-        columnspacing=0.5,
-        handletextpad=0.05)
-    ax2.legend(
-        title=r"$\epsilon=$",
-        loc="lower left",
-        ncol=2,
-        columnspacing=0.5,
-        handletextpad=0.05)
-    ax3.legend(
-        title=r"$\epsilon=$",
-        loc="center right",
-        ncol=2,
-        columnspacing=0.5,
-        handletextpad=0.05)
-    ylabel = r"$\phi L ^ {\beta / \nu}$"
-    xlabel = r"$|\epsilon-\epsilon_c| L ^ {1/\nu}$"
-    xlabel2 = r"$|\epsilon-\epsilon_c|\left[\ln L - \ln A_\xi\right]^{1/\nu}$"
-    ax1.set_ylabel(ylabel, fontsize="x-large")
-    ax1.set_xlabel(xlabel, fontsize="x-large")
-    ax2.set_xlabel(xlabel2, fontsize="x-large")
-    ax3.set_xlabel(xlabel2, fontsize="x-large")
-    ax1.set_title(r"(a) algebraic scaling")
-    ax2.set_title(r"(b) KT scaling")
-    ax3.set_title(r"(c) KT scaling")
-    if eta == 0.18:
-        ax1.set_xlim(xmax=1.5)
-        pass
-    pat = r"$\nu=%g$" + "\n" + r"$\epsilon_c=%g$"
-    ax1.text(
-        0.65,
-        0.7,
-        pat % (nu1, eps_c1),
-        transform=ax1.transAxes,
-        fontsize="x-large")
-    pat += "\n" + r"$A_\xi=%g$"
-    ax2.text(
-        0.65,
-        0.6,
-        pat % (nu2, eps_c2, A2),
-        transform=ax2.transAxes,
-        fontsize="x-large")
-    ax3.text(
-        0.1,
-        0.1,
-        pat % (nu3, eps_c3, A3),
-        transform=ax3.transAxes,
-        fontsize="x-large")
+    for i, ax in enumerate(axes):
+        collapse(ax, eta, phi_dict, text_pos[i], beta_over_nu, eps_c[i], nu[i],
+                 A[i])
+    axes[0].set_ylabel(r"$\phi L^{\beta/\nu}$", fontsize="x-large")
     plt.suptitle(
         r"$\eta=%g,\beta/\nu =%g$" % (eta, beta_over_nu), fontsize="xx-large")
     plt.show()
     plt.close()
 
 
-def varied_alpha(eta, phi_dict, xi_m=100):
+def varied_alpha(eta, xi_m=100):
+    phi_dict = get_phi_dict(eta)
     if eta == 0.18:
         alpha_arr = np.linspace(0.55, 0.9, 50)
     elif eta == 0.10:
@@ -339,13 +307,5 @@ def varied_alpha(eta, phi_dict, xi_m=100):
 
 if __name__ == "__main__":
     eta = 0.18
-    phi_dict = get_phi_dict(eta)
-    # plot_phi_vs_L()
-    # plot_L_vs_eps_c([0.35, 0.4, 0.45, 0.5])
-    # plot_phi_vs_L(phi_dict, None, eta, None, None)
-    # xi_vs_eps_varied_alpha(eta, phi_dict)
-    # changing_alpha(phi_dict)
-    # powfit_varied_alpha(eta, phi_dict, h1=3, t1=0, h2=[0,3,0], t2=[0,0,3])
-    plot_three_panel(eta, phi_dict, 0.85, save_fig=False, save_data=True)
-    # collapse(eta, phi_dict)
-    # varied_alpha(eta, phi_dict)
+    plot_three_panel(eta, 0.6, save_fig=False, save_data=True)
+    # collapse3(eta)

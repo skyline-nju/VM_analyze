@@ -46,6 +46,7 @@ def get_chi_dict(eta, is_dis=False):
         chi_type = "chi"
     if eta == 0.18:
         eps_min = 0.045
+        # eps_min = 0.01
         L_min = 46
         chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
         del_keys = []
@@ -57,6 +58,7 @@ def get_chi_dict(eta, is_dis=False):
 
     elif eta == 0.10:
         eps_min = 0.045
+        # eps_min = 0.01
         L_min = 45
         chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
         for L in chi_dict:
@@ -71,6 +73,7 @@ def get_chi_dict(eta, is_dis=False):
         # del chi_dict[180]
         # del chi_dict[256]
         del chi_dict[362]
+        del chi_dict[512]
     return chi_dict
 
 
@@ -135,11 +138,12 @@ def find_peak(eta, chi_dict, ax=None):
         ax.legend(loc="upper right", title=r"$L=$")
         ax.set_xlim(xmax=0.09)
         ax.set_xlabel(r"$\epsilon$", fontsize="xx-large")
-        ax.set_ylabel("Sample-averaged susceptibility", fontsize="xx-large")
+        ylabel = r"$L^2\left([\langle m^2\rangle]-[\langle m\rangle]^2\right)$"
+        ax.set_ylabel(ylabel, fontsize="xx-large")
     return eps_p, chi_p, eps_err, chi_err
 
 
-def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, ax, is_chi_dis=False):
+def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, ax, mode="con"):
     ax.plot(L, chi_p, "o")
     x0, x1 = L[0] - 2, L[-1] + 50
     ax.errorbar(L, chi_p, yerr=chi_err, fmt="none")
@@ -151,23 +155,17 @@ def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, ax, is_chi_dis=False):
     ax.set_yscale("log")
     ax.set_xlim(x0, x1)
     ax.legend(loc="upper left", title="linear fit", fontsize="x-large")
-    if is_chi_dis:
-        slope = 2.0
-    else:
+    if mode == "con":
         slope = 1.75
+    elif mode == "dis":
+        slope = 2.0
+    elif mode == "mix":
+        slope = 1.9
     label = r"$\chi_p \propto L^{%g}$" % slope
     add_line(ax, 0, 0.2, 1, slope, label=label, scale="log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
     ax.set_ylabel(
         r"${\rm susceptibility\ peak\ }\chi_{\rm p}$", fontsize="xx-large")
-    # add inset axes
-    # plt.tight_layout()
-    # ax_in = plt.axes([0.55, 0.2, 0.1, 0.3])
-    # ax_in.loglog(L_arr, chi_p / L_arr**1.75, "-o")
-    # ax_in.set_xlabel(r"$L$")
-    # ax_in.set_ylabel(r"$\chi_m L^{-1.75}$")
-    # if eta == 0.1:
-    #     add_line(ax_in, 0, 0.3, 1, 0.05, label=r"$L^{0.05}$", scale="log")
 
 
 def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
@@ -189,8 +187,8 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     from fit import plot_KT_fit, plot_pow_fit
     if eta == 0.18:
         eps_m = 0.05
-        x = eps_p[3:]
-        y = L[3:]
+        x = eps_p[4:]
+        y = L[4:]
     elif eta == 0.1:
         x = eps_p[3:]
         y = L[3:]
@@ -221,13 +219,24 @@ def read_suscept_peak(eta, head, tail):
     return L, eps
 
 
-def plot_3_panels(eta, save_fig=False, is_dis=False):
+def plot_3_panels(eta, save_fig=False, mode="con"):
     """
     Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
     first panel. Mean while, show susceptibility peak vs. L in the second
     panel and location of susceptibility peak vs. L in the third panel.
     """
-    chi_dict = get_chi_dict(eta, is_dis)
+    if mode == "con":
+        chi_dict = get_chi_dict(eta, False)
+    elif mode == "dis":
+        chi_dict = get_chi_dict(eta, True)
+    elif mode == "mix":
+        chi_dict = {}
+        chi_con = get_chi_dict(eta, False)
+        chi_dis = get_chi_dict(eta, True)
+        for L in chi_con:
+            eps_arr, chi_arr1 = chi_dis[L]
+            eps_arr, chi_arr2 = chi_con[L]
+            chi_dict[L] = [eps_arr, chi_arr1 + chi_arr2]
     if eta == 0.05:
         fig, axes = plt.subplots(
             nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
@@ -237,7 +246,7 @@ def plot_3_panels(eta, save_fig=False, is_dis=False):
     L_arr = np.array([i for i in sorted(chi_dict.keys())])
     eps_p, chi_p, eps_err, chi_err = find_peak(eta, chi_dict, axes[0])
     axes[0].set_title("(a)", fontsize="xx-large")
-    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, axes[1], is_dis)
+    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, axes[1], mode)
     axes[1].set_title("(b)", fontsize="xx-large")
     if eta != 0.05:
         plot_peak_loc_vs_L(eta, L_arr, eps_p, eps_err, axes[2])
@@ -245,10 +254,12 @@ def plot_3_panels(eta, save_fig=False, is_dis=False):
         ax_in = fig.add_axes([0.55, 0.2, 0.1, 0.3])
     else:
         ax_in = fig.add_axes([0.8, 0.18, 0.18, 0.32])
-    if is_dis:
+    if mode == "dis":
         slope = 2.0
-    else:
+    elif mode == "con":
         slope = 1.75
+    else:
+        slope = 1.9
     ax_in.loglog(L_arr, chi_p / L_arr**slope, "o")
     ylabel = r"$\chi_p / L^{%g}$" % slope
     ax_in.text(0.05, 0.8, ylabel, transform=ax_in.transAxes, fontsize="large")
@@ -259,7 +270,8 @@ def plot_3_panels(eta, save_fig=False, is_dis=False):
         plt.show()
 
 
-def collapse(eta, chi_dict):
+def collapse3(eta):
+    chi_dict = get_chi_dict(eta, False)
     if eta == 0.18:
         gamma_over_nu = 1.7489
         eps_c1 = 0.0448
@@ -280,6 +292,9 @@ def collapse(eta, chi_dict):
         nu3 = 0.5
         eps_c3 = 0.0345
         A3 = 0.813
+    else:
+        print("eta should be one of 0.10 or 0.18!")
+        sys.exit()
 
     fig, (ax1, ax2, ax3) = plt.subplots(
         nrows=1,
@@ -313,6 +328,7 @@ def collapse(eta, chi_dict):
     ax1.set_title(r"(a) algebraic scaling")
     ax2.set_title(r"(b) KT scaling")
     ax3.set_title(r"(c) KT scaling")
+    # ax1.set_yscale("log")
     pat = r"$\nu=%g$" + "\n" + r"$\epsilon_c=%g$"
     ax1.text(
         0.65,
@@ -340,11 +356,71 @@ def collapse(eta, chi_dict):
     plt.close()
 
 
+def plot_chi_mix(eta):
+    chi_con = get_chi_dict(eta, False)
+    chi_dis = get_chi_dict(eta, True)
+    chi_mix = {}
+    for L in chi_con:
+        eps_arr, chi_arr1 = chi_dis[L]
+        eps_arr, chi_arr2 = chi_con[L]
+        chi_mix[L] = [eps_arr, chi_arr1 + chi_arr2]
+    for L in chi_mix:
+        eps_arr, chi_arr = chi_mix[L]
+        plt.plot(eps_arr, chi_arr, "o", label=r"$L=%d$" % L)
+    plt.legend()
+    plt.yscale("log")
+    plt.show()
+    plt.close()
+
+
+def plot_chi_mix_dis():
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=1, ncols=2, figsize=(9, 4), constrained_layout=True)
+    c = []
+    for i, eta in enumerate([0.1, 0.18]):
+        chi_con_dict = get_chi_dict(eta, False)
+        chi_dis_dict = get_chi_dict(eta, True)
+        chi_mix_dict = {}
+        for L in chi_con_dict:
+            eps, chi1 = chi_dis_dict[L]
+            eps, chi2 = chi_con_dict[L]
+            chi_mix_dict[L] = [eps, chi1 + chi2]
+        L_arr = np.array([L for L in sorted(chi_mix_dict.keys())])
+        eps_p_dis, chi_p_dis, eps_err_dis, chi_err_dis = find_peak(
+            eta, chi_dis_dict)
+        eps_p_mix, chi_p_mix, eps_err_mix, chi_err_mix = find_peak(
+            eta, chi_mix_dict)
+        eps_p_con, chi_p_con, eps_err_con, chi_err_con = find_peak(
+            eta, chi_con_dict)
+        ax1.plot(L_arr, chi_p_mix / chi_p_dis, "o", label=r"$\eta=%g$" % eta)
+        line, = ax2.plot(
+            L_arr, 1 - chi_p_dis / chi_p_mix, "o", label=r"$\eta=%g$" % eta)
+        c.append(line.get_color())
+
+    ax1.set_xscale("log")
+    ax2.set_xscale("log")
+    ax2.set_yscale("log")
+    lb = r"$L^{-0.1}$"
+    add_line(ax2, 0, 1, 1, -0.1, scale="log", c=c[0], label=lb, xl=0.5, yl=0.8)
+    lb = r"$L^{-0.15}$"
+    add_line(
+        ax2, 0, 0.8, 1, -0.15, scale="log", c=c[1], label=lb, xl=0.3, yl=0.4)
+
+    ax1.set_xlabel(r"$L$", fontsize="x-large")
+    ax1.set_ylabel(r"$\chi_{\rm tot}/\chi_{\rm dis}$", fontsize="x-large")
+    ax2.set_xlabel(r"$L$", fontsize="x-large")
+    ax2.set_ylabel(
+        r"$1 - \frac{\chi_{\rm dis}} {\chi_{\rm tot}}$", fontsize="xx-large")
+    ax1.legend(fontsize="x-large")
+    ax2.legend(fontsize="x-large", loc="lower left")
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
-    eta = 0.05
-    # diff_find_peak(90, 4, 10)
-    # plot_peak_location_vs_L(eta)
-    # compare_two_averaging([64, 90])
-    # plot_xi_vs_eps(eta, chi_dict, False)
-    plot_3_panels(eta, save_fig=False, is_dis=False)
-    # collapse(eta, chi_dict)
+    eta = 0.18
+    # plot_3_panels(eta, save_fig=False, mode="mix")
+    # collapse3(eta)
+    # plot_chi_mix(eta)
+
+    plot_chi_mix_dis()
