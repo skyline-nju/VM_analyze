@@ -11,7 +11,7 @@ sys.path.append("../")
 try:
     import common
     from handle import plot_serials
-except:
+except ImportError:
     raise
 
 

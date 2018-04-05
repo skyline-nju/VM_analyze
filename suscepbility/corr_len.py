@@ -11,7 +11,7 @@ import sys
 sys.path.append("..")
 try:
     from corr2d.add_line import add_line
-except:
+except ImportError:
     print("error when import add_line")
 
 
@@ -21,7 +21,11 @@ def get_phi_dict(eta, eps_min=None):
     L_arr=phi_dict[eps][0], phi_arr = phi_dict[eps][1].
     """
     from create_dict import create_dict_from_xlsx
+
     path = r"E:\data\random_torque\susceptibility\sample_average"
+    if not os.path.exists(path):
+        path = r"D:\data\random_torque\susceptibility\sample_average"
+
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if eta == 0.18:
         # from create_dict import create_dict_from_txt
@@ -307,5 +311,5 @@ def varied_alpha(eta, xi_m=100):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_three_panel(eta, 0.6, save_fig=False, save_data=True)
+    plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
     # collapse3(eta)

@@ -151,7 +151,7 @@ def handle_files(para_dict, t_beg=10000, out=True, show=False, interp=None):
             time_used = time.clock() - time_beg
             print("%d of %d: %s, use time: %g s" %
                   (i + 1, len(files), outfile, time_used))
-        except:
+        except RuntimeError:
             print("Error for %s" % file)
 
 

@@ -23,7 +23,7 @@ def read(**kwargs):
                     Lx.append(Lx0)
                     rate.append(rate_dict[nb0])
                     nb.append(nb0)
-            except:
+            except RuntimeError:
                 print("Error at Lx=%d" % Lx0)
 
     else:
@@ -52,11 +52,11 @@ def read(**kwargs):
 
 def rescale(ax, Lx, phi, rate, nb, lamb, Ly, dLx, eta, eps, rho0=1):
     Lr = Lx - nb * lamb
-    l = Lr / (nb * lamb)
-    circle, = ax.plot(l, phi, "o")
+    l_rescaled = Lr / (nb * lamb)
+    circle, = ax.plot(l_rescaled, phi, "o")
 
-    z = np.polyfit(l, phi, 1)
-    x = np.linspace(l.min(), l.max(), 100)
+    z = np.polyfit(l_rescaled, phi, 1)
+    x = np.linspace(l_rescaled.min(), l_rescaled.max(), 100)
     y = x * z[0] + z[1]
     line, = ax.plot(x, y, "--")
     ax.text(
@@ -156,8 +156,8 @@ def plot_phi_Lx(Lx, phi, nb):
 
 def plot_rescale(Lx, nb, phi, lamb):
     Lr = Lx - nb * lamb
-    l = Lr / (nb * lamb)
-    circle, = plt.plot(l, phi, "o")
+    l_rescaled = Lr / (nb * lamb)
+    circle, = plt.plot(l_rescaled, phi, "o")
     plt.show()
 
 

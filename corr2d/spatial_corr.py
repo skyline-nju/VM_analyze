@@ -171,7 +171,7 @@ def get_chara_length(r, c_r, threshold=0.5):
         try:
             Lc = r[j] - (c_r[j] - threshold) * (r[j] - r[j + 1]) / (
                 c_r[j] - c_r[j + 1])
-        except:
+        except RuntimeError:
             return None
     return Lc
 

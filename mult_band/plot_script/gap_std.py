@@ -49,4 +49,3 @@ if __name__ == "__main__":
     plt.plot(Lx, std_gap, "-o")
     plt.show()
     plt.close()
-

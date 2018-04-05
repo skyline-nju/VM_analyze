@@ -52,7 +52,7 @@ if __name__ == "__main__":
     else:
         try:
             os.chdir("snap")
-        except:
+        except RuntimeError:
             print("No direction 'snap/'.")
             sys.exit()
         if len(sys.argv) == 2:

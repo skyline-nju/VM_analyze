@@ -226,6 +226,9 @@ def plot_pow_fit(ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
     y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
     label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
                                                             popt[0], popt[2])
+    # y = np.exp(popt[1] - 2 * np.log(x - popt[0]))
+    # label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
+    #                                                         popt[0], 2)
     if reversed:
         ax.plot(y, x, "--", label=label)
     else:
@@ -396,7 +399,7 @@ def varied_nu2(eta,
                 eps_c1[i], lnA = popt
                 popt, perr = fit_pow(eps2, L2, nu)
                 eps_c2[i], lnA = popt
-        except:
+        except RuntimeError:
             eps_c1[i] = np.nan
             eps_c2[i] = np.nan
             print(nu)
@@ -493,7 +496,7 @@ def cross_point_w_varied_alpha(eta,
                     eps_c2[j], lnA = popt
             nu_c_arr[i], eps_c_arr[i] = get_cross_point(nu_arr, eps_c1, eps_c2)
             print("success for i =", i, "alpha =", alpha)
-        except:
+        except RuntimeError:
             nu_c_arr[i] = np.nan
             eps_c_arr[i] = np.nan
     with open(filename, "w") as f:

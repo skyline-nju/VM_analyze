@@ -17,7 +17,7 @@ import sys
 sys.path.append("..")
 try:
     from corr2d.add_line import add_line
-except:
+except ImportError:
     print("error when import add_line")
 
 
@@ -39,6 +39,9 @@ def get_chi_dict(eta, is_dis=False):
     """
     from create_dict import create_dict_from_xlsx
     path = r"E:\data\random_torque\susceptibility\sample_average"
+    if not os.path.exists(path):
+        path = r"D:\data\random_torque\susceptibility\sample_average"
+
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if is_dis:
         chi_type = "chi_dis"
@@ -64,6 +67,8 @@ def get_chi_dict(eta, is_dis=False):
         for L in chi_dict:
             if L > 90:
                 chi_dict[L] = chi_dict[L][:, :-2]
+                if L == 512:
+                    chi_dict[L] = chi_dict[L][:, :-3]
         del chi_dict[54]
         del chi_dict[108]
     elif eta == 0.05:
@@ -193,10 +198,14 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
         x = eps_p[3:]
         y = L[3:]
         eps_m = 0.045
+    else:
+        x = eps_p[2:]
+        y = L[2:]
+        eps_m = 0.02
     ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
     plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m)
     plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m)
-    plot_pow_fit(ax, x, y, reversed=True)
+    plot_pow_fit(ax, x, y, reversed=True, eps_min=eps_m)
     ax.set_xscale("log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
     ax.set_ylabel(
@@ -237,7 +246,7 @@ def plot_3_panels(eta, save_fig=False, mode="con"):
             eps_arr, chi_arr1 = chi_dis[L]
             eps_arr, chi_arr2 = chi_con[L]
             chi_dict[L] = [eps_arr, chi_arr1 + chi_arr2]
-    if eta == 0.05:
+    if eta == 0.0:
         fig, axes = plt.subplots(
             nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
     else:
@@ -248,7 +257,7 @@ def plot_3_panels(eta, save_fig=False, mode="con"):
     axes[0].set_title("(a)", fontsize="xx-large")
     plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, axes[1], mode)
     axes[1].set_title("(b)", fontsize="xx-large")
-    if eta != 0.05:
+    if eta != 0.0:
         plot_peak_loc_vs_L(eta, L_arr, eps_p, eps_err, axes[2])
         axes[2].set_title("(c)", fontsize="xx-large")
         ax_in = fig.add_axes([0.55, 0.2, 0.1, 0.3])
@@ -419,8 +428,8 @@ def plot_chi_mix_dis():
 
 if __name__ == "__main__":
     eta = 0.18
-    # plot_3_panels(eta, save_fig=False, mode="mix")
+    plot_3_panels(eta, save_fig=False, mode="mix")
     # collapse3(eta)
     # plot_chi_mix(eta)
 
-    plot_chi_mix_dis()
+    # plot_chi_mix_dis()
