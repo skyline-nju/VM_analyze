@@ -208,6 +208,19 @@ def fit_pow(eps, xi, beta=None, xi_err=None):
     return popt, perr
 
 
+def fit_pow2(xi, eps, eps_err=None):
+    def fun(L, eps_c, A_xi, nu):
+        return eps_c + np.power(L / A_xi, - 1 / nu)
+
+    p0 = [0.03, 1, 1]
+    p_min = [0, 0, 0]
+    p_max = [0.05, np.inf, np.inf]
+    b = (p_min, p_max)
+    popt, pcov = curve_fit(fun, xi, eps, p0, bounds=b, sigma=eps_err)
+    perr = np.sqrt(np.diag(pcov))
+    return popt, perr
+
+
 def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
     popt, perr = fit_exp(eps, xi, beta=nu)
     x = np.linspace(eps_min, eps_max, 100)
@@ -220,19 +233,18 @@ def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
         ax.plot(x, y, "--", label=label)
 
 
-def plot_pow_fit(ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
-    popt, perr = fit_pow(eps, xi)
-    x = np.linspace(eps_min, eps_max, 100)
-    y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
+def plot_pow_fit(ax, eps, xi, reversed=False, eps_err=None):
+    if not reversed:
+        popt, perr = fit_pow(eps, xi)
+        x = np.linspace(eps.min(), eps.max(), 100)
+        y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
+    else:
+        popt, perr = fit_pow2(xi, eps, eps_err=eps_err)
+        x = np.linspace(32, xi[-1], 100)
+        y = popt[0] + np.power(x / popt[1], -1/popt[2])
     label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
                                                             popt[0], popt[2])
-    # y = np.exp(popt[1] - 2 * np.log(x - popt[0]))
-    # label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
-    #                                                         popt[0], 2)
-    if reversed:
-        ax.plot(y, x, "--", label=label)
-    else:
-        ax.plot(x, y, "--", label=label)
+    ax.plot(x, y, "--", label=label)
 
 
 def show_KT(nu):

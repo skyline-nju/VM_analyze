@@ -48,7 +48,7 @@ def get_chi_dict(eta, is_dis=False):
     else:
         chi_type = "chi"
     if eta == 0.18:
-        eps_min = 0.045
+        eps_min = 0.0455
         # eps_min = 0.01
         L_min = 46
         chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
@@ -56,6 +56,10 @@ def get_chi_dict(eta, is_dis=False):
         for L in chi_dict.keys():
             if L not in [46, 64, 90, 128, 180, 256, 362, 512, 724, 1024]:
                 del_keys.append(L)
+            if L == 256:
+                chi_dict[L] = chi_dict[L][:, 1:-2]
+            if L == 724 or L == 512 or L == 362:
+                chi_dict[L] = chi_dict[L][:, 1:-1]
         for L in del_keys:
             del chi_dict[L]
 
@@ -68,7 +72,7 @@ def get_chi_dict(eta, is_dis=False):
             if L > 90:
                 chi_dict[L] = chi_dict[L][:, :-2]
                 if L == 512:
-                    chi_dict[L] = chi_dict[L][:, :-3]
+                    chi_dict[L] = chi_dict[L][:, :-2]
         del chi_dict[54]
         del chi_dict[108]
     elif eta == 0.05:
@@ -192,12 +196,14 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     from fit import plot_KT_fit, plot_pow_fit
     if eta == 0.18:
         eps_m = 0.05
-        x = eps_p[4:]
-        y = L[4:]
+        x = eps_p[5:]
+        y = L[5:]
+        x_err = eps_err[5:]
     elif eta == 0.1:
+        eps_m = 0.045
         x = eps_p[3:]
         y = L[3:]
-        eps_m = 0.045
+        x_err = eps_err[3:]
     else:
         x = eps_p[2:]
         y = L[2:]
@@ -205,7 +211,7 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
     plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m)
     plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m)
-    plot_pow_fit(ax, x, y, reversed=True, eps_min=eps_m)
+    plot_pow_fit(ax, x, y, reversed=True, eps_err=x_err)
     ax.set_xscale("log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
     ax.set_ylabel(
@@ -273,6 +279,14 @@ def plot_3_panels(eta, save_fig=False, mode="con"):
     ylabel = r"$\chi_p / L^{%g}$" % slope
     ax_in.text(0.05, 0.8, ylabel, transform=ax_in.transAxes, fontsize="large")
     ax_in.text(0.85, 0.05, r"$L$", transform=ax_in.transAxes, fontsize="large")
+    title = r"$\eta=%g,$" % eta
+    if mode == "con":
+        title += " connected susceptibility"
+    elif mode == "dis":
+        title += " disconnected susceptibility"
+    else:
+        title += " mixed susceptibility"
+    plt.suptitle(title, fontsize="xx-large")
     if save_fig:
         plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)
     else:
@@ -426,10 +440,26 @@ def plot_chi_mix_dis():
     plt.close()
 
 
+def xlsx_to_txt(eta):
+    chi_con = get_chi_dict(eta, False)
+    chi_dis = get_chi_dict(eta, True)
+    out_file_pat = r"eta=%g_L=%d.dat"
+    for L in chi_con:
+        out_file = out_file_pat % (eta, L)
+        print(out_file)
+        with open(out_file, "w") as f:
+            eps_arr, chi_con_arr = chi_con[L]
+            eps_arr, chi_dis_arr = chi_dis[L]
+            f.writelines("%f\t%f\t%f\n" % (
+                    eps_arr[i], chi_con_arr[i], chi_dis_arr[i]
+                    ) for i in range(eps_arr.size))
+
+
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="mix")
+    plot_3_panels(eta, save_fig=False, mode="con")
     # collapse3(eta)
     # plot_chi_mix(eta)
 
     # plot_chi_mix_dis()
+    # xlsx_to_txt(eta)

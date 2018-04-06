@@ -7,7 +7,7 @@ import platform
 import common
 import matplotlib
 import time
-if platform.system() is not "Windows":
+if platform.system() != "Windows":
     matplotlib.use("Agg")
 
 

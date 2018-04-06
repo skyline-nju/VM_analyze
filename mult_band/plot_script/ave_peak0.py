@@ -142,7 +142,10 @@ def four_panel():
 
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps0")
+    data_dir = r"E:/data/random_torque/bands/Lx/snapshot/eps0"
+    if not os.path.exists(data_dir):
+        data_dir = data_dir.replace("E", "D")
+    os.chdir(data_dir)
     dict_LSN = read_matched_file()
     # equal_Lr_over_nb(Fraction(sys.argv[1]))
     # equal_nb(2)

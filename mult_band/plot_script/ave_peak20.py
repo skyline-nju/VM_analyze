@@ -10,7 +10,10 @@ from read_npz import read_matched_file, eq_Lx_and_nb
 def plot_peak(Lx, nb, eta=350, eps=20):
     """ Plot time-averaged peaks for differernt samples with zoom effect."""
 
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
+    path = r"E:/data/random_torque/bands/Lx/snapshot/uniband"
+    if not os.path.exists(path):
+        path = path.replace("E", "D")
+    os.chdir(path)
 
     fig = plt.figure(1, figsize=(8, 5))
     ax1 = plt.subplot(221)

@@ -10,7 +10,7 @@ from read_npz import read_matched_file, eq_Lx_and_nb, time_average
 
 def get_data(nb, Lx=None):
     if Lx is None:
-        os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps0")
+        os.chdir(drive+r"/data/random_torque/bands/Lx/snapshot/eps0")
         if nb == 2:
             Lxs = range(280, 460, 20)
         elif nb == 3:
@@ -42,9 +42,9 @@ def get_data(nb, Lx=None):
         return phi, peak, v, Lx
     else:
         if 400 <= Lx <= 480:
-            os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
+            os.chdir(drive+r"/data/random_torque/bands/Lx/snapshot/uniband")
         else:
-            os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
+            os.chdir(drive+r"/data/random_torque/bands/Lx/snapshot/eps20")
         dict0 = read_matched_file({"Lx": Lx})
         phi = np.array(
             [i for i in eq_Lx_and_nb(Lx, nb, "mean_phi", dictLSN=dict0)])
@@ -56,7 +56,7 @@ def get_data(nb, Lx=None):
 
 
 def get_data_varied_eta(Lx, nb=2, Ly=200, eps=0, rho0=1):
-    os.chdir(r"E:\data\random_torque\bands\Lx\snapshot\varied_eta")
+    os.chdir(drive+r"/data/random_torque/bands/Lx/snapshot/varied_eta")
     files = glob.glob("mb_*.%d.%d.%d.*.npz" % (eps, Lx, Ly))
     phi = defaultdict(float)
     c = defaultdict(float)
@@ -447,11 +447,15 @@ def plot_eps20(v0=0.5):
         color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
-    # plt.savefig(r"E:\report\quenched_disorder\report\fig\rho_exc_20.pdf")
+    plt.savefig(drive+r"/report/quenched_disorder/report/fig/rho_exc_20.pdf")
     plt.close()
 
 
 if __name__ == "__main__":
+    if os.path.exists("E:"):
+        drive = "E:"
+    else:
+        drive = "D:"
     # plot_varied_eta()
     # plot_varied_Lx()
     plot_eps20()

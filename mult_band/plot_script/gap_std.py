@@ -30,7 +30,10 @@ def plot_phi_vs_std_gap(Lx, nb, marker, eta=350, eps=20, ax=None):
 
 
 if __name__ == "__main__":
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
+    path = r"E:/data/random_torque/bands/Lx/snapshot/uniband"
+    if not os.path.exists(path):
+        path = path.replace("E", "D")
+    os.chdir(path)
 
     Lxs = [460]
     mk = ["o", "s", ">", "h", "p", "<", "^", "v"]

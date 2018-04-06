@@ -102,17 +102,17 @@ def plot_phi_Lx_const_nb(nb,
         return sca, vlim
 
 
-def two_panel():
+def two_panel(drive="E:"):
     nb = 2
     fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(8.5, 4))
 
     ymin = 0.427
     ymax = 0.452
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\eps20")
+    os.chdir(drive + r"/data/random_torque/bands/Lx/snapshot/eps20")
     sca, vlim = plot_phi_Lx_const_nb(nb, ax=ax1)
     ax1.set_ylim(0.425, 0.4565)
 
-    os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
+    os.chdir(drive + r"/data/random_torque/bands/Lx/snapshot/uniband")
     plot_phi_Lx_const_nb(nb, ax=ax2, vlim=vlim, fit="linear")
     ax2.set_ylim(ymin, ymax)
 
@@ -143,4 +143,4 @@ def two_panel():
 if __name__ == "__main__":
     # os.chdir("E:\\data\\random_torque\\bands\\Lx\\snapshot\\uniband")
     # plot_phi_Lx_const_nb(2)
-    two_panel()
+    two_panel(drive="D:")

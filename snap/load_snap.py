@@ -107,13 +107,16 @@ class Snap:
 class RawSnap(Snap):
     def __init__(self, file):
         self.open_file(file)
-        str_list = file.split("_")
+        str_list = os.path.basename(file).split("_")
         if str_list[0] == "so":
             self.N = int(str_list[5])
         else:
             self.N = self.file_size // 12
-        self.Lx = int(str_list[3])
-        self.Ly = int(str_list[4])
+        try:
+            self.Lx = int(str_list[3])
+            self.Ly = int(str_list[4])
+        except ValueError:
+            self.Lx = self.Ly = int(str_list[1])
         self.frame_size = self.N * 3 * 4
         self.fmt = "%df" % (3 * self.N)
 
@@ -210,23 +213,47 @@ class CoarseGrainSnap(Snap):
         return frame
 
 
+def coarse_grain(x, y, theta, Lx, lx, Ly=None, ly=None):
+    if Ly is None:
+        Ly = Lx
+    if ly is None:
+        ly = lx
+    ncols, nrows = int(Lx / lx), int(Ly / ly)
+    num = np.zeros((nrows, ncols), int)
+    vx = np.zeros((nrows, ncols))
+    vy = np.zeros_like(vx)
+    for i in range(x.size):
+        col = int(x[i]/lx)
+        if col >= ncols:
+            col = 0
+        row = int(y[i]/ly)
+        if row >= nrows:
+            row = 0
+        num[row, col] += 1
+        vx[row, col] += np.cos(theta[i])
+        vy[row, col] += np.sin(theta[i])
+    return num, vx, vy
+
+
 if __name__ == "__main__":
-    # os.chdir(r"D:\code\corr2d\data")
-    # os.chdir(r"D:\code\VM_MPI\VM_MPI\coarse")
-    # os.chdir(r"E:\data\random_torque\ordering")
-    os.chdir(r"C:\Users\user\Desktop\vicsekShake")
-    file = r"cfff_0.29_0_512_512_512_512_262144_111.bin"
-    snap = CoarseGrainSnap(file)
-    frames = snap.gene_frames(beg_idx=0)
-    for frame in frames:
-        num, vx, vy = frame
-        theta = np.arctan2(vy, vx) / np.pi * 180
-        theta[theta < 0] += 360
-        plt.subplot(121)
-        plt.contourf(num, cmap="hot")
-        plt.colorbar(orientation="horizontal")
-        plt.subplot(122)
-        plt.contourf(theta, cmap="hsv", vmin=0, vmax=360)
-        plt.colorbar(orientation="horizontal")
-        plt.show()
-        plt.close()
+    file_dir = "D:" + r"\data\random_torque\snapshot" + os.path.sep
+    basename = "s_1024_0.180_0.040_1204400_01300000.bin"
+    snap = RawSnap(file_dir + basename)
+    L = 1024
+    l_box = 2
+    x, y, theta = snap.one_frame()
+    num, vx, vy = coarse_grain(x, y, theta, L, l_box)
+    rho = num / 4
+    print(rho.max())
+
+    # plt.scatter(x, y, s=1, c=theta, marker=".", cmap="hsv")
+    # plt.show()
+    # plt.plot(x[5000:10000], y[5000:10000], ".")
+    # plt.show()
+    # num, vx, vy = coarse_grain(x, y, theta, L, l_box)
+    # rho = num / l_box ** 2
+    # print(np.std(rho), np.mean(rho))
+    # rho_level = np.linspace(0, 10, 11)
+    # plt.contourf(rho, levels=rho_level, cmap="jet")
+    # plt.colorbar()
+    # plt.show()

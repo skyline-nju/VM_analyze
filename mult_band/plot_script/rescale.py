@@ -102,10 +102,10 @@ def rescale(ax, Lx, phi, rate, nb, lamb, Ly, dLx, eta, eps, rho0=1):
 
 
 def rescale_4_panel():
-    file1 = r"E:\data\random_torque\bands\Lx\350_0.dat"
-    path2 = r"E:\data\random_torque\bands\Lx\snapshot\eps20"
-    file3 = r"E:\data\random_torque\bands\Lx\old\400_0.dat"
-    file4 = r"E:\data\random_torque\bands\Lx\old\400_20.dat"
+    file1 = drive + r"/data/random_torque/bands/Lx/350_0.dat"
+    path2 = drive + r"/data/random_torque/bands/Lx/snapshot\eps20"
+    file3 = drive + r"/data/random_torque/bands/Lx/old/400_0.dat"
+    file4 = drive + r"/data/random_torque/bands/Lx/old/400_20.dat"
 
     fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(8, 7))
 
@@ -162,16 +162,20 @@ def plot_rescale(Lx, nb, phi, lamb):
 
 
 if __name__ == "__main__":
-    # rescale_4_panel()
-    # mk = [
-    #     ".", ",", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "P",
-    #     "p", "*", "h", "H", "+", "x", "X", "D", "d", "|", "-"
-    # ]
+    if os.path.exists("E:"):
+        drive = "E:"
+    else:
+        drive = "D:"
+    rescale_4_panel()
+    mk = [
+        ".", ",", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "P",
+        "p", "*", "h", "H", "+", "x", "X", "D", "d", "|", "-"
+    ]
     mk = MarkerStyle.filled_markers
     print(len(mk))
     # file1 = r"E:\data\random_torque\bands\Lx\350_0.dat"
     # file1 = r"E:\data\random_torque\bands\Lx\old\350_20_200.dat"
-    file1 = r"E:\data\random_torque\bands\Lx\old\400_20.dat"
+    file1 = drive + r"/data/random_torque/bands/Lx/old/400_20.dat"
 
     lamb = 400
     Lx, phi, rate, nb = read(file=file1)
@@ -179,7 +183,7 @@ if __name__ == "__main__":
     dLr = Lr.max() - Lr.min()
     Lr0 = Lr.min()
     clist = plt.cm.jet([(i-Lr0)/dLr for i in Lr])
-    # plot_nb_Lx(Lx, nb, lamb, Lr)
+    # # plot_nb_Lx(Lx, nb, lamb, Lr)
 
-    # plot_phi_Lx(Lx, phi, nb)
-    plot_rescale(Lx, nb, phi, 220)
+    plot_phi_Lx(Lx, phi, nb)
+    # plot_rescale(Lx, nb, phi, 220)
