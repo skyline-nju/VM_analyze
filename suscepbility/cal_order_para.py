@@ -238,7 +238,7 @@ def sample_average(eta):
 
 
 if __name__ == "__main__":
-    eta = 0.1
+    eta = 0.05
     # df2 = pd.read_excel(r"..\%.2f_%.4f.xlsx" % (eta, eps), "L=%d" % L)
     # print(df2)
     # df2.to_excel(r"..\tmp.xlsx", sheet_name="a")

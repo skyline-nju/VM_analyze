@@ -139,7 +139,8 @@ def find_peak(eta, chi_dict, ax=None):
             x = np.linspace(eps_arr.min(), eps_arr.max(), 1000)
             y = np.exp(np.polyval(c, x))
             line, = ax.plot(eps_arr, chi_arr, "o", label=r"$%d$" % L)
-            ax.plot(x, y, color=line.get_color())
+            if ax is not None:
+                ax.plot(x, y, color=line.get_color())
     if ax is not None:
         ax.plot(eps_p, chi_p, "ks--", fillstyle='none')
         ax.errorbar(eps_p, chi_p, yerr=chi_err, xerr=eps_err, fmt='none')
@@ -196,9 +197,9 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     from fit import plot_KT_fit, plot_pow_fit
     if eta == 0.18:
         eps_m = 0.05
-        x = eps_p[5:]
-        y = L[5:]
-        x_err = eps_err[5:]
+        x = eps_p[3:]
+        y = L[3:]
+        x_err = eps_err[3:]
     elif eta == 0.1:
         eps_m = 0.045
         x = eps_p[3:]
@@ -451,13 +452,62 @@ def xlsx_to_txt(eta):
             eps_arr, chi_con_arr = chi_con[L]
             eps_arr, chi_dis_arr = chi_dis[L]
             f.writelines("%f\t%f\t%f\n" % (
-                    eps_arr[i], chi_con_arr[i], chi_dis_arr[i]
-                    ) for i in range(eps_arr.size))
+                eps_arr[i], chi_con_arr[i], chi_dis_arr[i]
+            ) for i in range(eps_arr.size))
+
+
+def fit_w_fixed_nu(mode="con", first=3, last=None):
+    from fit import fit_pow2, plot_pow_fit
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+    for eta in [0.1, 0.18]:
+        if mode == "con":
+            chi_dict = get_chi_dict(eta, False)
+        elif mode == "dis":
+            chi_dict = get_chi_dict(eta, True)
+        elif mode == "mix":
+            chi_dict = {}
+            chi_con = get_chi_dict(eta, False)
+            chi_dis = get_chi_dict(eta, True)
+            for L in chi_con:
+                eps_arr, chi_arr1 = chi_dis[L]
+                eps_arr, chi_arr2 = chi_con[L]
+                chi_dict[L] = [eps_arr, chi_arr1 + chi_arr2]
+        L_arr = np.array([i for i in sorted(chi_dict.keys())])
+        eps_p, chi_p, eps_err, chi_err = find_peak(eta, chi_dict)
+        x = L_arr[first:last]
+        y = eps_p[first:last]
+        y_err = eps_err[first:last]
+        nu_arr = np.linspace(1.5, 3.5, 50)
+        eps_arr = np.zeros_like(nu_arr)
+        err_arr = np.zeros_like(nu_arr)
+        ax1.plot(x, y, "o", label=r"$\eta=%g$" % eta)
+        for i, nu in enumerate(nu_arr):
+            popt, perr = fit_pow2(x, y, y_err, nu0=nu)
+            eps_arr[i] = popt[0]
+            err_arr[i] = perr[0]
+        line, = ax2.plot(nu_arr, eps_arr, "o", label=r"$\eta=%g$" % eta, ms=2)
+        ax2.errorbar(nu_arr, eps_arr, err_arr, c=line.get_color())
+        x_fit, y_fit = plot_pow_fit(None, y, x, reversed=True, eps_err=y_err,
+                                    nu0=2.84)
+        ax1.plot(x_fit, y_fit, "--")
+        x_fit, y_fit = plot_pow_fit(None, y, x, reversed=True, eps_err=y_err)
+        ax1.plot(x_fit, y_fit)
+    ax1.set_xscale("log")
+    ax2.set_xlabel(r"$\nu$", fontsize="x-large")
+    ax2.set_ylabel(r"$\epsilon_c$", fontsize="x-large")
+    ax2.set_title("algebraic scaling", fontsize="x-large")
+    plt.tight_layout()
+    ax2.axhline(0.04)
+    ax1.legend(fontsize="x-large")
+    ax2.legend(fontsize="x-large")
+    plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
-    eta = 0.18
+    eta = 0.05
     plot_3_panels(eta, save_fig=False, mode="con")
+    # fit_w_fixed_nu()
     # collapse3(eta)
     # plot_chi_mix(eta)
 

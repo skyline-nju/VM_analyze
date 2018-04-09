@@ -208,15 +208,25 @@ def fit_pow(eps, xi, beta=None, xi_err=None):
     return popt, perr
 
 
-def fit_pow2(xi, eps, eps_err=None):
+def fit_pow2(xi, eps, eps_err=None, nu0=None):
     def fun(L, eps_c, A_xi, nu):
         return eps_c + np.power(L / A_xi, - 1 / nu)
 
-    p0 = [0.03, 1, 1]
-    p_min = [0, 0, 0]
-    p_max = [0.05, np.inf, np.inf]
-    b = (p_min, p_max)
-    popt, pcov = curve_fit(fun, xi, eps, p0, bounds=b, sigma=eps_err)
+    def fun2(L, eps_c, A_xi):
+        return eps_c + np.power(L / A_xi, -1 / nu0)
+
+    if nu0 is None:
+        p0 = [0.03, 1, 1]
+        p_min = [0, 0, 0]
+        p_max = [0.05, np.inf, np.inf]
+        b = (p_min, p_max)
+        popt, pcov = curve_fit(fun, xi, eps, p0, bounds=b, sigma=eps_err)
+    else:
+        p0 = [0.03, 1]
+        p_min = [0, 0]
+        p_max = [0.05, np.inf]
+        b = (p_min, p_max)
+        popt, pcov = curve_fit(fun2, xi, eps, p0, bounds=b, sigma=eps_err)
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
@@ -233,18 +243,32 @@ def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
         ax.plot(x, y, "--", label=label)
 
 
-def plot_pow_fit(ax, eps, xi, reversed=False, eps_err=None):
+def plot_pow_fit(ax, eps, xi,
+                 reversed=False,
+                 eps_err=None,
+                 nu0=None):
     if not reversed:
         popt, perr = fit_pow(eps, xi)
+        if nu0 is None:
+            nu0 = popt[-1]
         x = np.linspace(eps.min(), eps.max(), 100)
-        y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
+        y = np.exp(popt[1] - nu0 * np.log(x - popt[0]))
     else:
-        popt, perr = fit_pow2(xi, eps, eps_err=eps_err)
-        x = np.linspace(32, xi[-1], 100)
-        y = popt[0] + np.power(x / popt[1], -1/popt[2])
-    label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (np.exp(popt[1]),
-                                                            popt[0], popt[2])
-    ax.plot(x, y, "--", label=label)
+        popt, perr = fit_pow2(xi, eps, eps_err=eps_err, nu0=nu0)
+        if ax is None:
+            x_min = xi.min()
+        else:
+            x_min = 32
+        x = np.linspace(x_min, xi[-1], 100)
+        if nu0 is None:
+            nu0 = popt[-1]
+        y = popt[0] + np.power(x / popt[1], -1/nu0)
+    if ax is None:
+        return x, y
+    else:
+        label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (
+            np.exp(popt[1]), popt[0], nu0)
+        ax.plot(x, y, "--", label=label)
 
 
 def show_KT(nu):
