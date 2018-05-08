@@ -6,7 +6,7 @@
 
 ## Continuum fields
 The autocorrelation of scalar function \\(f(\vec{x})\\) is:
-$$h(\vec{r})=(f*f)(\vec{r})=\int^{\infty}_\{-\infty}\overline{f(\vec{x})}f(\vec{r}+\vec{x})dy,$$
+$$h(\vec{r})=(f*f)(\vec{r})=\int^{\infty}_{-\infty}\overline{f(\vec{x})}f(\vec{r}+\vec{x})dx,$$
 for which
 $$\hat{h}(\vec{k})=\overline{\hat{f}(\vec{k})}\hat{f}(\vec{k})=|\hat{f}(\vec{k})|^2,$$
 where \\(\overline{\cdots}\\) denotes complex conjugation.

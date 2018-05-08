@@ -5,3 +5,8 @@ __pycache__/
 suscepbility/data/*
 corr2d/data/*
 snap/data/*
+corr2d/corr2d/.vs
+corr2d/corr2d/x64
+*.vcxproj*
+*.lib
+*.sln

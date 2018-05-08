@@ -81,7 +81,7 @@ def get_chi_dict(eta, is_dis=False):
         chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
         # del chi_dict[180]
         # del chi_dict[256]
-        del chi_dict[362]
+        # del chi_dict[362]
         del chi_dict[512]
     return chi_dict
 
@@ -212,7 +212,7 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
     plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m)
     plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m)
-    plot_pow_fit(ax, x, y, reversed=True, eps_err=x_err)
+    plot_pow_fit(ax, x, y, reversed=True, eps_err=None)
     ax.set_xscale("log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
     ax.set_ylabel(
@@ -506,7 +506,7 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.05
-    plot_3_panels(eta, save_fig=False, mode="con")
+    plot_3_panels(eta, save_fig=False, mode="mix")
     # fit_w_fixed_nu()
     # collapse3(eta)
     # plot_chi_mix(eta)
