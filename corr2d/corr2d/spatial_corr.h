@@ -10,7 +10,6 @@
 #define SPATIAL_CORR_H
 #include <vector>
 #include <fftw3.h>
-#include "comn.h"
 
 class AutoCorr2d {
 public:

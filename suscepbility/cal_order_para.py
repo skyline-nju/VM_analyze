@@ -1,7 +1,12 @@
+"""
+Cal time- and smaple-averaged order parameters and susceptiliblities from .dat
+files.
+"""
 import numpy as np
 import glob
 import pandas as pd
 import os
+import sys
 
 
 def read_txt(filename, ncut):
@@ -75,71 +80,87 @@ def add_new_sample(df,
     #     print(os.path.basename(filename), "already exists!")
 
 
-def get_filename_pattern(fmt, eta, L=None, eps=None):
-    if L is None and eps is None:
-        if fmt == "dat":
-            pat = "p*.%g.*.dat" % (eta * 1000)
-        elif fmt == "xlsx":
-            pat = "%.2f_*_*.xlsx" % (eta)
-    elif L is not None:
-        if eps is None:
-            if fmt == "dat":
-                pat = "p%d.%g.*.dat" % (L, eta * 1000)
-            elif fmt == "xlsx":
-                pat = "%.2f_*_%d.xlsx" % (eta, L)
+def get_filename_pattern(fmt, eta=None, L=None, eps=None):
+    if fmt == "dat":
+        if eta is not None:
+            pat_eta = "%g" % (eta * 1000)
         else:
-            if fmt == "dat":
-                pat = "p%d.%g.%g.*.dat" % (L, eta * 1000, eps * 10000)
-            elif fmt == "xlsx":
-                pat = "%.2f_%.4f_%d.xlsx" % (eta, eps, L)
+            pat_eta = "*"
+        if L is not None:
+            pat_L = "%d" % L
+        else:
+            pat_L = "*"
+        if eps is not None:
+            pat_eps = "%g" % (eps * 10000)
+        else:
+            pat_eps = "*"
+        pat = "p%s.%s.%s.*.dat" % (pat_L, pat_eta, pat_eps)
     else:
-        if fmt == "dat":
-            pat = "p*.%g.%g*.dat" % (eta * 1000, eps * 10000)
-        elif fmt == "xlsx":
-            pat = "%.2f_%.4f_*.xlsx" % (eta, eps)
+        if eta is not None:
+            pat_eta = "%.2f" % eta
+        else:
+            pat_eta = "*"
+        if L is not None:
+            pat_L = "%d" % L
+        else:
+            pat_L = "*"
+        if eps is not None:
+            pat_eps = "%.4f" % eps
+        else:
+            pat_eps = "*"
+        pat = "%s_%s_%s.xlsx" % (pat_eta, pat_eps, pat_L)
     return pat
 
 
-def read_time_average(eta, L=None, eps=None, transpos=True):
-    xlsx_dir = r"E:\data\random_torque\susceptibility\time_average"
-    if not os.path.exists(xlsx_dir):
-        xlsx_dir = r"D:\data\random_torque\susceptibility\time_average"
-
+def read_time_average(xlsx_dir,
+                      eta=None,
+                      L=None,
+                      eps=None,
+                      transpos=True,
+                      key_name="eta"):
     pat = get_filename_pattern("xlsx", eta, L, eps)
+    print(pat)
     files = glob.glob(xlsx_dir + os.path.sep + pat)
     data_dict = {}
     for filename in files:
         s = os.path.basename(filename).replace(".xlsx", "").split("_")
-        my_eps = float(s[1])
+        if key_name == "eta" and eta is not None:
+            key = float(s[1])
+        elif key_name == "eps" and eps is not None:
+            key = float(s[0])
+        else:
+            print("error when reading time-averaged data")
+            sys.exit()
         my_L = int(s[2])
         df = pd.read_excel(filename, sheet_name="Sheet1")
-        if my_eps not in data_dict:
+        if key not in data_dict:
             if transpos:
-                data_dict[my_eps] = {my_L: df.T}
+                data_dict[key] = {my_L: df.T}
             else:
-                data_dict[my_eps] = {my_L: df}
+                data_dict[key] = {my_L: df}
         else:
             if transpos:
-                data_dict[my_eps][my_L] = df.T
+                data_dict[key][my_L] = df.T
             else:
-                data_dict[my_eps][my_L] = df
+                data_dict[key][my_L] = df
     return data_dict
 
 
-def time_average(eta, L=None, eps=None, new_data=True):
+def time_average_const_eta(eta, L=None, eps=None, new_data=True):
+    root = r"E:\data\random_torque"
+    if not os.path.exists(root):
+        root = root.replace("E", "D")
     if not new_data:
         if eta == 0.1:
-            data_dir = r"E:\data\random_torque\Phi_vs_L\eta=0.10\serials"
+            data_dir = root + r"\Phi_vs_L\eta=0.10\serials"
     else:
-        data_dir = r"E:\data\random_torque\susceptibility\phi\eta=%.2f" % eta
-        if not os.path.exists(data_dir):
-            data_dir = data_dir.replace("E", "D")
+        data_dir = root + r"\susceptibility\phi\eta=%.2f" % eta
 
-    dest_dir = r"E:\data\random_torque\susceptibility\time_average"
+    dest_dir = root + r"\susceptibility\time_average\eta=%.2f" % eta
     if not os.path.exists(dest_dir):
         dest_dir = dest_dir.replace("E", "D")
     pat = get_filename_pattern("dat", eta, L, eps)
-    data_dict = read_time_average(eta, L, eps)
+    data_dict = read_time_average(dest_dir, eta, L, eps)
 
     files = glob.glob(data_dir + os.path.sep + pat)
     index = ["mean", "var", "n_steps"]
@@ -164,17 +185,18 @@ def time_average(eta, L=None, eps=None, new_data=True):
 
 
 def time_average_eta18_old(epsilon=None):
+    eta = 0.18
     if epsilon is None:
         epsilon = [
             0, 10, 100, 200, 300, 350, 400, 450, 500, 550, 565, 580, 600, 625,
             650, 700, 725, 800, 850
         ]
     index = ["mean", "var", "n_steps"]
-    dest_dir = r"E:\data\random_torque\susceptibility\time_average"
+    dest_dir = r"E:\data\random_torque\susceptibility\time_average\eta=0.18"
     data_dir0 = r"E:\data\random_torque\Phi_vs_L\eta=0.18"
     for eps_i in epsilon:
         eps = eps_i / 10000
-        data_dict = read_time_average(eta, eps=eps)
+        data_dict = read_time_average(dest_dir, eta, eps=eps)
         if len(data_dict) > 0:
             data_dict = data_dict[eps]
         if eps_i <= 500:
@@ -205,30 +227,72 @@ def time_average_eta18_old(epsilon=None):
             data_dict[L].T.to_excel(out_file, sheet_name="Sheet1")
 
 
-def sample_average(eta):
-    data_dict = read_time_average(eta, transpos=False)
+def time_average_const_eps(eps, L=None, eta=None):
+    root = r"E:\data\random_torque\susceptibility"
+    if not os.path.exists(root):
+        root = root.replace("E", "D")
+    data_dir = root + r"\phi\eps=%g" % eps
+    dest_dir = root + r"\time_average\eps=%g" % eps
+
+    pat = get_filename_pattern("dat", eta, L, eps)
+    data_dict = read_time_average(dest_dir, L=L, eps=eps, key_name="eps")
+    files = glob.glob(data_dir + os.path.sep + pat)
+    index = ["mean", "var", "n_steps"]
+
+    for filename in files:
+        s = os.path.basename(filename)
+        s = s.replace(".dat", "").replace("p", "").split(".")
+        L = int(s[0])
+        eta = int(s[1]) / 1000
+        seed = int(s[3])
+
+        if eta not in data_dict:
+            data_dict[eta] = {L: pd.DataFrame(index=index)}
+        elif L not in data_dict[eta]:
+            data_dict[eta][L] = pd.DataFrame(index=index)
+        add_new_sample(data_dict[eta][L], filename, L, eta, seed, eps)
+
+    for eta in data_dict:
+        for L in data_dict[eta]:
+            out_file = dest_dir + os.path.sep + "%.2f_%.4f_%d.xlsx" % (eta,
+                                                                       eps, L)
+            data_dict[eta][L].T.to_excel(out_file, sheet_name="Sheet1")
+
+
+def sample_average(eta=None, eps=None):
+    dest_dir = r"E:\data\random_torque\susceptibility\time_average"
+    if eta is not None:
+        dest_dir += r"\eta=%g" % eta
+        data_dict = read_time_average(dest_dir, eta, transpos=False)
+    elif eps is not None:
+        dest_dir += r"\eps=%g" % eps
+        data_dict = read_time_average(
+            dest_dir, eps=eps, transpos=False, key_name="eps")
     excel_file = r"E:\data\random_torque\susceptibility\sample_average"
     if not os.path.exists(excel_file):
         excel_file = excel_file.replace("E", "D")
-    excel_file += os.path.sep + r"eta=%g.xlsx" % eta
+    if eta is not None:
+        excel_file += os.path.sep + r"eta=%g.xlsx" % eta
+    elif eps is not None:
+        excel_file += os.path.sep + r"eps=%g.xlsx" % eps
     phi_dict, chi_dict, chi_dis_dict, n_dict = {}, {}, {}, {}
-    for eps in data_dict:
-        for L in data_dict[eps]:
-            df = data_dict[eps][L]
+    for key in data_dict:
+        for L in data_dict[key]:
+            df = data_dict[key][L]
             phi = df["mean"].mean()
             chi = df["var"].mean() * L * L
             chi_dis = ((df["mean"]**2).mean() - phi * phi) * L * L
             n = df["mean"].size
             if L in phi_dict:
-                phi_dict[L][eps] = phi
-                chi_dict[L][eps] = chi
-                chi_dis_dict[L][eps] = chi_dis
-                n_dict[L][eps] = n
+                phi_dict[L][key] = phi
+                chi_dict[L][key] = chi
+                chi_dis_dict[L][key] = chi_dis
+                n_dict[L][key] = n
             else:
-                phi_dict[L] = {eps: phi}
-                chi_dict[L] = {eps: chi}
-                chi_dis_dict[L] = {eps: chi_dis}
-                n_dict[L] = {eps: n}
+                phi_dict[L] = {key: phi}
+                chi_dict[L] = {key: chi}
+                chi_dis_dict[L] = {key: chi_dis}
+                n_dict[L] = {key: n}
     with pd.ExcelWriter(excel_file) as writer:
         pd.DataFrame.from_dict(phi_dict).to_excel(writer, sheet_name="phi")
         pd.DataFrame.from_dict(chi_dict).to_excel(writer, sheet_name="chi")
@@ -238,9 +302,10 @@ def sample_average(eta):
 
 
 if __name__ == "__main__":
-    eta = 0.05
-    # df2 = pd.read_excel(r"..\%.2f_%.4f.xlsx" % (eta, eps), "L=%d" % L)
-    # print(df2)
-    # df2.to_excel(r"..\tmp.xlsx", sheet_name="a")
-    time_average(eta, new_data=True)
-    sample_average(eta)
+    eta = 0.10
+    time_average_const_eta(eta, new_data=True)
+    sample_average(eta=eta)
+    # eps = 0.02
+    # time_average_const_eps(eps)
+    # sample_average(eps=eps)
+    # time_average_eta18_old()

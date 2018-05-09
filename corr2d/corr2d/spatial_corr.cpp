@@ -9,8 +9,6 @@
 #include "spatial_corr.h"
 #include <map>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
 
 using namespace std;
 /*************************************************************************//**
