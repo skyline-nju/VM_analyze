@@ -393,26 +393,20 @@ def plot_eps20(v0=0.5):
         v = phi * v0
         ax1.plot(u, v, "o", ms=3, label=r"$L_x=%d$" % Lx)
         ax2.plot(u, v + shift[i], "o", ms=3, label=r"$L_x=%d$" % Lx)
-        if i == 2:
-            ax3.plot(u, v, "go", ms=3, label=r"$L_x=%d, n_b=2$" % Lx)
         slope_m[i] = np.polyfit(u, v, 1)[0]
         print(slope_m[i])
         u_m[i] = u.mean()
         v_m[i] = np.mean(v)
 
-    # ax3.set_xlim(0.216)
-    # ax3.set_ylim(0.217)
-    phi, peak, c = get_data(3, 660)
-    rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
-    u = rho_exc * c
-    v = phi * v0
-    ax3.plot(u, v, "bs", ms=5, label=r"$L_x=%d, n_b=3$" % 660)
-
-    phi, peak, c = get_data(4, 880)
-    rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
-    u = rho_exc * c
-    v = phi * v0
-    ax3.plot(u, v, "r^", ms=5, label=r"$L_x=%d, n_b=4$" % 880)
+    # panel 3
+    phi_mean = []
+    for i, Lx in enumerate([440, 660, 880, 1100]):
+        phi, peak, c = get_data(i+2, Lx)
+        rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
+        u = rho_exc * c
+        v = phi * v0
+        ax3.plot(u, v, "o", ms=3, label=r"$L_x=%d, n_b=%d$" % (Lx, i+2))
+        phi_mean.append(np.mean(phi))
 
     add_slope_line(ax1, 1, 0.6, 0.45, 0.55, 0.45)
     add_slope_line(ax1, 0.9, 0.5, 0.65, 0.4, 0.8)
@@ -448,6 +442,10 @@ def plot_eps20(v0=0.5):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
     plt.savefig(drive+r"/report/quenched_disorder/report/fig/rho_exc_20.pdf")
+    plt.close()
+
+    plt.plot([440, 660, 880, 1100], phi_mean, "-o")
+    plt.show()
     plt.close()
 
 

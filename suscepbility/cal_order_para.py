@@ -254,20 +254,20 @@ def time_average_const_eps(eps, L=None, eta=None):
 
     for eta in data_dict:
         for L in data_dict[eta]:
-            out_file = dest_dir + os.path.sep + "%.2f_%.4f_%d.xlsx" % (eta,
+            out_file = dest_dir + os.path.sep + "%.3f_%.4f_%d.xlsx" % (eta,
                                                                        eps, L)
             data_dict[eta][L].T.to_excel(out_file, sheet_name="Sheet1")
 
 
 def sample_average(eta=None, eps=None):
-    dest_dir = r"E:\data\random_torque\susceptibility\time_average"
+    mean_dir = r"E:\data\random_torque\susceptibility\time_average"
     if eta is not None:
-        dest_dir += r"\eta=%g" % eta
-        data_dict = read_time_average(dest_dir, eta, transpos=False)
+        mean_dir += r"\eta=%.2f" % eta
+        data_dict = read_time_average(mean_dir, eta, transpos=False)
     elif eps is not None:
-        dest_dir += r"\eps=%g" % eps
+        mean_dir += r"\eps=%g" % eps
         data_dict = read_time_average(
-            dest_dir, eps=eps, transpos=False, key_name="eps")
+            mean_dir, eps=eps, transpos=False, key_name="eps")
     excel_file = r"E:\data\random_torque\susceptibility\sample_average"
     if not os.path.exists(excel_file):
         excel_file = excel_file.replace("E", "D")
@@ -302,10 +302,10 @@ def sample_average(eta=None, eps=None):
 
 
 if __name__ == "__main__":
-    eta = 0.10
-    time_average_const_eta(eta, new_data=True)
-    sample_average(eta=eta)
-    # eps = 0.02
-    # time_average_const_eps(eps)
-    # sample_average(eps=eps)
+    # eta = 0.10
+    # time_average_const_eta(eta, new_data=True)
+    # sample_average(eta=eta)
+    eps = 0.03
+    time_average_const_eps(eps)
+    sample_average(eps=eps)
     # time_average_eta18_old()

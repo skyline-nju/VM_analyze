@@ -25,6 +25,7 @@ import numpy as np
 import platform
 import matplotlib
 
+
 if platform.system() is not "Windows":
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
