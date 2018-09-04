@@ -7,6 +7,12 @@ corr2d/data/*
 snap/data/*
 corr2d/corr2d/.vs
 corr2d/corr2d/x64
-*.vcxproj*
+*vcxproj.user
 *.lib
-*.sln
+*.db
+*.opendb
+.vs
+*.pyd
+vm3d/**/x64
+*_wrap.cxx
+gnf.py

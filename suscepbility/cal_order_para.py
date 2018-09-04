@@ -150,19 +150,24 @@ def time_average_const_eta(eta, L=None, eps=None, new_data=True):
     root = r"E:\data\random_torque"
     if not os.path.exists(root):
         root = root.replace("E", "D")
+        print("root =", root)
     if not new_data:
         if eta == 0.1:
             data_dir = root + r"\Phi_vs_L\eta=0.10\serials"
     else:
         data_dir = root + r"\susceptibility\phi\eta=%.2f" % eta
+    print("data dir", data_dir)
 
     dest_dir = root + r"\susceptibility\time_average\eta=%.2f" % eta
-    if not os.path.exists(dest_dir):
-        dest_dir = dest_dir.replace("E", "D")
+    # if not os.path.exists(dest_dir):
+    #     dest_dir = dest_dir.replace("E", "D")
     pat = get_filename_pattern("dat", eta, L, eps)
+    print(pat)
     data_dict = read_time_average(dest_dir, eta, L, eps)
 
     files = glob.glob(data_dir + os.path.sep + pat)
+    print(data_dir + os.path.sep + pat)
+    print("total files:", len(files))
     index = ["mean", "var", "n_steps"]
     for filename in files:
         s = os.path.basename(filename)
@@ -261,6 +266,8 @@ def time_average_const_eps(eps, L=None, eta=None):
 
 def sample_average(eta=None, eps=None):
     mean_dir = r"E:\data\random_torque\susceptibility\time_average"
+    if not os.path.exists(mean_dir):
+        mean_dir = mean_dir.replace("E", "D")
     if eta is not None:
         mean_dir += r"\eta=%.2f" % eta
         data_dict = read_time_average(mean_dir, eta, transpos=False)
@@ -275,7 +282,7 @@ def sample_average(eta=None, eps=None):
         excel_file += os.path.sep + r"eta=%g.xlsx" % eta
     elif eps is not None:
         excel_file += os.path.sep + r"eps=%g.xlsx" % eps
-    phi_dict, chi_dict, chi_dis_dict, n_dict = {}, {}, {}, {}
+    phi_dict, chi_dict, chi_dis_dict, n_dict, phi2_dict = {}, {}, {}, {}, {}
     for key in data_dict:
         for L in data_dict[key]:
             df = data_dict[key][L]
@@ -283,29 +290,33 @@ def sample_average(eta=None, eps=None):
             chi = df["var"].mean() * L * L
             chi_dis = ((df["mean"]**2).mean() - phi * phi) * L * L
             n = df["mean"].size
+            phi2 = np.mean(df["mean"] ** 2)
             if L in phi_dict:
                 phi_dict[L][key] = phi
                 chi_dict[L][key] = chi
                 chi_dis_dict[L][key] = chi_dis
                 n_dict[L][key] = n
+                phi2_dict[L][key] = phi2
             else:
                 phi_dict[L] = {key: phi}
                 chi_dict[L] = {key: chi}
                 chi_dis_dict[L] = {key: chi_dis}
                 n_dict[L] = {key: n}
+                phi2_dict[L] = {key: phi2}
     with pd.ExcelWriter(excel_file) as writer:
         pd.DataFrame.from_dict(phi_dict).to_excel(writer, sheet_name="phi")
         pd.DataFrame.from_dict(chi_dict).to_excel(writer, sheet_name="chi")
         pd.DataFrame.from_dict(chi_dis_dict).to_excel(
             writer, sheet_name="chi_dis")
         pd.DataFrame.from_dict(n_dict).to_excel(writer, sheet_name="num")
+        pd.DataFrame.from_dict(phi2_dict).to_excel(writer, sheet_name="phi2")
 
 
 if __name__ == "__main__":
-    # eta = 0.10
-    # time_average_const_eta(eta, new_data=True)
-    # sample_average(eta=eta)
-    eps = 0.03
-    time_average_const_eps(eps)
-    sample_average(eps=eps)
+    eta = 0.05
+    time_average_const_eta(eta, new_data=True)
+    sample_average(eta=eta)
+    # eps = 0.03
+    # time_average_const_eps(eps)
+    # sample_average(eps=eps)
     # time_average_eta18_old()

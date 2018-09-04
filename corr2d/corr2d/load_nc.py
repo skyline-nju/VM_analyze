@@ -84,7 +84,7 @@ class Corr2d:
         c_v_t = f_v(xt, yt, grid=False)
         return c_rho_l, c_rho_t, c_v_l, c_v_t
 
-    def show_corr_lon_tra(self):
+    def show_corr_lon_tra(self, save_data=False):
         """ Show time-averaged correlation function for density and velocity
             in the longitudinal and transversal directions.
         """
@@ -121,6 +121,15 @@ class Corr2d:
         plt.show()
         plt.close()
 
+        if save_data:
+            with open("cr_lon_tra_%g_%g_%d.dat" % (
+                    self.eta, self.eps, self.Lx), "w") as f:
+                lines = ""
+                for i, r in enumerate(self.r):
+                    lines += "%g\t%.8f\t%.8f\t%.8f\t%.8f\n" % (
+                        r, crho_lon[i], crho_tra[i], cv_lon[i], cv_tra[i])
+                f.write(lines)
+
 
 class CGSnap:
     def __init__(self, infile):
@@ -136,6 +145,8 @@ class CGSnap:
         self.ncols = len(self.rootgrp.dimensions["ncols"])
         self.nrows = len(self.rootgrp.dimensions["nrows"])
         self.fig_dir = self.infile.replace(".nc", "")
+        self.mp4_file = "%g_%g_%d_%d.mp4" % (self.eta, self.eps,
+                                             self.Lx, self.seed)
         if not os.path.exists(self.fig_dir):
             os.mkdir(self.fig_dir)
 
@@ -224,11 +235,11 @@ class CGSnap:
             rate, start_num, self.fig_dir + "/%04d.png")
         if vframes is not None:
             strcmd += "-vframes %d %s " % vframes
-        strcmd += "-preset veryslow -crf 34 %g_%g_%d_%d.mp4" % (self.eta,
-                                                                self.eps,
-                                                                self.Lx,
-                                                                self.seed)
+        strcmd += "-preset veryslow -crf 34 %s" % (self.mp4_file)
         subprocess.call(strcmd, shell=True)
+
+    def movie_exists(self):
+        return os.path.exists(self.mp4_file)
 
 
 def map_v_to_rgb(theta, module, m_max=None):
@@ -290,12 +301,18 @@ def add_colorbar(ax, mmin, mmax, theta_min=0, theta_max=360, orientation="h"):
 
 
 def make_animation(eps):
-    os.chdir(r"E:\data\random_torque\phase diagram\pd_L=1024")
+    dest_dir = r"E:\data\random_torque\phase diagram\pd_L=1024"
+    if not os.path.exists(dest_dir):
+        dest_dir = dest_dir.replace("E", "D")
+    os.chdir(dest_dir)
     files = glob.glob(r"cg_*_%g_1_1024_1024_111111.nc" % eps)
     for file in files:
         f = CGSnap(file)
-        f.show(savefig=True, v_normed=False)
-        f.mk_mv()
+        if f.movie_exists():
+            print("%s already exists" % f.mp4_file)
+        else:
+            f.show(savefig=True, v_normed=False)
+            f.mk_mv()
 
 
 def cal_corr2d(num, vx, vy, cell_area):
@@ -311,11 +328,50 @@ def cal_corr2d(num, vx, vy, cell_area):
     return corr_rho, corr_v
 
 
+def plot_corr_long_tra_varied_eta(eps, L=1024):
+    eta_arr = [0.2, 0.21, 0.22, 0.225, 0.23, 0.24, 0.25, 0.26]
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(8, 8))
+    for eta in eta_arr:
+        with open("cr_lon_tra_%g_%g_%d.dat" % (eta, eps, L), "r") as f:
+            lines = f.readlines()
+            n = len(lines)
+            r, crho_lon, crho_tra, cv_lon, cv_tra = np.zeros((5, n))
+            for i, line in enumerate(lines):
+                s = line.replace("\n", "").split("\t")
+                r[i] = float(s[0])
+                crho_lon[i] = float(s[1])
+                crho_tra[i] = float(s[2])
+                cv_lon[i] = float(s[3])
+                cv_tra[i] = float(s[4])
+        axes[0][0].loglog(r, crho_lon, label=r"$%g$" % eta)
+        axes[0][1].loglog(r, crho_tra)
+        axes[1][0].loglog(r, cv_lon)
+        axes[1][1].loglog(r, cv_tra)
+    axes[0][0].set_xlabel(r"$r$", fontsize="large")
+    axes[0][0].set_ylabel(r"$C_\rho$", fontsize="large")
+    axes[0][1].set_xlabel(r"$r$", fontsize="large")
+    axes[0][1].set_ylabel(r"$C_\rho$", fontsize="large")
+    axes[1][0].set_xlabel(r"$r$", fontsize="large")
+    axes[1][0].set_ylabel(r"$C_v$", fontsize="large")
+    axes[1][1].set_xlabel(r"$r$", fontsize="large")
+    axes[1][1].set_ylabel(r"$C_v$", fontsize="large")
+    axes[0][0].set_title("longitudinal")
+    axes[0][1].set_title("transversal")
+    axes[1][0].set_title("longitudinal")
+    axes[1][1].set_title("transversal")
+    axes[0][0].legend(title=r"$\eta=$", fontsize="small", loc="upper right")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.suptitle(r"$\epsilon=%g,\ L=%d$" % (eps, L), fontsize="xx-large")
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
-    os.chdir(r"E:\data\random_torque\phase diagram\pd_L=1024")
-    f = Corr2d(r"cr_0.26_0.02_1_1024_1024_111111.nc")
-    f.show_corr_lon_tra()
-    # f.show()
+    os.chdir(r"D:\data\random_torque\phase diagram\pd_L=1024")
+    plot_corr_long_tra_varied_eta(0.02)
+    # f = Corr2d(r"cr_0.26_0.02_1_1024_1024_111111.nc")
+    # f.show_corr_lon_tra(save_data=True)
     # frames = f.gene_frame()
     # for frame in frames:
     #     t, vm, c_rho, c_v = frame
@@ -332,4 +388,4 @@ if __name__ == "__main__":
     #     t, num, vx, vy = frame
     #     corr_rho, corr_v = cal_corr2d(num, vx, vy, 1)
     #     print(t, corr_v[0, 250])
-    # make_animation(0.035)
+    # make_animation(0.02)

@@ -286,7 +286,7 @@ def plot_3_panels(eta, save_fig=False, mode="con"):
     elif mode == "dis":
         title += " disconnected susceptibility"
     else:
-        title += " mixed susceptibility"
+        title += " cross susceptibility"
     plt.suptitle(title, fontsize="xx-large")
     if save_fig:
         plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)

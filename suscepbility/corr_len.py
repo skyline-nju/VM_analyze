@@ -35,7 +35,7 @@ def get_phi_dict(eta, eps_min=None):
         L_min = None
         phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
                                          "dict-arr", 7)
-    else:
+    elif eta == 0.1:
         # from create_dict import create_dict_from_xlsx
         # path = r"E:\data\random_torque\susceptibility"
         # infile = path + os.path.sep + r"eta=%g.xlsx" % eta
@@ -47,6 +47,12 @@ def get_phi_dict(eta, eps_min=None):
         del phi_dict[0.053]
         del phi_dict[0.055]
         # del phi_dict[0.048]
+    elif eta == 0.05:
+        if eps_min is None:
+            eps_min = 0.03
+        L_min = None
+        phi_dict = create_dict_from_xlsx(
+            infile, "phi", "eps", eps_min, L_min, "dict-arr", 4)
     return phi_dict
 
 
@@ -164,7 +170,7 @@ def plot_three_panel(eta, alpha, save_fig=False, save_data=False):
     ax3.axhspan(y[-1] - 10, y[0] + 100, alpha=0.2)
     plot_KT_fit(0.5, ax3, x, y, eps_min=eps_min, eps_max=eps_max)
     plot_KT_fit(1.0, ax3, x, y, eps_min=eps_min, eps_max=eps_max)
-    plot_pow_fit(ax3, x, y, eps_min=eps_min, eps_max=eps_max)
+    plot_pow_fit(ax3, x, y)
 
     ax3.set_yscale("log")
     ax3.set_xlabel(r"$\epsilon$", fontsize="x-large")
@@ -310,6 +316,8 @@ def varied_alpha(eta, xi_m=100):
 
 
 if __name__ == "__main__":
-    eta = 0.18
-    plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
+    eta = 0.05
+    # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
+    phi_dict = get_phi_dict(eta)
+    plot_phi_vs_L(phi_dict)
     # collapse3(eta)
