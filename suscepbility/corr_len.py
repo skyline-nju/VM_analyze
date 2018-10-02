@@ -186,7 +186,8 @@ def plot_three_panel(eta, alpha, save_fig=False, save_data=False):
     plt.close()
 
 
-def collapse(ax, eta, phi_dict, text_pos, beta_over_nu, eps_c, nu, A=None):
+def collapse(ax, eta, phi_dict, text_pos,
+             beta_over_nu, eps_c, nu, A=None, out=False):
     if eta == 0.18:
         eps_max = 0.07
     elif eta == 0.1:
@@ -203,6 +204,9 @@ def collapse(ax, eta, phi_dict, text_pos, beta_over_nu, eps_c, nu, A=None):
                     1 / nu) * np.absolute(eps - eps_c)
             if eps < eps_c:
                 ax.plot(x, y, "s", ms=5, label="%.3f" % eps, fillstyle="none")
+                if out:
+                    for i in range(x.size):
+                        print(x[i], y[i])
             else:
                 ax.plot(x, y, "o", ms=5, label="%.3f" % eps, fillstyle="none")
     text = r"$\nu=%g$" % nu + "\n" + r"$\epsilon_c=%g$" % eps_c
@@ -242,7 +246,7 @@ def collapse3(eta):
         eps_c = [0.0403, 0.0307, 0.0361]
         nu = [2.048, 1, 0.5]
         A = [None, 3.695, 0.745]
-    text_pos = [(0.65, 0.7), (0.65, 0.6), (0.1, 0.1)]
+    text_pos = [(0.1, 0.6), (0.1, 0.6), (0.1, 0.6)]
     fig, axes = plt.subplots(
         nrows=1,
         ncols=3,
@@ -250,9 +254,29 @@ def collapse3(eta):
         constrained_layout=True,
         sharey=True)
     for i, ax in enumerate(axes):
+        if i == 0:
+            out = True
+        else:
+            out = False
         collapse(ax, eta, phi_dict, text_pos[i], beta_over_nu, eps_c[i], nu[i],
-                 A[i])
+                 A[i], out)
+
+    axes[0].set_xlim(1e-2)
+    axes[1].set_xlim(4e-3)
     axes[0].set_ylabel(r"$\phi L^{\beta/\nu}$", fontsize="x-large")
+    axes[0].set_xscale("log")
+    axes[0].set_yscale("log")
+    axes[1].set_xscale("log")
+    axes[1].set_yscale("log")
+    axes[2].set_xscale("log")
+    axes[2].set_yscale("log")
+
+    slope1 = beta_over_nu * nu[0]
+    add_line(axes[0], 0.5, 0.82, 1, slope1, scale="log",
+             label=r"slope = $\beta$", xl=0.65, yl=0.85)
+    slope2 = slope1 - nu[0]
+    add_line(axes[0], 0.63, 0.6, 1, slope2, scale="log",
+             label=r"slope= $\beta - \nu$", xl=0.7, yl=0.5)
     plt.suptitle(
         r"$\eta=%g,\beta/\nu =%g$" % (eta, beta_over_nu), fontsize="xx-large")
     plt.show()
@@ -261,7 +285,7 @@ def collapse3(eta):
 
 def varied_alpha(eta, xi_m=100):
     phi_dict = get_phi_dict(eta)
-    if eta == 0.18:
+    if eta == 0.1:
         alpha_arr = np.linspace(0.55, 0.9, 50)
     elif eta == 0.10:
         alpha_arr = np.linspace(0.5, 0.8, 50)
@@ -316,8 +340,8 @@ def varied_alpha(eta, xi_m=100):
 
 
 if __name__ == "__main__":
-    eta = 0.05
+    eta = 0.18
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    phi_dict = get_phi_dict(eta)
-    plot_phi_vs_L(phi_dict)
-    # collapse3(eta)
+    # phi_dict = get_phi_dict(eta)
+    # plot_phi_vs_L(phi_dict)
+    collapse3(eta)

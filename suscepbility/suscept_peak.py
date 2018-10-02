@@ -505,10 +505,10 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 
 if __name__ == "__main__":
-    eta = 0.05
-    plot_3_panels(eta, save_fig=False, mode="mix")
+    eta = 0.18
+    # plot_3_panels(eta, save_fig=False, mode="mix")
     # fit_w_fixed_nu()
-    # collapse3(eta)
+    collapse3(eta)
     # plot_chi_mix(eta)
 
     # plot_chi_mix_dis()

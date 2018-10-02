@@ -29,10 +29,10 @@
 %apply (double* INPLACE_ARRAY1, int DIM1) {(double *num_mean, int num_mean_dim),
                                       (double *num_var, int num_var_dim)}
 
-%rename (cal_num_flct) my_cal_num_flct;
+//%rename (cal_num_flct) my_cal_num_flct;
 
 %inline %{
-    void my_cal_num_flct(unsigned short *num, int nz, int ny, int nx,
+    void cal_num_flct_3(unsigned short *num, int nz, int ny, int nx,
                          int *box_len, int box_len_dim, int *box_num, int box_num_dim,
                          double *num_mean, int num_mean_dim, double *num_var, int num_var_dim) {
         cal_num_flct(num, nz, ny, nx, box_len, box_num, num_mean, num_var, box_len_dim);

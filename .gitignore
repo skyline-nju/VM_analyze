@@ -13,6 +13,6 @@ corr2d/corr2d/x64
 *.opendb
 .vs
 *.pyd
-vm3d/**/x64
+vm_nc/**/x64
 *_wrap.cxx
 gnf.py
