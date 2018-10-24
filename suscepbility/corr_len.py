@@ -56,17 +56,26 @@ def get_phi_dict(eta, eps_min=None):
     return phi_dict
 
 
-def plot_phi_vs_L(phi_dict, ax=None, eta=None, Lc=None, phi_c=None):
+def plot_phi_vs_L(phi_dict, ax=None, eta=None,
+                  Lc=None, phi_c=None, eps_max=None):
     """ PLot phi against L with varied epsilon in log-log scales."""
     if ax is None:
         ax = plt.gca()
         flag_show = True
     else:
         flag_show = False
-    color = plt.cm.gist_rainbow(np.linspace(0, 1, len(phi_dict)))
-    for i, eps in enumerate(sorted(phi_dict.keys())):
+    eps_valid = []
+    if eps_max is not None:
+        for key in sorted(phi_dict.keys()):
+            if key <= eps_max:
+                eps_valid.append(key)
+    else:
+        eps_valid = [key for key in sorted(phi_dict.keys())]
+    color = plt.cm.gist_rainbow(np.linspace(0, 1, len(eps_valid)))
+    for i, eps in enumerate(eps_valid):
         L = phi_dict[eps][0]
         phi = phi_dict[eps][1]
+        # x = L / L ** (1 - eps)
         ax.plot(L, phi, "-o", label="%.4f" % eps, color=color[i])
     if Lc is not None and phi_c is not None:
         ax.plot(Lc, phi_c, "--ks", fillstyle="none")
@@ -74,8 +83,18 @@ def plot_phi_vs_L(phi_dict, ax=None, eta=None, Lc=None, phi_c=None):
     ax.set_yscale("log")
     ax.set_xlabel(r"$L$", fontsize="x-large")
     ax.set_ylabel(r"$\phi$", fontsize="x-large")
-    ax.legend(title=r"$\epsilon=$", loc="lower left")
-    add_line(ax, 0.25, 0.65, 0.55, -1, scale="log")
+    if eta == 0.05:
+        ax.set_xlim(45)
+        ax.set_ylim(ymax=0.9)
+        add_line(ax, 0.5, 0.86, 0.95, -0.051,
+                 scale="log", label=r"$-0.051$", yl=0.85)
+        add_line(ax, 0.5, 0.74, 0.95, -0.107,
+                 scale="log", label=r"$-0.107$", yl=0.7)
+        add_line(ax, 0.5, 0.65, 0.95, -0.167,
+                 scale="log", label=r"$-0.167$", yl=0.35, xl=0.8)
+    ax.legend(title=r"$\epsilon=$", loc="lower left", fontsize="xx-large")
+    ax.set_title(r"$\eta=%g,\ \rho_0=1$" % eta, fontsize="xx-large")
+    # add_line(ax, 0.25, 0.65, 0.55, -1, scale="log")
     if flag_show:
         plt.tight_layout()
         plt.show()
@@ -238,14 +257,14 @@ def collapse3(eta):
         beta_over_nu = 0.05
         # eps_c = [0.0443, 0.0306, 0.0375]
         # nu = [1.829, 1, 0.5]
-        eps_c = [0.0448, 0.0306, 0.0375]
-        nu = [1.873, 1, 0.5]
-        A = [None, 5.246, 0.851]
+        eps_c = [0.0456, 0.0372, 0.0415]
+        nu = [1.622, 1, 0.5]
+        A = [None, 13.319, 2.753]
     elif eta == 0.1:
         beta_over_nu = 0.05
-        eps_c = [0.0403, 0.0307, 0.0361]
-        nu = [2.048, 1, 0.5]
-        A = [None, 3.695, 0.745]
+        eps_c = [0.0407, 0.0312, 0.0359]
+        nu = [1.731, 1, 0.5]
+        A = [None, 22.253, 8.193]
     text_pos = [(0.1, 0.6), (0.1, 0.6), (0.1, 0.6)]
     fig, axes = plt.subplots(
         nrows=1,
@@ -342,6 +361,6 @@ def varied_alpha(eta, xi_m=100):
 if __name__ == "__main__":
     eta = 0.18
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    # phi_dict = get_phi_dict(eta)
-    # plot_phi_vs_L(phi_dict)
-    collapse3(eta)
+    phi_dict = get_phi_dict(eta, 0)
+    plot_phi_vs_L(phi_dict, eps_max=0.035, eta=eta)
+    # collapse3(eta)

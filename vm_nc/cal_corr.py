@@ -47,18 +47,47 @@ def cal_corr_rho_q_3(rho, rho_m):
     return c_rho_q
 
 
-def interpolate_2(mat, n_x, n_y):
-    n = mat.shape[0]
+def interpolate(data_mat, gl_ux, gl_uy, log_val=True, full=False):
+    n = data_mat.shape[0]
     qx = np.linspace(0, 1, n, endpoint=False) - 0.5
     qy = qx
-    spl = RectBivariateSpline(qx, qy, mat.T)
-    q_parallel_x = qx[n // 2:] * n_x
-    q_parallel_y = qy[n // 2:] * n_y
-    q_perp_x = -qx[n // 2:] * n_y
-    q_perp_y = qy[n // 2:] * n_x
-    c_q_parallel = spl(q_parallel_x, q_parallel_y, grid=False)
-    c_q_perp = spl(q_perp_x, q_perp_y, grid=False)
-    return c_q_parallel, c_q_perp
+
+    if data_mat.ndim == 2:
+        if log_val:
+            spl = RectBivariateSpline(qx, qy, np.log(data_mat.T))
+        else:
+            spl = RectBivariateSpline(qx, qy, data_mat.T)
+        if full:
+            c_q_new = spl(qx * np.abs(gl_ux), qy * np.abs(gl_uy), grid=True).T
+            # c_q_new = spl(qx, qy, grid=True).T
+        else:
+            q_parallel_x = qx[n // 2:] * gl_ux
+            q_parallel_y = qy[n // 2:] * gl_uy
+            q_perp_x = -qx[n // 2:] * gl_uy
+            q_perp_y = qy[n // 2:] * gl_ux
+            c_q_parallel = spl(q_parallel_x, q_parallel_y, grid=False)
+            c_q_perp = spl(q_perp_x, q_perp_y, grid=False)
+    if full:
+        if log_val:
+            c_q_new = np.exp(c_q_new)
+        return c_q_new
+    else:
+        if log_val:
+            c_q_parallel = np.exp(c_q_parallel)
+            c_q_perp = np.exp(c_q_perp)
+        return c_q_parallel, c_q_perp
+
+
+def interpolate_circle(data_mat, gl_ux, gl_uy, r_arr, n_theta=60):
+    n = data_mat.shape[0]
+    q = np.linspace(0, 1, n, endpoint=False) - 0.5
+    theta = np.linspace(-0.5, 0.5, n_theta, endpoint=False) * np.pi * 2
+    theta_q = theta + np.arctan2(gl_uy, gl_ux)
+    qx = np.cos(theta_q) * r_arr[0]
+    qy = np.sin(theta_q) * r_arr[0]
+    spl = RectBivariateSpline(q, q, np.log(data_mat.T))
+    cq2 = spl(qx, qy, grid=False)
+    return theta, cq2
 
 
 def get_perp_vec(n_x, n_y, n_z, count):
@@ -132,11 +161,11 @@ def cal_corr_q_2(file0, first_frame=20):
         vy_field[mask] = vy_cell[mask] / n_cell[mask]
         rho = np.array([i / cell_area for i in n_cell])
         c_rho_q2 = cal_corr_rho_q_2(rho, 1) / n_cell.size
-        c_para, c_perp = interpolate_2(c_rho_q2, n_x, n_y)
+        c_para, c_perp = interpolate(c_rho_q2, n_x, n_y)
         c_rho_para += c_para
         c_rho_perp += c_perp
         c_v_q2 = cal_corr_v_q_2(vx_field, vy_field, n_x, n_y) / n_cell.size
-        c_para, c_perp = interpolate_2(c_v_q2, n_x, n_y)
+        c_para, c_perp = interpolate(c_v_q2, n_x, n_y)
         c_v_para += c_para
         c_v_perp += c_perp
         count += 1
@@ -243,12 +272,101 @@ def cal_corr_q_3(file0, first_frame=20):
         f.writelines(lines)
 
 
+def plot_corr_q_2(file0, first_frame=20, frame_count=1):
+    frames = read_2(file0, first_frame)
+    host_size, cells_per_host = get_host_info(file0)
+    n_cells_x = host_size[0] * cells_per_host[0]
+    Lx = int(file0.split("_")[1])
+    cell_area = (Lx / n_cells_x) ** 2
+    print("cell area =", cell_area)
+    c_v_para, c_v_perp, c_rho_para, c_rho_perp = np.zeros((4, n_cells_x // 2))
+    rho_q_2_accum1 = np.zeros((n_cells_x, n_cells_x))
+    rho_q_2_accum2 = np.zeros((n_cells_x, n_cells_x))
+    for i, frame in enumerate(frames):
+        if i >= frame_count:
+            break
+        t, num, vx, vy = frame
+        tot_par = np.sum(num)
+        vx_m = np.sum(vx) / tot_par
+        vy_m = np.sum(vy) / tot_par
+        v_m = np.sqrt(vx_m ** 2 + vy_m ** 2)
+        gl_ux = vx_m / v_m
+        gl_uy = vy_m / v_m
+        print("t =", t, "ux =", gl_ux, "uy =", gl_uy)
+        mask = num != 0
+        rho_field = np.zeros((num.shape[0], num.shape[1]))
+        rho_field[mask] = num[mask] / cell_area
+        rho_q_2 = cal_corr_rho_q_2(rho_field, 0) / rho_field.size
+        rho_q_2_new = interpolate(rho_q_2, gl_ux, gl_uy, True, True)
+        rho_q_2_accum1 += rho_q_2
+        rho_q_2_accum2 += rho_q_2_new
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+    rho_q_2_accum1 /= i
+    rho_q_2_accum2 /= i
+    im1 = ax1.imshow(np.log10(rho_q_2_accum1), origin="lower", vmin=0, vmax=5)
+    im2 = ax2.imshow(np.log10(rho_q_2_accum2), origin="lower", vmin=0, vmax=5)
+    plt.colorbar(im1, ax=ax1)
+    plt.colorbar(im2, ax=ax2)
+    plt.show()
+    plt.close()
+
+
+def find_theta_c_2(file0, first_frame=40, frame_count=1):
+    frames = read_2(file0, first_frame)
+    host_size, cells_per_host = get_host_info(file0)
+    nx = host_size[0] * cells_per_host[0]
+    print("nx =", nx)
+    Lx = int(file0.split("_")[1])
+    cell_area = (Lx / nx) ** 2
+    n_theta = 60
+    q2_cq2 = np.zeros(n_theta)
+    for i, frame in enumerate(frames):
+        t, num, vx, vy = frame
+        tot_par = np.sum(num)
+        vx_m = np.sum(vx) / tot_par
+        vy_m = np.sum(vy) / tot_par
+        v_m = np.sqrt(vx_m ** 2 + vy_m ** 2)
+        gl_ux = vx_m / v_m
+        gl_uy = vy_m / v_m
+        rho_field = num / cell_area
+        # rho_q_2 = cal_corr_rho_q_2(rho_field, 0) / rho_field.size
+        mask = num != 0
+        vx_field = np.zeros_like(vx)
+        vy_field = np.zeros_like(vy)
+        vx_field[mask] = vx[mask] / num[mask]
+        vy_field[mask] = vy[mask] / num[mask]
+        v_q_2 = cal_corr_v_q_2(vx_field, vy_field, gl_ux, gl_uy)
+        # qx = np.linspace(0, 1, nx, endpoint=False) - 0.5
+        # qy = qx
+        # k = 10
+        # theta_q = np.zeros((k * 2, k * 2))
+        # theta_v = np.arctan2(gl_uy, gl_ux)
+        # q2_cq2 = np.zeros_like(theta_q)
+        # for iy in range(-k, k):
+        #     my_qy = qy[nx // 2 + iy]
+        #     for ix in range(-k, k):
+        #         my_qx = qx[nx // 2 + ix]
+        #         q2_cq2[iy + k, ix + k] = (my_qx ** 2 + my_qy ** 2) * \
+        #             rho_q_2[nx // 2 + iy, nx // 2 + ix]
+        #         theta_q[iy + k, ix + k] = np.arctan2(my_qy, my_qx) - theta_v
+        # theta_q[theta_q > np.pi] -= np.pi * 2
+        # theta_q[theta_q < -np.pi] += np.pi * 2
+        q = 0.001
+        theta, cq2 = interpolate_circle(v_q_2, gl_ux, gl_uy, [q])
+        q2_cq2 += cq2 * q ** 2
+    plt.plot(theta, q2_cq2 / i, "o")
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     os.chdir(r"D:\data\random_torque\large_system")
-    # fname = "field_2400_0.18_0.000_1.0_1_host0.nc"
-    # cal_corr_q_2(fname)
+    fname = "field_2400_0.18_0.000_1.0_1_host0.nc"
+    # cal_corr_q_2(fname, 50)
     # plot_theta_q_2(fname)
+    # plot_corr_q_2(fname, 60, 1)
+    find_theta_c_2(fname, 40, 1)
 
-    os.chdir(r"D:\data\vm3d")
-    fname = "field_240_0.20_0.000_1.0_12.nc"
-    cal_corr_q_3(fname)
+    # os.chdir(r"D:\data\vm3d")
+    # fname = "field_240_0.20_0.000_1.0_12.nc"
+    # cal_corr_q_3(fname)

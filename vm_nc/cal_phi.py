@@ -47,8 +47,8 @@ def varied_domain_size(eps, seed):
             print(l, cal_phi(filename, n_cut))
 
 
-def sample_ave_phi(eps, eta=0.2, n_cut=2500):
-    L = [16, 22, 32, 46, 64, 80, 96, 120, 240]
+def sample_ave_phi(eps, eta=0.2, n_cut=3500):
+    L = [16, 22, 32, 46, 64, 80, 96, 120]
     phi = {l: [] for l in L}
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 5))
     for l in L:
@@ -80,43 +80,81 @@ def sample_ave_phi(eps, eta=0.2, n_cut=2500):
     plt.close()
 
 
+def sample_ave_phi_all(eta=0.2, n_cut=3500):
+    eps = [0, 0.02, 0.06, 0.12]
+    L = [16, 22, 32, 46, 64, 80, 96, 120]
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
+    for epsilon in eps:
+        phi = {l: [] for l in L}
+        for l in L:
+            files = glob.glob("phi_%d_%.2f_%.3f_1.0_*.dat" % (l, eta, epsilon))
+            for f in files:
+                phi[l].append(cal_phi(f, n_cut))
+        phi_m = np.zeros(len(L))
+        phi_std = np.zeros(len(L))
+        for i, l in enumerate(sorted(phi.keys())):
+            phi[l] = np.array(phi[l])
+            phi_m[i] = np.mean(phi[l])
+            phi_std[i] = np.std(phi[l])
+        line, = plt.plot(L, phi_m, "o", label=r"$\epsilon=%g$" % epsilon)
+        plt.errorbar(L, phi_m, phi_std, c=line.get_color())
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel(r"$L$", fontsize="x-large")
+    plt.ylabel(r"$\Phi$", fontsize="x-large")
+    plt.title(r"$\eta=%g, \rho_0=1.0, d=3$" % eta, fontsize="xx-large")
+    plt.legend(fontsize="x-large")
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
 def varied_eps(eta=0.2, seed=11, d=3):
     if d == 3:
-        L = [32, 64, 80, 96]
+        L = [32, 64, 80, 80, 96]
         n_cut = 2500
     else:
         L = [1024]
         n_cut = 4500
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-    for l in L:
+    flag_80 = False
+    for li in L:
         phi = {}
         chi = {}
         Binder = {}
         if d == 3:
-            if l == 80:
-                seed = 12
+            if li == 96:
+                seed = 13
+                n_cut = 3000
+            elif li == 80:
+                if flag_80:
+                    seed = 13
+                else:
+                    flag_80 = True
+                    seed = 11
             else:
                 seed = 11
-            files = glob.glob("phi_%d_%.2f_*_1.0_%d.dat" % (l, eta, seed))
+                n_cut = 2500
+            files = glob.glob("phi_%d_%.2f_*_1.0_%d.dat" % (li, eta, seed))
         else:
             os.chdir(r"D:\data\random_torque\phase diagram\L=1024\order_para")
             files = glob.glob("p_%g_*_%g_%d_%d_%d.dat" %
-                              (eta, 1.0, l, l, seed))
+                              (eta, 1.0, li, li, seed))
         for f in files:
             print(f)
             if d == 3:
                 eps = float(f.split("_")[3])
             else:
-                if l == 1024:
+                if li == 1024:
                     eps = float(f.split("_")[2])
             phi[eps], chi[eps], Binder[eps] = cal_phi(f, n_cut, False, d=d)
         eps_arr = np.array([i for i in sorted(phi.keys())])
         phi_arr = np.array([phi[i] for i in eps_arr])
         chi_arr = np.array([chi[i] for i in eps_arr])
         Binder_arr = np.array([Binder[i] for i in eps_arr])
-        ax1.plot(eps_arr, phi_arr, "-o", label=r"$L=%d$" % l)
-        ax2.plot(eps_arr, chi_arr, "-o", label=r"$L=%d$" % l)
-        ax3.plot(eps_arr, Binder_arr, "-o", label=r"$L=%d$" % l)
+        ax1.plot(eps_arr, phi_arr, "-o", label=r"$L=%d$" % li)
+        ax2.plot(eps_arr, chi_arr, "-o", label=r"$L=%d$" % li)
+        ax3.plot(eps_arr, Binder_arr, "-o", label=r"$L=%d$" % li)
     ax2.set_yscale("log")
     ax1.set_xlabel(r"$\epsilon$", fontsize="x-large")
     ax2.set_xlabel(r"$\epsilon$", fontsize="x-large")
@@ -133,7 +171,8 @@ def varied_eps(eta=0.2, seed=11, d=3):
     ax2.legend(fontsize="x-large")
     ax3.legend(fontsize="x-large")
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    plt.suptitle(r"$\eta=%.2f, \rho_0=1.0, d=%d$" % (eta, d), fontsize="xx-large")
+    plt.suptitle(r"$\eta=%.2f, \rho_0=1.0, d=%d$" %
+                 (eta, d), fontsize="xx-large")
     plt.show()
     plt.close()
 
@@ -152,9 +191,9 @@ def one_sample(L, seed, rho0=1.0):
 
 if __name__ == "__main__":
     os.chdir(r"D:\data\vm3d")
-    varied_eps()
+    # varied_eps()
     # varied_eps(0.15, 111111, 2)
     # varied_domain_size()
     # one_sample(64, 11)
     # varied_domain_size(0.02, 80)
-    # sample_ave_phi(0.06)
+    sample_ave_phi_all()

@@ -21,16 +21,20 @@ except ImportError:
     print("error when import add_line")
 
 
-def get_chi_dict(eta, is_dis=False):
-    """ Get dict of chi with key `eps`. chi_dict[eps] is a 2 * n array,
-        L_arr=chi_dict[eps][0], chi_arr = chi_dict[eps][1].
+def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
+    """
+    Get dict of chi with key `L`. chi_dict[L] is a 2 * n array,
+    eps_arr=chi_dict[eps][0], chi_arr = chi_dict[eps][1].
 
     Parameters
     --------
     eta: float
         Strength of noise.
     is_dis: bool
-        If True, return xi_dis, else return xi
+        If True, return xi_dis, else return xi.
+    disorder_t: str
+        Type of quenched disorder, 'RT' for random torque, 'RF' for
+        random field.
 
     Returns:
     --------
@@ -38,51 +42,68 @@ def get_chi_dict(eta, is_dis=False):
         xi or xi_dis.
     """
     from create_dict import create_dict_from_xlsx
-    path = r"E:\data\random_torque\susceptibility\sample_average"
+    if disorder_t == "RT":
+        path = r"E:\data\random_torque\susceptibility\sample_average"
+    elif disorder_t == "RF":
+        path = r"E:\data\random_field\normalize\scaling\sample_average"
     if not os.path.exists(path):
-        path = r"D:\data\random_torque\susceptibility\sample_average"
+        path = path.replace("E:", "D:")
 
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if is_dis:
         chi_type = "chi_dis"
     else:
         chi_type = "chi"
-    if eta == 0.18:
-        eps_min = 0.0455
-        # eps_min = 0.01
-        L_min = 46
-        chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
-        del_keys = []
-        for L in chi_dict.keys():
-            if L not in [46, 64, 90, 128, 180, 256, 362, 512, 724, 1024]:
-                del_keys.append(L)
-            if L == 256:
-                chi_dict[L] = chi_dict[L][:, 1:-2]
-            if L == 724 or L == 512 or L == 362:
-                chi_dict[L] = chi_dict[L][:, 1:-1]
-        for L in del_keys:
-            del chi_dict[L]
-
-    elif eta == 0.10:
-        eps_min = 0.045
-        # eps_min = 0.01
-        L_min = 45
-        chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
-        for L in chi_dict:
-            if L > 90:
-                chi_dict[L] = chi_dict[L][:, :-2]
-                if L == 512:
+    chi_dict = {}
+    if disorder_t == "RT":
+        if eta == 0.18:
+            eps_min = 0.0455
+            # eps_min = 0.01
+            L_min = 46
+            chi_dict = create_dict_from_xlsx(
+                infile, chi_type, "L", eps_min, L_min)
+            del_keys = []
+            for L in chi_dict.keys():
+                if L not in [46, 64, 90, 128, 180, 256, 362, 512, 724, 1024]:
+                    del_keys.append(L)
+                # if L == 256:
+                #     chi_dict[L] = chi_dict[L][:, 1:-2]
+                # if L == 724 or L == 512 or L == 362:
+                #     chi_dict[L] = chi_dict[L][:, 1:-1]
+            for L in del_keys:
+                del chi_dict[L]
+        elif eta == 0.10:
+            eps_min = 0.045
+            # eps_min = 0.01
+            L_min = 45
+            chi_dict = create_dict_from_xlsx(
+                infile, chi_type, "L", eps_min, L_min)
+            for L in chi_dict:
+                if L > 90:
                     chi_dict[L] = chi_dict[L][:, :-2]
-        del chi_dict[54]
-        del chi_dict[108]
-    elif eta == 0.05:
-        eps_min = 0.03
-        L_min = 45
-        chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min, L_min)
-        # del chi_dict[180]
-        # del chi_dict[256]
-        # del chi_dict[362]
+                    if L == 512:
+                        chi_dict[L] = chi_dict[L][:, :-2]
+            del chi_dict[54]
+            del chi_dict[108]
+        elif eta == 0.05:
+            eps_min = 0.03
+            L_min = 45
+            chi_dict = create_dict_from_xlsx(
+                infile, chi_type, "L", eps_min, L_min)
+            # del chi_dict[180]
+            # del chi_dict[256]
+            # del chi_dict[362]
+            del chi_dict[512]
+    elif disorder_t == "RF":
+        if eta == 0.18:
+            print(infile)
+            eps_min = 0.125
+            L_min = 60
+            chi_dict = create_dict_from_xlsx(
+                infile, chi_type, "L", eps_min, L_min)
+        del chi_dict[362]
         del chi_dict[512]
+        del chi_dict[724]
     return chi_dict
 
 
@@ -111,19 +132,7 @@ def read_npz(L):
                      chi_std[i]))
 
 
-def plot_xi_vs_eps(eta, chi_dict, read_txt=True):
-    """ Plot sample-averaged susceptibility against epsilon."""
-    for L in sorted(chi_dict.keys()):
-        plt.plot(chi_dict[L][0], chi_dict[L][1], "-o", label=r"$%d$" % L)
-    plt.yscale("log")
-    plt.xlim(xmax=0.0875)
-    plt.ylim(2)
-    plt.legend(title=r"$L=$")
-    plt.show()
-    plt.close()
-
-
-def find_peak(eta, chi_dict, ax=None):
+def find_peak(eta, chi_dict, ax=None, mode="con", disorder_t="RT"):
     from fit import find_peak_polyfit
     L_arr = np.array([i for i in sorted(chi_dict.keys())])
     eps_p = np.zeros(L_arr.size)
@@ -146,31 +155,34 @@ def find_peak(eta, chi_dict, ax=None):
         ax.errorbar(eps_p, chi_p, yerr=chi_err, xerr=eps_err, fmt='none')
         ax.set_yscale("log")
         ax.legend(loc="upper right", title=r"$L=$")
-        ax.set_xlim(xmax=0.09)
+        if disorder_t == "RT":
+            ax.set_xlim(xmax=0.09)
         ax.set_xlabel(r"$\epsilon$", fontsize="xx-large")
-        ylabel = r"$L^2\left([\langle m^2\rangle]-[\langle m\rangle]^2\right)$"
-        ax.set_ylabel(ylabel, fontsize="xx-large")
+        if mode == "con":
+            yl = r"$L^2\left [\langle m^2\rangle-\langle m\rangle^2\right ]$"
+        elif mode == "dis":
+            yl = r"$L^2\left([\langle m\rangle^2]-[\langle m\rangle]^2\right)$"
+        else:
+            yl = r"$L^2\left([\langle m^2\rangle]-[\langle m\rangle]^2\right)$"
+        ax.set_ylabel(yl, fontsize="xx-large")
     return eps_p, chi_p, eps_err, chi_err
 
 
-def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, ax, mode="con"):
+def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, slope, ax, mode="con"):
     ax.plot(L, chi_p, "o")
     x0, x1 = L[0] - 2, L[-1] + 50
     ax.errorbar(L, chi_p, yerr=chi_err, fmt="none")
-    c = polyfit(np.log10(L[:]), np.log10(chi_p[:]), deg=1)
-    x = np.linspace(x0, x1, 1000)
+    beg = 0
+    c, V = polyfit(np.log10(L[beg:]), np.log10(chi_p[beg:]), deg=1, cov=True)
+    print(c)
+    print(V)
+    x = np.linspace(L[beg], x1, 1000)
     y = 10**c[1] * x**c[0]
     ax.plot(x, y, "--", label=r"$\chi_{\rm p}\sim L^{%.4f}$" % c[0])
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlim(x0, x1)
     ax.legend(loc="upper left", title="linear fit", fontsize="x-large")
-    if mode == "con":
-        slope = 1.75
-    elif mode == "dis":
-        slope = 2.0
-    elif mode == "mix":
-        slope = 1.9
     label = r"$\chi_p \propto L^{%g}$" % slope
     add_line(ax, 0, 0.2, 1, slope, label=label, scale="log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
@@ -197,18 +209,15 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     from fit import plot_KT_fit, plot_pow_fit
     if eta == 0.18:
         eps_m = 0.05
-        x = eps_p[3:]
-        y = L[3:]
-        x_err = eps_err[3:]
     elif eta == 0.1:
         eps_m = 0.045
-        x = eps_p[3:]
-        y = L[3:]
-        x_err = eps_err[3:]
     else:
-        x = eps_p[2:]
-        y = L[2:]
         eps_m = 0.02
+    beg = 0
+    x = eps_p[beg:]
+    y = L[beg:]
+    # x_err = eps_err[beg:]
+
     ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
     plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m)
     plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m)
@@ -235,47 +244,85 @@ def read_suscept_peak(eta, head, tail):
     return L, eps
 
 
-def plot_3_panels(eta, save_fig=False, mode="con"):
+def plot_chi_con_and_dis(eta, disorder_t="RT"):
+    chi_con_dict = get_chi_dict(eta, False, disorder_t=disorder_t)
+    chi_dis_dict = get_chi_dict(eta, True, disorder_t=disorder_t)
+    for L in sorted(chi_con_dict.keys()):
+        eps_arr, chi_dis_arr = chi_dis_dict[L]
+        eps_arr, chi_con_arr = chi_con_dict[L]
+        line, = plt.plot(eps_arr, chi_con_arr, "o",
+                         label="$%d$" % L)
+        plt.plot(eps_arr, chi_dis_arr, "--s",
+                 fillstyle="none", c=line.get_color())
+    plt.yscale("log")
+    plt.legend(title=r"$L=$")
+    plt.xlabel(r"$\epsilon$", fontsize="xx-large")
+    plt.ylabel(r"$\chi_\mathrm{con}(\chi_\mathrm{dis})$", fontsize="xx-large")
+    plt.title(r"random torque with $\eta=0.18, \rho_0=1$", fontsize="xx-large")
+    plt.show()
+    plt.close()
+
+
+def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
     """
-    Plot sample-average chi vs. epsilon with increasing L and fixed eta in the
-    first panel. Mean while, show susceptibility peak vs. L in the second
-    panel and location of susceptibility peak vs. L in the third panel.
+    Plot three panels:
+    1) sample-averaged chi vs. eps with increasing L and eta = eta.
+    2) susceptibility peak vs. L.
+    3) location of susceptibility peak vs. L.
+
     """
     if mode == "con":
-        chi_dict = get_chi_dict(eta, False)
+        chi_dict = get_chi_dict(eta, False, disorder_t)
     elif mode == "dis":
-        chi_dict = get_chi_dict(eta, True)
+        chi_dict = get_chi_dict(eta, True, disorder_t)
     elif mode == "mix":
         chi_dict = {}
-        chi_con = get_chi_dict(eta, False)
-        chi_dis = get_chi_dict(eta, True)
+        chi_con = get_chi_dict(eta, False, disorder_t)
+        chi_dis = get_chi_dict(eta, True, disorder_t)
         for L in chi_con:
             eps_arr, chi_arr1 = chi_dis[L]
             eps_arr, chi_arr2 = chi_con[L]
             chi_dict[L] = [eps_arr, chi_arr1 + chi_arr2]
-    if eta == 0.0:
+    if eta == 0.0 or disorder_t == "RF":
         fig, axes = plt.subplots(
             nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
     else:
         fig, axes = plt.subplots(
             nrows=1, ncols=3, figsize=(15, 5), constrained_layout=True)
     L_arr = np.array([i for i in sorted(chi_dict.keys())])
-    eps_p, chi_p, eps_err, chi_err = find_peak(eta, chi_dict, axes[0])
+    eps_p, chi_p, eps_err, chi_err = find_peak(
+        eta, chi_dict, axes[0], mode, disorder_t)
     axes[0].set_title("(a)", fontsize="xx-large")
-    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, axes[1], mode)
+    if mode == "dis":
+        if eta == 0.18:
+            # slope = 2.22
+            slope = 2.46
+        elif eta == 0.1:
+            slope = 2.1
+        elif eta == 0.05:
+            slope = 2.52
+    elif mode == "con":
+        if eta == 0.18:
+            slope = 1.75
+            # slope = 1.48
+        elif eta == 0.1:
+            slope = 1.8
+        elif eta == 0.05:
+            slope = 1.65
+    else:
+        if eta == 0.05:
+            slope = 1.7
+        else:
+            slope = 1.96
+    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, slope, axes[1], mode)
     axes[1].set_title("(b)", fontsize="xx-large")
-    if eta != 0.0:
+    if eta != 0.0 and disorder_t == "RT":
         plot_peak_loc_vs_L(eta, L_arr, eps_p, eps_err, axes[2])
         axes[2].set_title("(c)", fontsize="xx-large")
         ax_in = fig.add_axes([0.55, 0.2, 0.1, 0.3])
     else:
         ax_in = fig.add_axes([0.8, 0.18, 0.18, 0.32])
-    if mode == "dis":
-        slope = 2.0
-    elif mode == "con":
-        slope = 1.75
-    else:
-        slope = 1.9
+
     ax_in.loglog(L_arr, chi_p / L_arr**slope, "o")
     ylabel = r"$\chi_p / L^{%g}$" % slope
     ax_in.text(0.05, 0.8, ylabel, transform=ax_in.transAxes, fontsize="large")
@@ -286,7 +333,7 @@ def plot_3_panels(eta, save_fig=False, mode="con"):
     elif mode == "dis":
         title += " disconnected susceptibility"
     else:
-        title += " cross susceptibility"
+        title += " total susceptibility"
     plt.suptitle(title, fontsize="xx-large")
     if save_fig:
         plt.savefig(r"data\suscept_peak_eta=%g.eps" % eta)
@@ -294,7 +341,7 @@ def plot_3_panels(eta, save_fig=False, mode="con"):
         plt.show()
 
 
-def collapse3(eta):
+def collapse_suscept(eta):
     chi_dict = get_chi_dict(eta, False)
     if eta == 0.18:
         gamma_over_nu = 1.7489
@@ -397,11 +444,11 @@ def plot_chi_mix(eta):
     plt.close()
 
 
-def plot_chi_mix_dis():
+def plot_chi_mix_dis(disorder_t="RT"):
     fig, (ax1, ax2) = plt.subplots(
         nrows=1, ncols=2, figsize=(9, 4), constrained_layout=True)
     c = []
-    for i, eta in enumerate([0.1, 0.18]):
+    for i, eta in enumerate([0.05, 0.1, 0.18]):
         chi_con_dict = get_chi_dict(eta, False)
         chi_dis_dict = get_chi_dict(eta, True)
         chi_mix_dict = {}
@@ -424,11 +471,15 @@ def plot_chi_mix_dis():
     ax1.set_xscale("log")
     ax2.set_xscale("log")
     ax2.set_yscale("log")
-    lb = r"$L^{-0.1}$"
-    add_line(ax2, 0, 1, 1, -0.1, scale="log", c=c[0], label=lb, xl=0.5, yl=0.8)
-    lb = r"$L^{-0.15}$"
+    lb = r"$L^{-0.07}$"
+    add_line(ax2, 0.4, 0.95, 1, -0.07, scale="log",
+             c=c[0], label=lb, xl=0.7, yl=0.9)
+    lb = r"$L^{-0.085}$"
+    add_line(ax2, 0, 0.85, 1, -0.085, scale="log",
+             c=c[1], label=lb, xl=0.5, yl=0.7)
+    lb = r"$L^{-0.16}$"
     add_line(
-        ax2, 0, 0.8, 1, -0.15, scale="log", c=c[1], label=lb, xl=0.3, yl=0.4)
+        ax2, 0, 0.83, 1, -0.16, scale="log", c=c[2], label=lb, xl=0.3, yl=0.45)
 
     ax1.set_xlabel(r"$L$", fontsize="x-large")
     ax1.set_ylabel(r"$\chi_{\rm tot}/\chi_{\rm dis}$", fontsize="x-large")
@@ -457,6 +508,7 @@ def xlsx_to_txt(eta):
 
 
 def fit_w_fixed_nu(mode="con", first=3, last=None):
+    """ Do fitting with fixed nu. """
     from fit import fit_pow2, plot_pow_fit
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
     for eta in [0.1, 0.18]:
@@ -506,10 +558,11 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    # plot_3_panels(eta, save_fig=False, mode="mix")
+    plot_3_panels(eta, save_fig=False, mode="dis", disorder_t="RF")
     # fit_w_fixed_nu()
-    collapse3(eta)
+    # collapse_suscept(eta)
     # plot_chi_mix(eta)
 
     # plot_chi_mix_dis()
     # xlsx_to_txt(eta)
+    # plot_chi_con_and_dis(eta, disorder_t="RF")
