@@ -45,7 +45,8 @@ def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
     if disorder_t == "RT":
         path = r"E:\data\random_torque\susceptibility\sample_average"
     elif disorder_t == "RF":
-        path = r"E:\data\random_field\normalize\scaling\sample_average"
+        path = r"E:\data\random_field\normalize_new\scaling\sample_average"
+        # path = r"E:\data\random_field\normalize\scaling\sample_average"
     if not os.path.exists(path):
         path = path.replace("E:", "D:")
 
@@ -98,12 +99,13 @@ def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
         if eta == 0.18:
             print(infile)
             eps_min = 0.125
+            # eps_min = 0.12
             L_min = 60
             chi_dict = create_dict_from_xlsx(
                 infile, chi_type, "L", eps_min, L_min)
         del chi_dict[362]
         del chi_dict[512]
-        del chi_dict[724]
+        # del chi_dict[724]
     return chi_dict
 
 
@@ -448,9 +450,13 @@ def plot_chi_mix_dis(disorder_t="RT"):
     fig, (ax1, ax2) = plt.subplots(
         nrows=1, ncols=2, figsize=(9, 4), constrained_layout=True)
     c = []
-    for i, eta in enumerate([0.05, 0.1, 0.18]):
-        chi_con_dict = get_chi_dict(eta, False)
-        chi_dis_dict = get_chi_dict(eta, True)
+    if disorder_t == "RT":
+        eta_list = [0.05, 0.1, 0.18]
+    else:
+        eta_list = [0.18]
+    for i, eta in enumerate(eta_list):
+        chi_con_dict = get_chi_dict(eta, False, disorder_t=disorder_t)
+        chi_dis_dict = get_chi_dict(eta, True, disorder_t=disorder_t)
         chi_mix_dict = {}
         for L in chi_con_dict:
             eps, chi1 = chi_dis_dict[L]
@@ -471,16 +477,21 @@ def plot_chi_mix_dis(disorder_t="RT"):
     ax1.set_xscale("log")
     ax2.set_xscale("log")
     ax2.set_yscale("log")
-    lb = r"$L^{-0.07}$"
-    add_line(ax2, 0.4, 0.95, 1, -0.07, scale="log",
-             c=c[0], label=lb, xl=0.7, yl=0.9)
-    lb = r"$L^{-0.085}$"
-    add_line(ax2, 0, 0.85, 1, -0.085, scale="log",
-             c=c[1], label=lb, xl=0.5, yl=0.7)
-    lb = r"$L^{-0.16}$"
-    add_line(
-        ax2, 0, 0.83, 1, -0.16, scale="log", c=c[2], label=lb, xl=0.3, yl=0.45)
-
+    if disorder_t == "RT":
+        lb = r"$L^{-0.07}$"
+        add_line(ax2, 0.4, 0.95, 1, -0.07, scale="log",
+                c=c[0], label=lb, xl=0.7, yl=0.9)
+        lb = r"$L^{-0.085}$"
+        add_line(ax2, 0, 0.85, 1, -0.085, scale="log",
+                c=c[1], label=lb, xl=0.5, yl=0.7)
+        lb = r"$L^{-0.16}$"
+        add_line(
+            ax2, 0, 0.83, 1, -0.16, scale="log", c=c[2], label=lb, xl=0.3, yl=0.45)
+    else:
+        # ax2.set_ylim(0.1)
+        # ax2.set_xlim(xmax=3000)
+        lb = r"$L^{-0.5}$"
+        add_line(ax2, 0., 1, 1, -0.5, scale="log", c=c[0], label=lb)
     ax1.set_xlabel(r"$L$", fontsize="x-large")
     ax1.set_ylabel(r"$\chi_{\rm tot}/\chi_{\rm dis}$", fontsize="x-large")
     ax2.set_xlabel(r"$L$", fontsize="x-large")
@@ -558,11 +569,11 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="dis", disorder_t="RF")
+    plot_3_panels(eta, save_fig=False, mode="mix", disorder_t="RT")
     # fit_w_fixed_nu()
     # collapse_suscept(eta)
     # plot_chi_mix(eta)
 
-    # plot_chi_mix_dis()
+    # plot_chi_mix_dis("RF")
     # xlsx_to_txt(eta)
     # plot_chi_con_and_dis(eta, disorder_t="RF")

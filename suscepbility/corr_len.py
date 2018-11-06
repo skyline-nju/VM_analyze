@@ -73,8 +73,7 @@ def plot_phi_vs_L(phi_dict, ax=None, eta=None,
         eps_valid = [key for key in sorted(phi_dict.keys())]
     color = plt.cm.gist_rainbow(np.linspace(0, 1, len(eps_valid)))
     for i, eps in enumerate(eps_valid):
-        L = phi_dict[eps][0]
-        phi = phi_dict[eps][1]
+        L, phi = phi_dict[eps]
         # x = L / L ** (1 - eps)
         ax.plot(L, phi, "-o", label="%.4f" % eps, color=color[i])
     if Lc is not None and phi_c is not None:
@@ -99,6 +98,67 @@ def plot_phi_vs_L(phi_dict, ax=None, eta=None,
         plt.tight_layout()
         plt.show()
         plt.close()
+
+
+def collapse_phi_L(eta, phi_dict, eps_max=None, flag_ylim=False,
+                   square_eps = True, ax=None):
+    if ax is None:
+        plt.figure(figsize=(4, 4))
+        ax = plt.gca()
+        flag_show = True
+    else:
+        flag_show = False
+    eps_valid = []
+    if eps_max is not None:
+        for key in sorted(phi_dict.keys()):
+            if key <= eps_max and key != 0.001 and key != 0.048 and key != 0.049:
+                eps_valid.append(key)
+    else:
+        eps_valid = [key for key in sorted(phi_dict.keys())]
+    eps_valid = np.array(eps_valid)
+    if square_eps:
+        alpha = 1 - eps_valid ** 2
+        # gamma_eq = r"\gamma(\epsilon) = 1 - \epsilon ^ 2"
+    else:
+        alpha = 1 - eps_valid
+        # gamma_eq = r"\gamma(\epsilon) = 1 - \epsilon"
+    color = plt.cm.gist_rainbow(np.linspace(0, 1, len(eps_valid)))
+    for i, eps in enumerate(eps_valid):
+        L, phi = phi_dict[eps]
+        ax.plot(L / L ** alpha[i], phi, "o", fillstyle="none",
+                label=r"$\epsilon=%g$" % eps, color=color[i])
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$L/L^{\gamma (\epsilon)}$", fontsize="x-large")
+    ax.set_ylabel(r"$\Phi$", fontsize="x-large")
+    if flag_ylim:
+        ax.set_ylim(0.06, 1.1)
+    
+    ax.legend(title=r"$\eta=%g$" % (eta))
+    if flag_show:
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
+
+def plot_collapse_phi_L(square_eps=True):
+    fig, axes = plt.subplots(nrows=1, ncols=4, figsize=(16, 4))
+    phi_dict_10 = get_phi_dict(0.1, 0)
+    phi_dict_18 = get_phi_dict(0.18, 0)
+    eps_max = 0.05
+    collapse_phi_L(0.1, phi_dict_10, eps_max, False, square_eps, axes[0])
+    collapse_phi_L(0.18, phi_dict_18, eps_max, False, square_eps, axes[1])
+    collapse_phi_L(0.1, phi_dict_10, eps_max, True, square_eps, axes[2])
+    collapse_phi_L(0.18, phi_dict_18, eps_max, True, square_eps, axes[3])
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    if square_eps:
+        title = r"$\gamma (\epsilon) = 1 - \epsilon ^ 2$"
+    else:
+        title = r"$\gamma (\epsilon) = 1 - \epsilon$"
+    plt.suptitle(title, fontsize="xx-large", y=0.99)
+    plt.show()
+    plt.close()
 
 
 def find_peak(eta,
@@ -359,8 +419,10 @@ def varied_alpha(eta, xi_m=100):
 
 
 if __name__ == "__main__":
-    eta = 0.18
+    # eta = 0.1
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    phi_dict = get_phi_dict(eta, 0)
-    plot_phi_vs_L(phi_dict, eps_max=0.035, eta=eta)
+    # phi_dict = get_phi_dict(eta, 0)
+    # plot_phi_vs_L(phi_dict, eps_max=0.035, eta=eta)
     # collapse3(eta)
+    # collapse_phi_L(eta, phi_dict, eps_max=0.05, square_eps=False)
+    plot_collapse_phi_L(True)
