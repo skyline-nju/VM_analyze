@@ -569,7 +569,7 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="mix", disorder_t="RT")
+    plot_3_panels(eta, save_fig=False, mode="dis", disorder_t="RF")
     # fit_w_fixed_nu()
     # collapse_suscept(eta)
     # plot_chi_mix(eta)

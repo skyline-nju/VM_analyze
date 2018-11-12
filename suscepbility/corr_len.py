@@ -15,44 +15,54 @@ except ImportError:
     print("error when import add_line")
 
 
-def get_phi_dict(eta, eps_min=None):
+def get_phi_dict(eta, eps_min=None, disorder_t="RT"):
     """
     Get dict of phi with key `eps`. phi_dict[eps] is a 2 * n array,
     L_arr=phi_dict[eps][0], phi_arr = phi_dict[eps][1].
     """
     from create_dict import create_dict_from_xlsx
-
-    path = r"E:\data\random_torque\susceptibility\sample_average"
+    if disorder_t == "RT":
+        path = r"E:\data\random_torque\susceptibility\sample_average"
+    elif disorder_t == "RF":
+        path = r"E:\data\random_field\normalize_new\scaling\sample_average"
+    
     if not os.path.exists(path):
-        path = r"D:\data\random_torque\susceptibility\sample_average"
+        path = path.replace("E:", "D:")
 
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
-    if eta == 0.18:
-        # from create_dict import create_dict_from_txt
-        # path = r"data\eta=%.2f" % eta
-        if eps_min is None:
-            eps_min = 0.052
-        L_min = None
-        phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
-                                         "dict-arr", 7)
-    elif eta == 0.1:
-        # from create_dict import create_dict_from_xlsx
-        # path = r"E:\data\random_torque\susceptibility"
-        # infile = path + os.path.sep + r"eta=%g.xlsx" % eta
-        if eps_min is None:
-            eps_min = 0.048
-        L_min = None
-        phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
-                                         "dict-arr", 5)
-        del phi_dict[0.053]
-        del phi_dict[0.055]
-        # del phi_dict[0.048]
-    elif eta == 0.05:
-        if eps_min is None:
-            eps_min = 0.03
-        L_min = None
-        phi_dict = create_dict_from_xlsx(
-            infile, "phi", "eps", eps_min, L_min, "dict-arr", 4)
+    if disorder_t == "RT":
+        if eta == 0.18:
+            # from create_dict import create_dict_from_txt
+            # path = r"data\eta=%.2f" % eta
+            if eps_min is None:
+                eps_min = 0.052
+            L_min = None
+            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
+                                            "dict-arr", 7)
+        elif eta == 0.1:
+            # from create_dict import create_dict_from_xlsx
+            # path = r"E:\data\random_torque\susceptibility"
+            # infile = path + os.path.sep + r"eta=%g.xlsx" % eta
+            if eps_min is None:
+                eps_min = 0.048
+            L_min = None
+            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
+                                            "dict-arr", 5)
+            del phi_dict[0.053]
+            del phi_dict[0.055]
+            # del phi_dict[0.048]
+        elif eta == 0.05:
+            if eps_min is None:
+                eps_min = 0.03
+            L_min = None
+            phi_dict = create_dict_from_xlsx(
+                infile, "phi", "eps", eps_min, L_min, "dict-arr", 4)
+    elif disorder_t == "RF":
+        if eta == 0.18:
+            eps_min = None
+            L_min = None
+            phi_dict = create_dict_from_xlsx(
+                infile, "phi", "eps", eps_min, L_min, "dict-arr", 4)
     return phi_dict
 
 
@@ -91,6 +101,44 @@ def plot_phi_vs_L(phi_dict, ax=None, eta=None,
                  scale="log", label=r"$-0.107$", yl=0.7)
         add_line(ax, 0.5, 0.65, 0.95, -0.167,
                  scale="log", label=r"$-0.167$", yl=0.35, xl=0.8)
+    ax.legend(title=r"$\epsilon=$", loc="lower left", fontsize="xx-large")
+    ax.set_title(r"$\eta=%g,\ \rho_0=1$" % eta, fontsize="xx-large")
+    # add_line(ax, 0.25, 0.65, 0.55, -1, scale="log")
+    if flag_show:
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
+
+def plot_slope_vs_L(phi_dict, ax=None, eta=None,
+                    Lc=None, phi_c=None, eps_max=None):
+    if ax is None:
+        ax = plt.gca()
+        flag_show = True
+    else:
+        flag_show = False
+    eps_valid = []
+    if eps_max is not None:
+        for key in sorted(phi_dict.keys()):
+            if key <= eps_max:
+                eps_valid.append(key)
+    else:
+        eps_valid = [key for key in sorted(phi_dict.keys())]
+    color = plt.cm.gist_rainbow(np.linspace(0, 1, len(eps_valid)))
+    for i, eps in enumerate(eps_valid):
+        print("eps =", eps)
+        L, phi = phi_dict[eps]
+        x = np.sqrt(L[1:] * L[:-1])
+        y = -np.log10(phi[1:] / phi[:-1]) / np.log10(L[1:] / L[:-1])
+        for j in range(x.size):
+            print(x[j], y[j])
+        ax.plot(x, y, "-o", label="%.4f" % eps, color=color[i])
+    if Lc is not None and phi_c is not None:
+        ax.plot(Lc, phi_c, "--ks", fillstyle="none")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$L$", fontsize="x-large")
+    ax.set_ylabel(r"$\phi$", fontsize="x-large")
     ax.legend(title=r"$\epsilon=$", loc="lower left", fontsize="xx-large")
     ax.set_title(r"$\eta=%g,\ \rho_0=1$" % eta, fontsize="xx-large")
     # add_line(ax, 0.25, 0.65, 0.55, -1, scale="log")
@@ -419,10 +467,10 @@ def varied_alpha(eta, xi_m=100):
 
 
 if __name__ == "__main__":
-    # eta = 0.1
+    eta = 0.18
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    # phi_dict = get_phi_dict(eta, 0)
-    # plot_phi_vs_L(phi_dict, eps_max=0.035, eta=eta)
+    phi_dict = get_phi_dict(eta, 0,disorder_t="RF")
+    plot_slope_vs_L(phi_dict, eps_max=0.12, eta=eta)
     # collapse3(eta)
     # collapse_phi_L(eta, phi_dict, eps_max=0.05, square_eps=False)
-    plot_collapse_phi_L(True)
+    # plot_collapse_phi_L(True)

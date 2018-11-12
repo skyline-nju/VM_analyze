@@ -29,6 +29,18 @@
 %apply (double* INPLACE_ARRAY1, int DIM1) {(double *num_mean, int num_mean_dim),
                                       (double *num_var, int num_var_dim)}
 
+%apply (unsigned short* IN_ARRAY2, int DIM1, int DIM2) {
+    (unsigned short *in, int ny_in, int nx_in)}
+
+%apply (double* IN_ARRAY2, int DIM1, int DIM2) {
+	(double* in, int ny_in, int nx_in)}
+
+%apply (int* INPLACE_ARRAY2, int DIM1, int DIM2) {
+    (int *out, int ny_out, int nx_out)}
+
+%apply (double* INPLACE_ARRAY2, int DIM1, int DIM2) {
+	(double* out, int ny_out, int nx_out)}
+
 //%rename (cal_num_flct) my_cal_num_flct;
 
 %inline %{
@@ -37,6 +49,16 @@
                          double *num_mean, int num_mean_dim, double *num_var, int num_var_dim) {
         cal_num_flct(num, nz, ny, nx, box_len, box_num, num_mean, num_var, box_len_dim);
     }
+
+    void renormalize_2d_uint16(unsigned short *in, int ny_in, int nx_in,
+                               int *out, int ny_out, int nx_out) {
+        renormalize_2d(in, ny_in, nx_in, out, ny_out, nx_out);
+    }
+
+	void renormalize_2d_doub(double *in, int ny_in, int nx_in,
+							   double *out, int ny_out, int nx_out) {
+		renormalize_2d(in, ny_in, nx_in, out, ny_out, nx_out);
+	}
 %}
 
 %include "num_flct.h"

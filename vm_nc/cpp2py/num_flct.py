@@ -103,6 +103,14 @@ def cal_num_flct_3(num, box_len, box_num, num_mean, num_var):
     """cal_num_flct_3(unsigned short * num, int * box_len, int * box_num, double * num_mean, double * num_var)"""
     return _num_flct.cal_num_flct_3(num, box_len, box_num, num_mean, num_var)
 
+def renormalize_2d_uint16(arg1, out):
+    """renormalize_2d_uint16(unsigned short * arg1, int * out)"""
+    return _num_flct.renormalize_2d_uint16(arg1, out)
+
+def renormalize_2d_doub(arg1, out):
+    """renormalize_2d_doub(double * arg1, double * out)"""
+    return _num_flct.renormalize_2d_doub(arg1, out)
+
 def cal_num_flct(num, box_len, box_num, num_mean, num_var, box_len_dim):
     """cal_num_flct(unsigned short * num, int * box_len, int * box_num, double * num_mean, double * num_var, int box_len_dim)"""
     return _num_flct.cal_num_flct(num, box_len, box_num, num_mean, num_var, box_len_dim)
