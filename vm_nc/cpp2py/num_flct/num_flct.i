@@ -20,8 +20,21 @@
 
 %feature("autodoc", "1");
 
-%apply (unsigned short* IN_ARRAY3, int DIM1, int DIM2, int DIM3) 
-        {(unsigned short *num, int nz, int ny, int nx)}
+%apply (unsigned short* IN_ARRAY3, int DIM1, int DIM2, int DIM3) {
+	(unsigned short *num, int nz, int ny, int nx),
+	(unsigned short *in, int nz_in, int ny_in, int nx_in)}
+
+%apply (int *INPLACE_ARRAY3, int DIM1, int DIM2, int DIM3) {
+	(int *out, int nz_out, int ny_out, int nx_out)
+}
+
+%apply (double * IN_ARRAY3, int DIM1, int DIM2, int DIM3) {
+	(double *in, int nz_in, int ny_in, int nx_in)
+}
+
+%apply (double * INPLACE_ARRAY3, int DIM1, int DIM2, int DIM3) {
+	(double *out, int nz_out, int ny_out, int nx_out)
+}
 
 %apply (int* IN_ARRAY1, int DIM1) {(int *box_len, int box_len_dim),
 								   (int *box_num, int box_num_dim)}
@@ -56,8 +69,18 @@
     }
 
 	void renormalize_2d_doub(double *in, int ny_in, int nx_in,
-							   double *out, int ny_out, int nx_out) {
+							 double *out, int ny_out, int nx_out) {
 		renormalize_2d(in, ny_in, nx_in, out, ny_out, nx_out);
+	}
+
+	void renormalize_3d_uint16(unsigned short *in, int nz_in, int ny_in, int nx_in,
+							   int *out, int nz_out, int ny_out, int nx_out) {
+		renormalize_3d(in, nz_in, ny_in, nx_in, out, nz_out, ny_out, nx_out);
+	}
+
+	void renormalize_3d_doub(double *in, int nz_in, int ny_in, int nx_in,
+							 double *out, int nz_out, int ny_out, int nx_out) {
+		renormalize_3d(in, nz_in, ny_in, nx_in, out, nz_out, ny_out, nx_out);
 	}
 %}
 

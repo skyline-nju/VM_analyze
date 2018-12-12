@@ -22,5 +22,5 @@ def read_all(L, eta, eps, rho0=1.):
 
 
 if __name__ == "__main__":
-    os.chdir(r"D:\data\vm3d\order_para")
-    read_all(22, 0.2, 0.12)
+    os.chdir(r"E:\data\vm3d\order_para")
+    read_all(32, 0.2, 0.12)

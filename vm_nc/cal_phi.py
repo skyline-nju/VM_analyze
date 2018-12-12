@@ -48,11 +48,16 @@ def varied_domain_size(eps, seed):
 
 
 def sample_ave_phi(eps, eta=0.2, n_cut=3500):
-    L = [16, 22, 32, 46, 64, 80, 96, 120]
+    if eps == 0.18:
+        L = [16, 22, 32, 46, 64, 80, 96]
+    else:
+        L = [16, 22, 32, 46, 64, 80, 96, 120]
     phi = {l: [] for l in L}
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 5))
     for l in L:
         files = glob.glob("phi_%d_%.2f_%.3f_1.0_*.dat" % (l, eta, eps))
+        # if l >= 90:
+        #     n_cut = 5000
         for f in files:
             phi[l].append(cal_phi(f, n_cut))
     phi_m = np.zeros(len(L))
@@ -66,9 +71,9 @@ def sample_ave_phi(eps, eta=0.2, n_cut=3500):
         print(l, phi_m[i])
     plt.errorbar(L, phi_m, phi_std, color="r")
     plt.plot(L, phi_m, "rs")
-    if eps == 0.06:
-        add_line(ax, 0.6, 0.3, 1, slope=-0.004,
-                 label=r"$-0.004$", scale="log", c="b")
+    # if eps == 0.06:
+    #     add_line(ax, 0.6, 0.3, 1, slope=-0.004,
+    #              label=r"$-0.004$", scale="log", c="b")
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$L$", fontsize="xx-large")
@@ -81,7 +86,7 @@ def sample_ave_phi(eps, eta=0.2, n_cut=3500):
 
 
 def sample_ave_phi_all(eta=0.2, n_cut=3500):
-    eps = [0, 0.02, 0.06, 0.12]
+    eps = [0, 0.02, 0.06, 0.12, 0.18]
     L = [16, 22, 32, 46, 64, 80, 96, 120]
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     for epsilon in eps:
@@ -103,7 +108,7 @@ def sample_ave_phi_all(eta=0.2, n_cut=3500):
     plt.xlabel(r"$L$", fontsize="x-large")
     plt.ylabel(r"$\Phi$", fontsize="x-large")
     plt.title(r"$\eta=%g, \rho_0=1.0, d=3$" % eta, fontsize="xx-large")
-    plt.legend(fontsize="x-large")
+    plt.legend(fontsize="large", loc="best")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -190,10 +195,11 @@ def one_sample(L, seed, rho0=1.0):
 
 
 if __name__ == "__main__":
-    os.chdir(r"D:\data\vm3d")
+    os.chdir(r"E:\data\vm3d\order_para")
     # varied_eps()
     # varied_eps(0.15, 111111, 2)
     # varied_domain_size()
     # one_sample(64, 11)
     # varied_domain_size(0.02, 80)
-    sample_ave_phi_all()
+    # sample_ave_phi_all()
+    sample_ave_phi(0.18)

@@ -360,7 +360,7 @@ def find_theta_c_2(file0, first_frame=40, frame_count=1):
 
 
 if __name__ == "__main__":
-    os.chdir(r"D:\data\random_torque\large_system")
+    os.chdir(r"E:\data\random_torque\large_system")
     fname = "field_2400_0.18_0.000_1.0_1_host0.nc"
     # cal_corr_q_2(fname, 50)
     # plot_theta_q_2(fname)

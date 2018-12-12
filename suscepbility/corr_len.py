@@ -25,9 +25,6 @@ def get_phi_dict(eta, eps_min=None, disorder_t="RT"):
         path = r"E:\data\random_torque\susceptibility\sample_average"
     elif disorder_t == "RF":
         path = r"E:\data\random_field\normalize_new\scaling\sample_average"
-    
-    if not os.path.exists(path):
-        path = path.replace("E:", "D:")
 
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if disorder_t == "RT":

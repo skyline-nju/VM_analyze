@@ -47,8 +47,6 @@ def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
     elif disorder_t == "RF":
         path = r"E:\data\random_field\normalize_new\scaling\sample_average"
         # path = r"E:\data\random_field\normalize\scaling\sample_average"
-    if not os.path.exists(path):
-        path = path.replace("E:", "D:")
 
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if is_dis:
@@ -103,7 +101,7 @@ def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
             L_min = 60
             chi_dict = create_dict_from_xlsx(
                 infile, chi_type, "L", eps_min, L_min)
-        del chi_dict[362]
+        # del chi_dict[362]
         del chi_dict[512]
         # del chi_dict[724]
     return chi_dict
@@ -298,15 +296,15 @@ def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
     if mode == "dis":
         if eta == 0.18:
             # slope = 2.22
-            slope = 2.46
+            slope = 2.47
         elif eta == 0.1:
             slope = 2.1
         elif eta == 0.05:
             slope = 2.52
     elif mode == "con":
         if eta == 0.18:
-            slope = 1.75
-            # slope = 1.48
+            # slope = 1.75
+            slope = 1.47
         elif eta == 0.1:
             slope = 1.8
         elif eta == 0.05:
@@ -315,7 +313,7 @@ def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
         if eta == 0.05:
             slope = 1.7
         else:
-            slope = 1.96
+            slope = 1.959
     plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, slope, axes[1], mode)
     axes[1].set_title("(b)", fontsize="xx-large")
     if eta != 0.0 and disorder_t == "RT":
@@ -569,7 +567,7 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="dis", disorder_t="RF")
+    plot_3_panels(eta, save_fig=False, mode="mix", disorder_t="RF")
     # fit_w_fixed_nu()
     # collapse_suscept(eta)
     # plot_chi_mix(eta)
