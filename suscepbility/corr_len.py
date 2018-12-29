@@ -34,8 +34,8 @@ def get_phi_dict(eta, eps_min=None, disorder_t="RT"):
             if eps_min is None:
                 eps_min = 0.052
             L_min = None
-            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
-                                            "dict-arr", 7)
+            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min,
+                                             L_min, "dict-arr", 7)
         elif eta == 0.1:
             # from create_dict import create_dict_from_xlsx
             # path = r"E:\data\random_torque\susceptibility"
@@ -43,8 +43,8 @@ def get_phi_dict(eta, eps_min=None, disorder_t="RT"):
             if eps_min is None:
                 eps_min = 0.048
             L_min = None
-            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min, L_min,
-                                            "dict-arr", 5)
+            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min,
+                                             L_min, "dict-arr", 5)
             del phi_dict[0.053]
             del phi_dict[0.055]
             # del phi_dict[0.048]
@@ -52,19 +52,23 @@ def get_phi_dict(eta, eps_min=None, disorder_t="RT"):
             if eps_min is None:
                 eps_min = 0.03
             L_min = None
-            phi_dict = create_dict_from_xlsx(
-                infile, "phi", "eps", eps_min, L_min, "dict-arr", 4)
+            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min,
+                                             L_min, "dict-arr", 4)
     elif disorder_t == "RF":
         if eta == 0.18:
             eps_min = None
             L_min = None
-            phi_dict = create_dict_from_xlsx(
-                infile, "phi", "eps", eps_min, L_min, "dict-arr", 4)
+            phi_dict = create_dict_from_xlsx(infile, "phi", "eps", eps_min,
+                                             L_min, "dict-arr", 4)
     return phi_dict
 
 
-def plot_phi_vs_L(phi_dict, ax=None, eta=None,
-                  Lc=None, phi_c=None, eps_max=None):
+def plot_phi_vs_L(phi_dict,
+                  ax=None,
+                  eta=None,
+                  Lc=None,
+                  phi_c=None,
+                  eps_max=None):
     """ PLot phi against L with varied epsilon in log-log scales."""
     if ax is None:
         ax = plt.gca()
@@ -92,12 +96,34 @@ def plot_phi_vs_L(phi_dict, ax=None, eta=None,
     if eta == 0.05:
         ax.set_xlim(45)
         ax.set_ylim(ymax=0.9)
-        add_line(ax, 0.5, 0.86, 0.95, -0.051,
-                 scale="log", label=r"$-0.051$", yl=0.85)
-        add_line(ax, 0.5, 0.74, 0.95, -0.107,
-                 scale="log", label=r"$-0.107$", yl=0.7)
-        add_line(ax, 0.5, 0.65, 0.95, -0.167,
-                 scale="log", label=r"$-0.167$", yl=0.35, xl=0.8)
+        add_line(
+            ax,
+            0.5,
+            0.86,
+            0.95,
+            -0.051,
+            scale="log",
+            label=r"$-0.051$",
+            yl=0.85)
+        add_line(
+            ax,
+            0.5,
+            0.74,
+            0.95,
+            -0.107,
+            scale="log",
+            label=r"$-0.107$",
+            yl=0.7)
+        add_line(
+            ax,
+            0.5,
+            0.65,
+            0.95,
+            -0.167,
+            scale="log",
+            label=r"$-0.167$",
+            yl=0.35,
+            xl=0.8)
     ax.legend(title=r"$\epsilon=$", loc="lower left", fontsize="xx-large")
     ax.set_title(r"$\eta=%g,\ \rho_0=1$" % eta, fontsize="xx-large")
     # add_line(ax, 0.25, 0.65, 0.55, -1, scale="log")
@@ -107,8 +133,12 @@ def plot_phi_vs_L(phi_dict, ax=None, eta=None,
         plt.close()
 
 
-def plot_slope_vs_L(phi_dict, ax=None, eta=None,
-                    Lc=None, phi_c=None, eps_max=None):
+def plot_slope_vs_L(phi_dict,
+                    ax=None,
+                    eta=None,
+                    Lc=None,
+                    phi_c=None,
+                    eps_max=None):
     if ax is None:
         ax = plt.gca()
         flag_show = True
@@ -145,8 +175,12 @@ def plot_slope_vs_L(phi_dict, ax=None, eta=None,
         plt.close()
 
 
-def collapse_phi_L(eta, phi_dict, eps_max=None, flag_ylim=False,
-                   square_eps = True, ax=None):
+def collapse_phi_L(eta,
+                   phi_dict,
+                   eps_max=None,
+                   flag_ylim=False,
+                   square_eps=True,
+                   ax=None):
     if ax is None:
         plt.figure(figsize=(4, 4))
         ax = plt.gca()
@@ -156,13 +190,14 @@ def collapse_phi_L(eta, phi_dict, eps_max=None, flag_ylim=False,
     eps_valid = []
     if eps_max is not None:
         for key in sorted(phi_dict.keys()):
-            if key <= eps_max and key != 0.001 and key != 0.048 and key != 0.049:
+            if key <= eps_max and key != 0.001 \
+                    and key != 0.048 and key != 0.049:
                 eps_valid.append(key)
     else:
         eps_valid = [key for key in sorted(phi_dict.keys())]
     eps_valid = np.array(eps_valid)
     if square_eps:
-        alpha = 1 - eps_valid ** 2
+        alpha = 1 - eps_valid**2
         # gamma_eq = r"\gamma(\epsilon) = 1 - \epsilon ^ 2"
     else:
         alpha = 1 - eps_valid
@@ -170,15 +205,20 @@ def collapse_phi_L(eta, phi_dict, eps_max=None, flag_ylim=False,
     color = plt.cm.gist_rainbow(np.linspace(0, 1, len(eps_valid)))
     for i, eps in enumerate(eps_valid):
         L, phi = phi_dict[eps]
-        ax.plot(L / L ** alpha[i], phi, "o", fillstyle="none",
-                label=r"$\epsilon=%g$" % eps, color=color[i])
+        ax.plot(
+            L / L**alpha[i],
+            phi,
+            "o",
+            fillstyle="none",
+            label=r"$\epsilon=%g$" % eps,
+            color=color[i])
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel(r"$L/L^{\gamma (\epsilon)}$", fontsize="x-large")
     ax.set_ylabel(r"$\Phi$", fontsize="x-large")
     if flag_ylim:
         ax.set_ylim(0.06, 1.1)
-    
+
     ax.legend(title=r"$\eta=%g$" % (eta))
     if flag_show:
         plt.tight_layout()
@@ -310,8 +350,15 @@ def plot_three_panel(eta, alpha, save_fig=False, save_data=False):
     plt.close()
 
 
-def collapse(ax, eta, phi_dict, text_pos,
-             beta_over_nu, eps_c, nu, A=None, out=False):
+def collapse(ax,
+             eta,
+             phi_dict,
+             text_pos,
+             beta_over_nu,
+             eps_c,
+             nu,
+             A=None,
+             out=False):
     if eta == 0.18:
         eps_max = 0.07
     elif eta == 0.1:
@@ -396,11 +443,27 @@ def collapse3(eta):
     axes[2].set_yscale("log")
 
     slope1 = beta_over_nu * nu[0]
-    add_line(axes[0], 0.5, 0.82, 1, slope1, scale="log",
-             label=r"slope = $\beta$", xl=0.65, yl=0.85)
+    add_line(
+        axes[0],
+        0.5,
+        0.82,
+        1,
+        slope1,
+        scale="log",
+        label=r"slope = $\beta$",
+        xl=0.65,
+        yl=0.85)
     slope2 = slope1 - nu[0]
-    add_line(axes[0], 0.63, 0.6, 1, slope2, scale="log",
-             label=r"slope= $\beta - \nu$", xl=0.7, yl=0.5)
+    add_line(
+        axes[0],
+        0.63,
+        0.6,
+        1,
+        slope2,
+        scale="log",
+        label=r"slope= $\beta - \nu$",
+        xl=0.7,
+        yl=0.5)
     plt.suptitle(
         r"$\eta=%g,\beta/\nu =%g$" % (eta, beta_over_nu), fontsize="xx-large")
     plt.show()
@@ -466,7 +529,7 @@ def varied_alpha(eta, xi_m=100):
 if __name__ == "__main__":
     eta = 0.18
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    phi_dict = get_phi_dict(eta, 0,disorder_t="RF")
+    phi_dict = get_phi_dict(eta, 0, disorder_t="RF")
     plot_slope_vs_L(phi_dict, eps_max=0.12, eta=eta)
     # collapse3(eta)
     # collapse_phi_L(eta, phi_dict, eps_max=0.05, square_eps=False)

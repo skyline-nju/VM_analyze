@@ -1,15 +1,16 @@
 import numpy as np
 import os
 from scipy.interpolate import RectBivariateSpline
-from read_nc import Snapshot_2
+from read_field import Field_2
 import matplotlib.pyplot as plt
 import sys
 sys.path.append("..")
-try:
-    from corr2d import add_line
-except ModuleNotFoundError:
-    print("failed to find module add_line")
-    sys.exit()
+# try:
+#     from corr2d import add_line
+# except ModuleNotFoundError:
+#     print("failed to find module add_line")
+#     sys.exit()
+
 
 def cal_v_perp_q(vx, vy, n_x, n_y):
     v_perp = - n_y * vx + n_x * vy
@@ -53,9 +54,9 @@ def interpolate(X, Y, Z, ux, uy, log_z=True, full=False):
 
 class Corr2d:
     def __init__(self, filename):
-        self.snap = Snapshot_2(filename)
+        self.snap = Field_2(filename)
         self.L = self.snap.L
-    
+
     def set_q(self, block_size):
         self.nc_y = self.snap.gl_nc[0] // block_size
         self.nc_x = self.snap.gl_nc[1] // block_size
@@ -69,7 +70,6 @@ class Corr2d:
         self.qy = np.linspace(
             -self.nc_y/2, self.nc_y/2, self.nc_y, False) * d_qy
 
-    
     def time_average(self, first_frame=0, last_frame=None, block_size=1):
         self.set_q(block_size)
         print("cell area =", self.cell_area)
@@ -140,7 +140,8 @@ if __name__ == "__main__":
     qx = npzfile["qx"]
     qy = npzfile['qy']
     # v_q_para, v_q_perp = interpolate(qx, qy, v_q, n_x, n_y, log_z=False)
-    # rho_q_para, rho_q_perp = interpolate(qx, qy, rho_q, n_x, n_y, log_z=False)
+    # rho_q_para, rho_q_perp = interpolate(
+    #   qx, qy, rho_q, n_x, n_y, log_z=False)
     q_half = qx[qx.size//2:]
     print(q_half[1], q_half[-1])
     # plt.plot(q_half, v_q_para, "o")

@@ -11,7 +11,7 @@
 %}
 
 /* include the numpy typemaps */
-%include "C:\Users\duany\Documents\code\numpy.i"
+%include "D:\code\numpy.i"
 
 /* need this for correct module initialization */
 %init %{

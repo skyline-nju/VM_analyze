@@ -1,7 +1,7 @@
 import numpy as np
 import os
 from scipy.interpolate import RegularGridInterpolator
-from read_nc import Snapshot_3
+from read_field import Field_3
 import matplotlib.pyplot as plt
 import sys
 sys.path.append("..")
@@ -81,7 +81,7 @@ def interpolate(X, Y, Z, W, ux, uy, uz, full=False):
 
 class Corr3d:
     def __init__(self, filename):
-        self.snap = Snapshot_3(filename)
+        self.snap = Field_3(filename)
         self.L = self.snap.L
         print(self.L)
 
@@ -100,7 +100,7 @@ class Corr3d:
             -self.nc_y/2, self.nc_y/2, self.nc_y, False) * d_qy
         self.qz = np.linspace(
             -self.nc_z/2, self.nc_z/2, self.nc_z, False) * d_qz
-        
+
     def time_average(self, first_frame=0, last_frame=None, block_size=1):
         self.set_q(block_size)
         print("cell volume =", self.cell_vol)
@@ -137,8 +137,10 @@ class Corr3d:
         rho_q_mean = rho_q_sum / count
         v_q_mean = v_q_sum / count
 
-        outfile = r"..\Cq_%d_%.2f_%.3f_%d.npz" % (self.snap.L, self.snap.eta,
-                                                  self.snap.eps, self.snap.seed)
+        outfile = r"..\Cq_%d_%.2f_%.3f_%d.npz" % (self.snap.L,
+                                                  self.snap.eta,
+                                                  self.snap.eps,
+                                                  self.snap.seed)
         np.savez(outfile, rho_q=rho_q_mean, v_q=v_q_mean,
                  n_x=n_x_mean, n_y=n_y_mean, n_z=n_z_mean,
                  qx=self.qx, qy=self.qy, qz=self.qz)

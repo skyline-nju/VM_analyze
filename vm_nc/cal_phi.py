@@ -4,11 +4,11 @@ import glob
 import matplotlib.pyplot as plt
 import sys
 sys.path.append("..")
-try:
-    from corr2d.add_line import add_line
-except ModuleNotFoundError:
-    print("failed to find module add_line")
-    sys.exit()
+# try:
+#     from corr2d.add_line import add_line
+# except ModuleNotFoundError:
+#     print("failed to find module add_line")
+#     sys.exit()
 
 
 def cal_phi(infile, n_cut, only_phi=True, d=3):
@@ -48,10 +48,7 @@ def varied_domain_size(eps, seed):
 
 
 def sample_ave_phi(eps, eta=0.2, n_cut=3500):
-    if eps == 0.18:
-        L = [16, 22, 32, 46, 64, 80, 96]
-    else:
-        L = [16, 22, 32, 46, 64, 80, 96, 120]
+    L = [16, 22, 32, 46, 64, 80, 96, 120]
     phi = {l: [] for l in L}
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 5))
     for l in L:
@@ -202,4 +199,4 @@ if __name__ == "__main__":
     # one_sample(64, 11)
     # varied_domain_size(0.02, 80)
     # sample_ave_phi_all()
-    sample_ave_phi(0.18)
+    sample_ave_phi(0.12)
