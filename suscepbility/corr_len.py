@@ -527,10 +527,10 @@ def varied_alpha(eta, xi_m=100):
 
 
 if __name__ == "__main__":
-    eta = 0.18
+    eta = 0.05
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    phi_dict = get_phi_dict(eta, 0, disorder_t="RF")
-    plot_slope_vs_L(phi_dict, eps_max=0.12, eta=eta)
+    phi_dict = get_phi_dict(eta, 0, disorder_t="RT")
+    plot_slope_vs_L(phi_dict, eps_max=0.035, eta=eta)
     # collapse3(eta)
     # collapse_phi_L(eta, phi_dict, eps_max=0.05, square_eps=False)
     # plot_collapse_phi_L(True)

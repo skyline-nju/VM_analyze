@@ -284,7 +284,7 @@ def sample_average(eta=None, eps=None):
         excel_file += os.path.sep + r"eps=%g.xlsx" % eps
     phi_dict, chi_dict, chi_dis_dict, n_dict, phi2_dict = {}, {}, {}, {}, {}
     for key in data_dict:
-        for L in data_dict[key]:
+        for L in sorted(data_dict[key].keys()):
             df = data_dict[key][L]
             phi = df["mean"].mean()
             chi = df["var"].mean() * L * L
@@ -314,7 +314,7 @@ def sample_average(eta=None, eps=None):
 
 if __name__ == "__main__":
     eta = 0.05
-    time_average_const_eta(eta, new_data=True)
+    # time_average_const_eta(eta, new_data=True)
     sample_average(eta=eta)
     # eps = 0.03
     # time_average_const_eps(eps)

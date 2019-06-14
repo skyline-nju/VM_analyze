@@ -199,4 +199,4 @@ if __name__ == "__main__":
     # one_sample(64, 11)
     # varied_domain_size(0.02, 80)
     # sample_ave_phi_all()
-    sample_ave_phi(0.12)
+    sample_ave_phi(0.18)

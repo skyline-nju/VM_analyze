@@ -15,8 +15,9 @@ class Field_2:
     def __init__(self, file0):
         self.rootgrp = []
         if "host" in file0:
-            pat = file0[:-5]
-            files = glob.glob("%s*.nc" % pat)
+            if "host0" in file0:
+                str_arr = file0.split("host0")
+            files = glob.glob("%shost*%s" % (str_arr[0], str_arr[1]))
             for file in files:
                 self.rootgrp.append(Dataset(file, "r", format="NETCDF4"))
             if len(files) > 1:
@@ -33,13 +34,23 @@ class Field_2:
         ], int)
         # cell number for global domain
         self.gl_nc = self.host_size * self.cells_per_host
-
-        keys = ["eta", "epsilon", "Lx", "Ly", "rho_0", "seed"]
-        self.para = {key: getattr(self.rootgrp[0], key) for key in keys}
-        self.para["dx"] = self.para["Lx"] / self.gl_nc[1]
-        self.para["dy"] = self.para["Ly"] / self.gl_nc[0]
-        self.para["dA"] = self.para["dx"] * self.para["dy"]
-        self.para["N"] = self.para["rho_0"] * self.para["Lx"] * self.para["Ly"]
+        try:
+            keys = ["eta", "epsilon", "Lx", "Ly", "rho_0", "seed"]
+            self.para = {key: getattr(self.rootgrp[0], key) for key in keys}
+            self.para["dx"] = self.para["Lx"] / self.gl_nc[1]
+            self.para["dy"] = self.para["Ly"] / self.gl_nc[0]
+            self.para["dA"] = self.para["dx"] * self.para["dy"]
+            self.para[
+                "N"] = self.para["rho_0"] * self.para["Lx"] * self.para["Ly"]
+        except AttributeError:
+            keys = ["eta", "birth_rate", "Lx", "Ly", "rho_0", "seed"]
+            self.para = {key: getattr(self.rootgrp[0], key) for key in keys}
+            self.para["dx"] = self.para["Lx"] / self.gl_nc[1]
+            self.para["dy"] = self.para["Ly"] / self.gl_nc[0]
+            self.para["dA"] = self.para["dx"] * self.para["dy"]
+            self.para[
+                "N"] = self.para["rho_0"] * self.para["Lx"] * self.para["Ly"]
+            self.para["epsilon"] = self.para["birth_rate"]
 
     def gene_frames(self, first=0, last=None, block_size=1):
         gl_num_count = np.zeros((self.gl_nc[0], self.gl_nc[1]), np.uint16)
@@ -86,36 +97,74 @@ class Field_2:
                 n_flct.renormalize_2d_doub(gl_vy, gl_vy_new)
                 yield t, gl_num_count_new, gl_vx_new, gl_vy_new
 
-    def plot_one_frame(self, t, rho, vx, vy, title=None):
-        fig, (ax1, ax2) = plt.subplots(
-            ncols=2, nrows=1, figsize=(8, 5), constrained_layout=True)
+    def plot_one_frame(self,
+                       t,
+                       rho,
+                       vx,
+                       vy,
+                       title=None,
+                       rho_max=None,
+                       save_file=None,
+                       rect=False):
+        if not rect:
+            fig, (ax1, ax2) = plt.subplots(
+                ncols=2, nrows=1, figsize=(8, 5), constrained_layout=True)
+            cb_ori = "horizontal"
+        else:
+            if self.para["Lx"] / self.para["Ly"] == 3:
+                figsize = (12, 8)
+                cb_ori = "vertical"
+            else:
+                figsize = (12, 5)
+                cb_ori = "horizontal"
+            fig, (ax1, ax2) = plt.subplots(
+                ncols=1, nrows=2, figsize=figsize, constrained_layout=True)
         extent = [0, self.para["Lx"], 0, self.para["Ly"]]
-        im1 = ax1.imshow(rho, origin="lower", extent=extent)
-        cb1 = plt.colorbar(im1, ax=ax1, orientation="horizontal")
+        im1 = ax1.imshow(rho, origin="lower", extent=extent, vmax=rho_max)
+        cb1 = plt.colorbar(im1, ax=ax1, orientation=cb_ori, extend="max")
         cb1.set_label(r"$\rho$", fontsize="x-large")
 
-        theta = np.arctan2(vy, vx)
+        theta = np.arctan2(vy, vx) / 2
         im2 = ax2.imshow(theta, origin="lower", extent=extent, cmap="hsv")
-        cb2 = plt.colorbar(im2, ax=ax2, orientation="horizontal")
+        cb2 = plt.colorbar(im2, ax=ax2, orientation=cb_ori)
         cb2.set_label(r"$\theta$", fontsize="x-large")
 
-        vx_m = np.sum(vx) / self.para["N"]
-        vy_m = np.sum(vy) / self.para["N"]
+        n_par = self.para["Lx"] * self.para["Ly"] * np.mean(rho)
+        print("number of particles: ", n_par)
+        vx_m = np.sum(vx) / n_par
+        vy_m = np.sum(vy) / n_par
         order_para = np.sqrt(vx_m**2 + vy_m**2)
         if title is None:
             pat = r"$\eta=%g,\epsilon=%g, \rho_0=%g, L=%g, t=%d, \phi=%.4f$"
             title = pat % (self.para["eta"], self.para["epsilon"],
                            self.para["rho_0"], self.para["Lx"], t, order_para)
         plt.suptitle(title, fontsize="xx-large")
-        plt.show()
+        if save_file is None:
+            plt.show()
+        else:
+            plt.savefig(save_file)
         plt.close()
-    
-    def plot_frames(self, first=0, last=None, block_size=1, title=None):
+
+    def plot_frames(self,
+                    first=0,
+                    last=None,
+                    block_size=1,
+                    title=None,
+                    rho_max=None,
+                    save_folder=None,
+                    rect=False):
         frames = self.gene_frames(first, last, block_size)
         for i, frame in enumerate(frames):
             t, num, vx, vy = frame
+            print("t =", t)
             rho = num / self.para["dA"]
-            self.plot_one_frame(t, rho, vx, vy, title)
+            if save_folder is not None:
+                save_file = r"%s/%04d.jpg" % (save_folder, i)
+            else:
+                save_file = None
+            print("i =", i)
+            self.plot_one_frame(t, rho, vx, vy, title, rho_max, save_file,
+                                rect)
 
 
 class Field_3:
