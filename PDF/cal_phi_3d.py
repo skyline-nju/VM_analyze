@@ -1,7 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import glob
 import os
+
 
 def read_phi(filename, ncut):
     with open(filename) as f:

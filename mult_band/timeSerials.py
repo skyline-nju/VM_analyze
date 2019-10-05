@@ -49,8 +49,11 @@ def cal_dx(x1, x2, Lx, dxm=50):
     return dx.mean()
 
 
-def cal_v(xs: np.ndarray, valid: np.ndarray, Lx: int, dxm: int=50,
-          dt: int=100):
+def cal_v(xs: np.ndarray,
+          valid: np.ndarray,
+          Lx: int,
+          dxm: int = 50,
+          dt: int = 100):
     """ Calculate velocity from the time serials of location of bands.
 
         Parameters:

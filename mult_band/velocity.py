@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def untangle(x_t: np.ndarray, Lx: int, dxm: int=50):
+def untangle(x_t: np.ndarray, Lx: int, dxm: int = 50):
     """ Remove the periodic boundary condition of time serials of positions.
 
         N objects moves along x direction in order. Due to the periodic

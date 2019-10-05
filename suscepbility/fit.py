@@ -137,14 +137,16 @@ def fit_exp(eps, l, beta=None, reverse=False, ret_res=False):
         if beta is not None:
             p0 = [0.03, -1, 1.5]
             p_min = [0, -np.inf, 0]
-            p_max = [0.05, y.min(), np.inf]
+            # p_max = [0.05, y.min(), np.inf]  # for RT
+            p_max = [0.2, y.min(), np.inf]  # for RF
             popt, pcov = curve_fit(fun1, x, y, p0, bounds=(p_min, p_max))
             if ret_res:
                 squared_res = cal_squared_residuals(fun1, x, y, popt)
         else:
             p0 = [0.03, -1, 1.5, 0.5]
             p_min = [0, -np.inf, 0, 0]
-            p_max = [0.05, y.min(), np.inf, np.inf]
+            # p_max = [0.05, y.min(), np.inf, np.inf]  # for RT
+            p_max = [0.2, y.min(), np.inf]  # for RF
             popt, pcov = curve_fit(fun2, x, y, p0, bounds=(p_min, p_max))
             if ret_res:
                 squared_res = cal_squared_residuals(fun2, x, y, popt)
@@ -154,14 +156,16 @@ def fit_exp(eps, l, beta=None, reverse=False, ret_res=False):
         if beta is not None:
             p0 = [0.03, -1, 1.5]
             p_min = [0, -np.inf, 0]
-            p_max = [0.05, x.min(), np.inf]
+            # p_max = [0.05, x.min(), np.inf]  # for RT
+            p_max = [0.2, x.max(), np.inf]  # for RF
             popt, pcov = curve_fit(fun3, x, y, p0, bounds=(p_min, p_max))
             if ret_res:
                 squared_res = cal_squared_residuals(fun3, x, y, popt)
         else:
             p0 = [0.03, -1, 1.5, 0.5]
             p_min = [0, -np.inf, 0, 0]
-            p_max = [0.05, x.min(), np.inf, np.inf]
+            # p_max = [0.05, x.min(), np.inf, np.inf]  # for RT
+            p_max = [0.2, x.min(), np.inf, np.inf]  # for RF
             popt, pcov = curve_fit(fun4, x, y, p0, bounds=(p_min, p_max))
             if ret_res:
                 squared_res = cal_squared_residuals(fun4, x, y, popt)
@@ -218,13 +222,15 @@ def fit_pow2(xi, eps, eps_err=None, nu0=None):
     if nu0 is None:
         p0 = [0.03, 1, 1]
         p_min = [0, 0, 0]
-        p_max = [0.05, np.inf, np.inf]
+        # p_max = [0.05, np.inf, np.inf]  # for RT
+        p_max = [0.2, np.inf, np.inf]  # for RF
         b = (p_min, p_max)
         popt, pcov = curve_fit(fun, xi, eps, p0, bounds=b, sigma=eps_err)
     else:
         p0 = [0.03, 1]
         p_min = [0, 0]
-        p_max = [0.05, np.inf]
+        # p_max = [0.05, np.inf]  # for RT
+        p_max = [0.2, np.inf]  # for RF
         b = (p_min, p_max)
         popt, pcov = curve_fit(fun2, xi, eps, p0, bounds=b, sigma=eps_err)
     perr = np.sqrt(np.diag(pcov))
@@ -258,8 +264,11 @@ def plot_pow_fit(ax, eps, xi,
         if ax is None:
             x_min = xi.min()
         else:
-            x_min = 32
-        x = np.linspace(x_min, xi[-1], 100)
+            x_min = 46
+        x_max = xi[-1]
+        if x_max <= 500:
+            x_max = 1224
+        x = np.linspace(x_min, x_max, 100)
         if nu0 is None:
             nu0 = popt[-1]
         y = popt[0] + np.power(x / popt[1], -1/nu0)

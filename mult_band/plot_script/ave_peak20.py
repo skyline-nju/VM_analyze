@@ -11,8 +11,6 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     """ Plot time-averaged peaks for differernt samples with zoom effect."""
 
     path = r"E:/data/random_torque/bands/Lx/snapshot/uniband"
-    if not os.path.exists(path):
-        path = path.replace("E", "D")
     os.chdir(path)
 
     fig = plt.figure(1, figsize=(8, 5))
@@ -39,9 +37,9 @@ def plot_peak(Lx, nb, eta=350, eps=20):
 
     for i, peak in enumerate(
             eq_Lx_and_nb(Lx, nb, "ave_peak", dictLSN=dictLSN)):
+        rho_gas[i] = np.mean(peak[190:200])
         ax1.plot(x, peak, c=color_list[i], lw=0.8)
         ax3.plot(x, peak, c=color_list[i])
-        rho_gas[i] = np.mean(peak[190:200])
     ax2.axis("auto")
     ax4.axis("auto")
     sca = ax2.scatter(rho_gas, phi, c=phi, cmap="jet")
@@ -84,5 +82,168 @@ def plot_peak(Lx, nb, eta=350, eps=20):
     plt.close()
 
 
+def rescale(Lx, nb, eta=350, eps=20, show=True):
+    if 400 <= Lx <= 480:
+        os.chdir(r"E:/data/random_torque/bands/Lx/snapshot/uniband")
+    else:
+        os.chdir(r"E:/data/random_torque/bands/Lx/snapshot/eps20")
+
+    dictLSN = read_matched_file({"Lx": Lx, "eta": eta, "eps": eps})
+    phi = np.array(
+        [i for i in eq_Lx_and_nb(Lx, nb, "mean_phi", dictLSN=dictLSN)])
+    color_list = plt.cm.jet(
+        [(i - phi.min()) / (phi.max() - phi.min()) for i in phi])
+
+    x = np.arange(Lx) + 0.5
+    rho_gas = np.zeros_like(phi)
+    peak_ave = np.zeros_like(x)
+
+    if show:
+        fig, ax = plt.subplots(
+            nrows=1, ncols=3, figsize=(8, 3.5), constrained_layout=True)
+
+        ax[0].set_xlim(60, 210)
+        ax[1].set_xlim(60, 210)
+        ax[2].set_xlim(60, 210)
+        ax[0].set_xlabel(r"$x$", fontsize="large")
+        ax[1].set_xlabel(r"$x$", fontsize="large")
+        ax[2].set_xlabel(r"$x$", fontsize="large")
+        ax[0].set_ylabel(
+            r"$\langle \overline{\rho}_y(x)\rangle_t$", fontsize="large")
+        ax[1].set_ylabel(
+            r"$\langle \overline{\rho}_y(x)\rangle_t/\rho_{\rm gas}$",
+            fontsize="large")
+        ax[2].set_ylabel(
+            r"$\langle \overline{\rho}_y(x)\rangle_t-\rho_{\rm gas}$",
+            fontsize="large")
+
+    for i, peak in enumerate(
+            eq_Lx_and_nb(Lx, nb, "ave_peak", dictLSN=dictLSN)):
+        rho_gas[i] = np.mean(peak[190:200])
+        peak_ave += peak
+        if show:
+            ax[0].plot(x, peak, c=color_list[i], lw=0.5)
+            ax[1].plot(x, peak / rho_gas[i], c=color_list[i], lw=0.5)
+            ax[2].plot(x, peak - rho_gas[i], c=color_list[i], lw=0.5)
+    if show:
+        plt.suptitle(
+            r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_x=Lx, L_y=200, n_b=2$",
+            fontsize="x-large")
+        plt.show()
+        plt.close()
+    print("sample size =", i)
+    return x, peak_ave / i
+
+
+def sample_ave(Lx, nb, eta=350, eps=20, is_show=False, path=None):
+    if path is None:
+        path = [
+            r"E:/data/random_torque/bands/Lx/snapshot/eps20/",
+            r"E:/data/random_torque/bands/Lx/snapshot/uniband/",
+            r"E:/data/random_torque/bands/Lx/snapshot/eps20_2019/"
+        ]
+
+    dictLSN = read_matched_file({"Lx": Lx, "eta": eta, "eps": eps}, path)
+    phi = np.array(
+        [i for i in eq_Lx_and_nb(Lx, nb, "mean_phi", dictLSN=dictLSN)])
+    color_list = plt.cm.jet(
+        [(i - phi.min()) / (phi.max() - phi.min()) for i in phi])
+
+    x = np.arange(Lx) + 0.5
+    rho_gas = np.zeros_like(phi)
+    peak_ave = np.zeros_like(x)
+
+    peak_list = []
+    for i, peak in enumerate(
+            eq_Lx_and_nb(Lx, nb, "ave_peak", dictLSN=dictLSN)):
+        rho_gas[i] = np.mean(peak[190:200])
+        # plt.plot(x, peak, c=color_list[i], lw=0.5, alpha=0.5)
+        peak_ave += peak
+        peak_list.append(peak)
+        print(i)
+    peak_ave /= i + 1
+    if is_show:
+        for i, peak in enumerate(peak_list):
+            plt.plot(x, peak, c=color_list[i])
+        plt.show()
+        plt.close()
+    else:
+        return x, peak_ave, peak_list, color_list
+
+
+def collapse_varied_L(nb_arr, Lx_arr):
+    x_list, p_list = [], []
+    sample_size = []
+    for i in range(len(nb_arr)):
+        x, p, ps, c = sample_ave(Lx_arr[i], nb_arr[i])
+        x_list.append(x)
+        p_list.append(p)
+        sample_size.append(len(ps))
+
+    plt.figure(constrained_layout=True, figsize=(5, 5))
+    for i in range(len(x_list)):
+        plt.plot(
+            x_list[i],
+            p_list[i],
+            label=r"$L_x=%d, n_b=%d, n_s=%d$" % (Lx_arr[i], nb_arr[i],
+                                                 sample_size[i]),
+            lw=1)
+    plt.xlim(60, 210)
+    # title = r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_y=200$"
+    # plt.suptitle(title, fontsize="xx-large")
+    plt.ylabel(
+        r"sample-averaged $\langle \overline{\rho}_y(x)\rangle_t$",
+        fontsize="x-large")
+    plt.xlabel(r"$x$", fontsize="x-large")
+    plt.legend(fontsize="large")
+    plt.show()
+    plt.close()
+
+
+def collapse_same_nb(nb=2, L_arr=[400, 420, 440, 460, 480]):
+    x_list, p_list = [], []
+    sample_size = []
+    for Lx in L_arr:
+        x, p, ps, c = sample_ave(Lx, nb)
+        x_list.append(x)
+        p_list.append(p)
+        sample_size.append(len(ps))
+
+    plt.figure(constrained_layout=True, figsize=(5, 5))
+    for i in range(len(x_list)):
+        plt.plot(
+            x_list[i],
+            p_list[i],
+            label=r"$L_x=%d, n_b=%d, n_s=%d$" % (L_arr[i], nb, sample_size[i]))
+    plt.xlim(60, 210)
+    # title = r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_y=200$"
+    # plt.suptitle(title, fontsize="xx-large")
+    plt.ylabel(
+        r"sample-averaged $\langle \overline{\rho}_y(x)\rangle_t$",
+        fontsize="x-large")
+    plt.xlabel(r"$x$", fontsize="x-large")
+    plt.legend(fontsize="large")
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
-    plot_peak(460, 2)
+    # plot_peak(460, 2)
+    # x1, peak1 = rescale(440, 2, show=False)
+    # x2, peak2 = rescale(660, 3, show=True)
+    # x3, peak3 = rescale(880, 4, show=False)
+    # x4, peak4 = rescale(1100, 5, show=False)
+
+    # plt.plot(x1, peak1, x2, peak2, x3, peak3)
+    # plt.xlim(60, 210)
+    # plt.show()
+    # plt.close()
+    # sample_ave(660, 3)
+    collapse_same_nb()
+    # collapse_varied_L([2, 3, 4, 5], [440, 660, 880, 1100])
+
+    # l = 240
+    # collapse_varied_L([2, 4], [2 * l, 4 * l])
+
+    # mypath = r"E:/data/random_torque/bands/Lx/snapshot/eps20_2019/"
+    # sample_ave(840, 4, is_show=True, path=mypath)

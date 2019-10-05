@@ -22,9 +22,9 @@ def get_phi_dict(eta, eps_min=None, disorder_t="RT"):
     """
     from create_dict import create_dict_from_xlsx
     if disorder_t == "RT":
-        path = r"E:\data\random_torque\susceptibility\sample_average"
+        path = r"D:\data\VM2d\random_torque\sample_average"
     elif disorder_t == "RF":
-        path = r"E:\data\random_field\normalize_new\scaling\sample_average"
+        path = r"D:\data\VM2d\random_field\sample_average"
 
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
     if disorder_t == "RT":
@@ -358,11 +358,15 @@ def collapse(ax,
              eps_c,
              nu,
              A=None,
-             out=False):
-    if eta == 0.18:
-        eps_max = 0.07
-    elif eta == 0.1:
-        eps_max = 0.057
+             out=False,
+             disorder_t="RT"):
+    if disorder_t == "RT":             
+        if eta == 0.18:
+            eps_max = 0.07
+        elif eta == 0.1:
+            eps_max = 0.057
+    elif disorder_t == "RF":
+        eps_max = 0.22
     for eps in sorted(phi_dict.keys()):
         if eps < eps_max:
             L_arr, phi_arr = phi_dict[eps]
@@ -403,20 +407,24 @@ def collapse(ax,
     # ax.set_yscale("log")
 
 
-def collapse3(eta):
-    phi_dict = get_phi_dict(eta, 0.01)
-    if eta == 0.18:
-        beta_over_nu = 0.05
-        # eps_c = [0.0443, 0.0306, 0.0375]
-        # nu = [1.829, 1, 0.5]
-        eps_c = [0.0456, 0.0372, 0.0415]
-        nu = [1.622, 1, 0.5]
-        A = [None, 13.319, 2.753]
-    elif eta == 0.1:
-        beta_over_nu = 0.05
-        eps_c = [0.0407, 0.0312, 0.0359]
-        nu = [1.731, 1, 0.5]
-        A = [None, 22.253, 8.193]
+def collapse3(eta, beta_over_nu=0.05, disorder_t="RT"):
+    phi_dict = get_phi_dict(eta, 0.01, disorder_t=disorder_t)
+    if disorder_t == "RT":
+        if eta == 0.18:
+            # eps_c = [0.0443, 0.0306, 0.0375]
+            # nu = [1.829, 1, 0.5]
+            eps_c = [0.0456, 0.0372, 0.0415]
+            nu = [1.622, 1, 0.5]
+            A = [None, 13.319, 2.753]
+        elif eta == 0.1:
+            eps_c = [0.0407, 0.0312, 0.0359]
+            nu = [1.731, 1, 0.5]
+            A = [None, 8.865, 1.553]
+    else:
+        if eta == 0.18:
+            eps_c = [0.1021, 0.0436, 0.0703]
+            nu = [2.122, 1, 0.5]
+            A = [None, 1.727, 0.167]
     text_pos = [(0.1, 0.6), (0.1, 0.6), (0.1, 0.6)]
     fig, axes = plt.subplots(
         nrows=1,
@@ -430,10 +438,11 @@ def collapse3(eta):
         else:
             out = False
         collapse(ax, eta, phi_dict, text_pos[i], beta_over_nu, eps_c[i], nu[i],
-                 A[i], out)
+                 A[i], out, disorder_t)
 
-    axes[0].set_xlim(1e-2)
-    axes[1].set_xlim(4e-3)
+    if disorder_t == "RT":
+        axes[0].set_xlim(1e-2)
+        axes[1].set_xlim(4e-3)
     axes[0].set_ylabel(r"$\phi L^{\beta/\nu}$", fontsize="x-large")
     axes[0].set_xscale("log")
     axes[0].set_yscale("log")
@@ -442,28 +451,32 @@ def collapse3(eta):
     axes[2].set_xscale("log")
     axes[2].set_yscale("log")
 
-    slope1 = beta_over_nu * nu[0]
-    add_line(
-        axes[0],
-        0.5,
-        0.82,
-        1,
-        slope1,
-        scale="log",
-        label=r"slope = $\beta$",
-        xl=0.65,
-        yl=0.85)
-    slope2 = slope1 - nu[0]
-    add_line(
-        axes[0],
-        0.63,
-        0.6,
-        1,
-        slope2,
-        scale="log",
-        label=r"slope= $\beta - \nu$",
-        xl=0.7,
-        yl=0.5)
+    # slope1 = beta_over_nu * nu[0]
+    # add_line(
+    #     axes[0],
+    #     0.5,
+    #     0.82,
+    #     1,
+    #     slope1,
+    #     scale="log",
+    #     # label=r"slope = $\beta$",
+    #     label=None,
+    #     xl=0.65,
+    #     yl=0.85)
+    # slope2 = slope1 - nu[0]
+    # add_line(
+    #     axes[0],
+    #     # 0.63,
+    #     0.88,
+    #     # 0.6,
+    #     0.8,
+    #     1,
+    #     slope2,
+    #     scale="log",
+    #     # label=r"slope= $\beta - \nu$",
+    #     label=None,
+    #     xl=0.7,
+    #     yl=0.5)
     plt.suptitle(
         r"$\eta=%g,\beta/\nu =%g$" % (eta, beta_over_nu), fontsize="xx-large")
     plt.show()
@@ -527,10 +540,10 @@ def varied_alpha(eta, xi_m=100):
 
 
 if __name__ == "__main__":
-    eta = 0.05
+    eta = 0.18
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
     phi_dict = get_phi_dict(eta, 0, disorder_t="RT")
-    plot_slope_vs_L(phi_dict, eps_max=0.035, eta=eta)
-    # collapse3(eta)
+    # plot_slope_vs_L(phi_dict, eps_max=0.035, eta=eta)
+    collapse3(eta, 0.015, "RF")
     # collapse_phi_L(eta, phi_dict, eps_max=0.05, square_eps=False)
     # plot_collapse_phi_L(True)

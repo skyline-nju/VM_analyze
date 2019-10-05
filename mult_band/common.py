@@ -1,3 +1,6 @@
+import os
+
+
 def swap_key(dict0):
     """ Swap keys of a nested dict.
 
@@ -100,6 +103,6 @@ def get_para(file, sep="."):
             para: list
                 eta, eps, Lx, Ly, seed
     """
-    strList = (file.split("_")[1]).split(sep)
+    strList = (os.path.basename(file).split("_")[1]).split(sep)
     para = [int(i) for i in strList[:-1]]
     return para

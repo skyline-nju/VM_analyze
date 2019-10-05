@@ -154,6 +154,29 @@ def plot_phi_Lx(Lx, phi, nb):
     plt.close()
 
 
+def plot_phi_vs_Lx_over_nb(Lx, phi, nb, phi1):
+    import sys
+    sys.path.append("../../corr2d")
+    import add_line
+    # for i in range(Lx.size):
+    #     plt.plot(Lx[i]/nb[i], phi1 - phi[i], "o", color=clist[i])
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.scatter(Lx/nb, phi1 - phi, s=20, c=np.abs((Lx-nb * 220)/Lx))
+    cb = plt.colorbar()
+    cb.set_label(r"$|L_r|/n_b \lambda$", fontsize="x-large")
+    # plt.axis("tight")
+    
+    plt.xlim(190, 260)
+    plt.ylim(0.025, 0.04)
+    add_line.add_line(plt.gca(), 0, 0.1, 1, 1, scale="log")
+    plt.xlabel(r"$L_x / n_b$", fontsize="x-large")
+    plt.ylabel(r"$\phi_c - a -\phi$", fontsize="x-large")
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
 def plot_rescale(Lx, nb, phi, lamb):
     Lr = Lx - nb * lamb
     l_rescaled = Lr / (nb * lamb)
@@ -162,11 +185,8 @@ def plot_rescale(Lx, nb, phi, lamb):
 
 
 if __name__ == "__main__":
-    if os.path.exists("E:"):
-        drive = "E:"
-    else:
-        drive = "D:"
-    rescale_4_panel()
+    drive = "E:"
+    # rescale_4_panel()
     mk = [
         ".", ",", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "P",
         "p", "*", "h", "H", "+", "x", "X", "D", "d", "|", "-"
@@ -175,15 +195,19 @@ if __name__ == "__main__":
     print(len(mk))
     # file1 = r"E:\data\random_torque\bands\Lx\350_0.dat"
     # file1 = r"E:\data\random_torque\bands\Lx\old\350_20_200.dat"
-    file1 = drive + r"/data/random_torque/bands/Lx/old/400_20.dat"
+    file1 = drive + r"/data/random_torque/bands/Lx/old/350_20_200.dat"
 
-    lamb = 400
+    # lamb = 400
+    # Lx, phi, rate, nb = read(file=file1)
+    # Lr = Lx - nb * lamb
+    # dLr = Lr.max() - Lr.min()
+    # Lr0 = Lr.min()
+    # clist = plt.cm.jet([(i-Lr0)/dLr for i in Lr])
+    # # # plot_nb_Lx(Lx, nb, lamb, Lr)
+
+    # plot_phi_Lx(Lx, phi, nb)
+    # # plot_rescale(Lx, nb, phi, 220)
+
     Lx, phi, rate, nb = read(file=file1)
-    Lr = Lx - nb * lamb
-    dLr = Lr.max() - Lr.min()
-    Lr0 = Lr.min()
-    clist = plt.cm.jet([(i-Lr0)/dLr for i in Lr])
-    # # plot_nb_Lx(Lx, nb, lamb, Lr)
-
-    plot_phi_Lx(Lx, phi, nb)
-    # plot_rescale(Lx, nb, phi, 220)
+    clist = plt.cm.jet(rate)
+    plot_phi_vs_Lx_over_nb(Lx, phi, nb, 0.47)

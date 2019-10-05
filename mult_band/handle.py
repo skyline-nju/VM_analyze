@@ -44,7 +44,10 @@ def plot_serials(para: list,
         label="moving average")
     for i in range(seg_num.size):
         line, = ax2.plot([tBeg[i], tEnd[i]], [seg_phi[i]] * 2, "k-", lw=2)
-    line.set_label("averaged over valid region")
+    try:
+        line.set_label("averaged over valid region")
+    except UnboundLocalError:
+        print("size of seg_num: ", seg_num.size)
 
     # add vertical span on valid regions
     for i in range(seg_num.size):
@@ -73,8 +76,8 @@ def plot_serials(para: list,
         fontsize="large")
 
     # set lims of x, y axis
-    ax1.set_xlim(1e6, 1.2e7)
-    ax1.set_ylim(3.8, 6.2)
+    ax1.set_xlim(1e6)
+    # ax1.set_ylim(3.8, 6.2)
 
     plt.tight_layout()
     if show:

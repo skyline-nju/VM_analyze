@@ -441,19 +441,28 @@ def plot_eps20(v0=0.5):
         color="b")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
-    plt.savefig(drive+r"/report/quenched_disorder/report/fig/rho_exc_20.pdf")
+    # plt.savefig(drive+r"/report/quenched_disorder/report/fig/rho_exc_20.pdf")
     plt.close()
 
     plt.plot([440, 660, 880, 1100], phi_mean, "-o")
     plt.show()
     plt.close()
 
+    plt.figure(constrained_layout=True)
+    phi, peak, c = get_data(2, 460)
+    rho_exc = get_rho_exc(peak, xmin=190, xmax=200)
+    plt.plot(1 - rho_exc, c, "o")
+    plt.xlabel(r"$\rho_{\rm gas}$", fontsize="x-large")
+    plt.ylabel(r"$c$", fontsize="x-large")
+    plt.suptitle(
+        r"$\eta=0.35, \epsilon=0.02, \rho_0=1, L_x=460, L_y=200, n_b=2$",
+        fontsize="x-large")
+    plt.show()
+    plt.close()
+
 
 if __name__ == "__main__":
-    if os.path.exists("E:"):
-        drive = "E:"
-    else:
-        drive = "D:"
+    drive = "E:"
     # plot_varied_eta()
     # plot_varied_Lx()
     plot_eps20()

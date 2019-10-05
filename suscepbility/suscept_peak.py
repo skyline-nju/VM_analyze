@@ -43,9 +43,9 @@ def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
     """
     from create_dict import create_dict_from_xlsx
     if disorder_t == "RT":
-        path = r"E:\data\random_torque\susceptibility\sample_average"
+        path = r"D:\data\VM2d\random_torque\sample_average"
     elif disorder_t == "RF":
-        path = r"E:\data\random_field\normalize_new\scaling\sample_average"
+        path = r"D:\data\VM2d\random_field\sample_average"
         # path = r"E:\data\random_field\normalize\scaling\sample_average"
 
     infile = path + os.path.sep + r"eta=%g.xlsx" % eta
@@ -184,13 +184,13 @@ def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, slope, ax, mode="con"):
     ax.set_xlim(x0, x1)
     ax.legend(loc="upper left", title="linear fit", fontsize="x-large")
     label = r"$\chi_p \propto L^{%g}$" % slope
-    add_line(ax, 0, 0.2, 1, slope, label=label, scale="log")
+    add_line(ax, 0, 0.2, 1, slope, label=label, yl=0.55, scale="log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
     ax.set_ylabel(
         r"${\rm susceptibility\ peak\ }\chi_{\rm p}$", fontsize="xx-large")
 
 
-def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
+def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax, disorder_t="RT"):
     """
         Plot susceptibility peak and its loaction against system size,
         respectively.
@@ -207,20 +207,25 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax):
     ax.plot(L, eps_p, "o")
     ax.errorbar(L, eps_p, yerr=eps_err, fmt="none")
     from fit import plot_KT_fit, plot_pow_fit
-    if eta == 0.18:
-        eps_m = 0.05
-    elif eta == 0.1:
-        eps_m = 0.045
+    if disorder_t == "RT":
+        if eta == 0.18:
+            eps_m = 0.05
+        elif eta == 0.1:
+            eps_m = 0.045
+        else:
+            eps_m = 0.02
+        eps_max = 0.087
     else:
-        eps_m = 0.02
-    beg = 0
+        eps_m = 0.12
+        eps_max = 0.2
+    beg = 1
     x = eps_p[beg:]
     y = L[beg:]
     # x_err = eps_err[beg:]
 
     ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
-    plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m)
-    plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m)
+    plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m, eps_max=eps_max)
+    plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m, eps_max=eps_max)
     plot_pow_fit(ax, x, y, reversed=True, eps_err=None)
     ax.set_xscale("log")
     ax.set_xlabel(r"$L$", fontsize="xx-large")
@@ -284,7 +289,8 @@ def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
             eps_arr, chi_arr1 = chi_dis[L]
             eps_arr, chi_arr2 = chi_con[L]
             chi_dict[L] = [eps_arr, chi_arr1 + chi_arr2]
-    if eta == 0.0 or disorder_t == "RF":
+    # if eta == 0.0 or disorder_t == "RF":
+    if eta == 0.0:
         fig, axes = plt.subplots(
             nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
     else:
@@ -317,8 +323,9 @@ def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
             slope = 1.97
     plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, slope, axes[1], mode)
     axes[1].set_title("(b)", fontsize="xx-large")
-    if eta != 0.0 and disorder_t == "RT":
-        plot_peak_loc_vs_L(eta, L_arr, eps_p, eps_err, axes[2])
+    # if eta != 0.0 and disorder_t == "RT":
+    if eta != 0.0:
+        plot_peak_loc_vs_L(eta, L_arr, eps_p, eps_err, axes[2], disorder_t)
         axes[2].set_title("(c)", fontsize="xx-large")
         ax_in = fig.add_axes([0.55, 0.2, 0.1, 0.3])
     else:
@@ -595,7 +602,7 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RF")
+    plot_3_panels(eta, save_fig=False, mode="dis", disorder_t="RF")
     # fit_w_fixed_nu()
     # collapse_suscept(eta)
     # plot_chi_mix(eta)

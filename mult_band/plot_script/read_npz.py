@@ -32,6 +32,9 @@ def time_average(file, rate_min=0.3):
             "mean_v".
     """
     buff = np.load(file)
+    print(file)
+    # for key in buff.keys():
+    #     print(key)
     sum_phi = defaultdict(float)
     count = defaultdict(int)
     for i, nb in enumerate(buff["seg_num"]):
@@ -90,9 +93,17 @@ def sample_average(Lx, eps, eta=350, Ly=200, rate_min=0.3):
     return phi, rate
 
 
-def read_matched_file(para: dict={}) -> dict:
-    files = glob.glob("mb_%s.npz" % (
-        common.dict2str(para, "eta", "eps", "Lx", "Ly", "seed")))
+def read_matched_file(para: dict = {}, path=None) -> dict:
+    pat = "mb_%s.npz" % (common.dict2str(para, "eta", "eps", "Lx", "Ly",
+                                         "seed"))
+    if path is None:
+        files = glob.glob(pat)
+    elif isinstance(path, str):
+        files = glob.glob(path + pat)
+    elif isinstance(path, list):
+        files = []
+        for my_path in path:
+            files += glob.glob(my_path + pat)
     res = defaultdict(dict)
     for file in files:
         para = common.get_para(file)
@@ -209,7 +220,7 @@ def fixed_para(*args, **kwargs):
                         yield res
 
 
-def eq_Lx_and_nb(Lx, nb, *args, dictLSN: dict=None):
+def eq_Lx_and_nb(Lx, nb, *args, dictLSN: dict = None):
     if dictLSN is None:
         dictLSN = read_matched_file({"Lx": Lx})
     dictSN = dictLSN[Lx]

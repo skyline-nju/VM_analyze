@@ -9,8 +9,8 @@ from read_npz import read_matched_file, fixed_para
 
 
 def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
-                            ax: matplotlib.axes=None,
-                            lamb: int=180):
+                            ax: matplotlib.axes = None,
+                            lamb: int = 180):
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
@@ -18,7 +18,7 @@ def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
 
     for peak, phi, Lx, nb in fixed_para(
             "ave_peak",
-            "mean_phi",
+            "mean_phi",py
             lamb=lamb,
             Lr_over_nb_lambda=ratio,
             dictLSN=dict_LSN):
@@ -37,7 +37,7 @@ def plot_eq_Lr_over_nb_lamb(ratio: Fraction,
         plt.close()
 
 
-def plot_eq_nb(nb0: int, ax: matplotlib.axes=None, lambd=180):
+def plot_eq_nb(nb0: int, ax: matplotlib.axes = None, lambd=180):
     flag_show = False
     if ax is None:
         ax = plt.subplot(111)
@@ -116,8 +116,7 @@ def four_panel():
     axes[2].set_title(r"(c)$L_r/n_b\lambda=1/18$", fontsize="xx-large")
     axes[3].set_title(r"(d)$n_b=2$", fontsize="xx-large")
 
-    axes[3].arrow(
-        0.5, 0.5, -0.3, 0.3, width=0.01, transform=axes[3].transAxes)
+    axes[3].arrow(0.5, 0.5, -0.3, 0.3, width=0.01, transform=axes[3].transAxes)
     axes[3].text(
         0.07,
         0.79,
