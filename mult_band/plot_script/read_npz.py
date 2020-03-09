@@ -93,7 +93,7 @@ def sample_average(Lx, eps, eta=350, Ly=200, rate_min=0.3):
     return phi, rate
 
 
-def read_matched_file(para: dict = {}, path=None) -> dict:
+def read_matched_file(para: dict = {}, path=None, rate_min=0.3) -> dict:
     pat = "mb_%s.npz" % (common.dict2str(para, "eta", "eps", "Lx", "Ly",
                                          "seed"))
     if path is None:
@@ -109,7 +109,7 @@ def read_matched_file(para: dict = {}, path=None) -> dict:
         para = common.get_para(file)
         Lx = para[2]
         seed = para[4]
-        res[Lx].update({seed: time_average(file)})
+        res[Lx].update({seed: time_average(file, rate_min)})
     return res
 
 

@@ -102,7 +102,7 @@ def get_chi_dict(eta, is_dis=False, disorder_t="RT"):
             chi_dict = create_dict_from_xlsx(infile, chi_type, "L", eps_min,
                                              L_min)
         # del chi_dict[362]
-        del chi_dict[512]
+        # del chi_dict[512]
         # del chi_dict[724]
     return chi_dict
 
@@ -168,14 +168,24 @@ def find_peak(eta, chi_dict, ax=None, mode="con", disorder_t="RT"):
     return eps_p, chi_p, eps_err, chi_err
 
 
-def plot_chi_peak_vs_L(eta, L, chi_p, chi_err, slope, ax, mode="con"):
+def plot_chi_peak_vs_L(eta,
+                       L,
+                       chi_p,
+                       chi_err,
+                       slope,
+                       ax,
+                       mode="con",
+                       disorder_t="RT"):
     ax.plot(L, chi_p, "o")
     x0, x1 = L[0] - 2, L[-1] + 50
     ax.errorbar(L, chi_p, yerr=chi_err, fmt="none")
-    beg = 0
+    if disorder_t == "RT":
+        beg = 3
+    else:
+        beg = 0
     c, V = polyfit(np.log10(L[beg:]), np.log10(chi_p[beg:]), deg=1, cov=True)
-    print(c)
-    print(V)
+    print("peak height fitting: ")
+    print(c[0], c[1])
     x = np.linspace(L[beg], x1, 1000)
     y = 10**c[1] * x**c[0]
     ax.plot(x, y, "--", label=r"$\chi_{\rm p}\sim L^{%.4f}$" % c[0])
@@ -218,12 +228,19 @@ def plot_peak_loc_vs_L(eta, L, eps_p, eps_err, ax, disorder_t="RT"):
     else:
         eps_m = 0.12
         eps_max = 0.2
-    beg = 1
-    x = eps_p[beg:]
-    y = L[beg:]
+    end = None
+    if disorder_t == "RT":
+        beg = 3
+        if eta == 0.18:
+            end = -1
+    else:
+        beg = 2
+    x = eps_p[beg:end]
+    y = L[beg:end]
     # x_err = eps_err[beg:]
 
     ax.axvspan(y[0] - 20, y[-1] + 100, alpha=0.2)
+    print("peak loc fitting:")
     plot_KT_fit(0.5, ax, x, y, reversed=True, eps_min=eps_m, eps_max=eps_max)
     plot_KT_fit(1.0, ax, x, y, reversed=True, eps_min=eps_m, eps_max=eps_max)
     plot_pow_fit(ax, x, y, reversed=True, eps_err=None)
@@ -299,6 +316,8 @@ def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
     L_arr = np.array([i for i in sorted(chi_dict.keys())])
     eps_p, chi_p, eps_err, chi_err = find_peak(eta, chi_dict, axes[0], mode,
                                                disorder_t)
+    for i in range(L_arr.size):
+        print("%d\t%.8f\t%.8f" % (L_arr[i], chi_p[i], eps_p[i]))
     axes[0].set_title("(a)", fontsize="xx-large")
     if mode == "dis":
         if eta == 0.18:
@@ -320,8 +339,9 @@ def plot_3_panels(eta, save_fig=False, mode="con", disorder_t="RT"):
         if eta == 0.05:
             slope = 1.7
         else:
-            slope = 1.97
-    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, slope, axes[1], mode)
+            slope = 1.9
+    plot_chi_peak_vs_L(eta, L_arr, chi_p, chi_err, slope, axes[1], mode,
+                       disorder_t)
     axes[1].set_title("(b)", fontsize="xx-large")
     # if eta != 0.0 and disorder_t == "RT":
     if eta != 0.0:
@@ -602,7 +622,7 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="dis", disorder_t="RF")
+    plot_3_panels(eta, save_fig=False, mode="mix", disorder_t="RF")
     # fit_w_fixed_nu()
     # collapse_suscept(eta)
     # plot_chi_mix(eta)

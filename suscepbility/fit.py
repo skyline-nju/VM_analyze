@@ -247,6 +247,13 @@ def plot_KT_fit(nu, ax, eps, xi, reversed=False, eps_min=0.05, eps_max=0.087):
         ax.plot(y, x, "--", label=label)
     else:
         ax.plot(x, y, "--", label=label)
+    # print("KT-like scaling with nu =", nu)
+    # print("eps_c=", popt[0])
+    # print("A=", np.exp(popt[1]))
+    # print("b=", popt[2])
+    # print()
+
+    print("%g\t%.16f\t%.16f\t%.16f" % (nu, popt[0], np.exp(popt[1]), popt[2]))
 
 
 def plot_pow_fit(ax, eps, xi,
@@ -272,12 +279,29 @@ def plot_pow_fit(ax, eps, xi,
         if nu0 is None:
             nu0 = popt[-1]
         y = popt[0] + np.power(x / popt[1], -1/nu0)
+        # print("eps_c=", popt[0])
+        # print("A=", np.exp(popt[1]))
+        # print("nu=", popt[2])
+        print("%.16f\t%.16f\t%.16f" % (popt[2], popt[0], popt[1]))
     if ax is None:
         return x, y
     else:
         label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (
-            np.exp(popt[1]), popt[0], nu0)
+            popt[1], popt[0], nu0)
         ax.plot(x, y, "--", label=label)
+    # popt, perr = fit_pow(eps, xi)
+    # x = np.linspace(eps.min(), eps.max(), 100)
+    # y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))
+    # print("%.16f\t%.16f\t%.16f" % (popt[2], popt[0], np.exp(popt[1])))
+    # if ax is None:
+    #     return x, y
+    # else:
+    #     label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (
+    #         np.exp(popt[1]), popt[0], popt[2])
+    #     if reversed:
+    #         ax.plot(y, x, "--", label=label)
+    #     else:
+    #         ax.plot(x, y, "--", label=label)
 
 
 def show_KT(nu):

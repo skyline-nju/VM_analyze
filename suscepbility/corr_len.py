@@ -360,7 +360,7 @@ def collapse(ax,
              A=None,
              out=False,
              disorder_t="RT"):
-    if disorder_t == "RT":             
+    if disorder_t == "RT":
         if eta == 0.18:
             eps_max = 0.07
         elif eta == 0.1:
@@ -411,20 +411,18 @@ def collapse3(eta, beta_over_nu=0.05, disorder_t="RT"):
     phi_dict = get_phi_dict(eta, 0.01, disorder_t=disorder_t)
     if disorder_t == "RT":
         if eta == 0.18:
-            # eps_c = [0.0443, 0.0306, 0.0375]
-            # nu = [1.829, 1, 0.5]
-            eps_c = [0.0456, 0.0372, 0.0415]
-            nu = [1.622, 1, 0.5]
-            A = [None, 13.319, 2.753]
+            eps_c = [0.045342993, 0.040390798076, 0.035436731]
+            nu = [1.658079, 0.5, 1]
+            A = [None, 1.938241, 10.16859853]
         elif eta == 0.1:
-            eps_c = [0.0407, 0.0312, 0.0359]
-            nu = [1.731, 1, 0.5]
-            A = [None, 8.865, 1.553]
+            eps_c = [0.040701, 0.035894968, 0.031156659]
+            nu = [1.73105, 0.5, 1]
+            A = [None, 1.55257517, 8.86459331]
     else:
         if eta == 0.18:
-            eps_c = [0.1021, 0.0436, 0.0703]
-            nu = [2.122, 1, 0.5]
-            A = [None, 1.727, 0.167]
+            eps_c = [0.102123839, 0.07033820, 0.04359504]
+            nu = [2.122325, 0.5, 1]
+            A = [None, 0.1670940, 1.727417]
     text_pos = [(0.1, 0.6), (0.1, 0.6), (0.1, 0.6)]
     fig, axes = plt.subplots(
         nrows=1,
@@ -541,9 +539,10 @@ def varied_alpha(eta, xi_m=100):
 
 if __name__ == "__main__":
     eta = 0.18
+    disorder_t = "RF"
+    phi_dict = get_phi_dict(eta, 0, disorder_t=disorder_t)
     # plot_three_panel(eta, 0.6, save_fig=False, save_data=False)
-    phi_dict = get_phi_dict(eta, 0, disorder_t="RT")
     # plot_slope_vs_L(phi_dict, eps_max=0.035, eta=eta)
-    collapse3(eta, 0.015, "RF")
+    collapse3(eta, 0.02, disorder_t)
     # collapse_phi_L(eta, phi_dict, eps_max=0.05, square_eps=False)
     # plot_collapse_phi_L(True)

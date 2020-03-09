@@ -44,7 +44,9 @@ def get_ncut(L, eta, eps=None, double_ncut=False):
             if double_ncut:
                 ncut *= 2
     else:
-        if L >= 724:
+        if L >= 1024:
+            ncut = 4000
+        elif L >= 724:
             ncut = 3000
         elif L == 521:
             ncut == 2500
@@ -167,6 +169,13 @@ def time_average_const_eta(eta, L=None, eps=None, new_data=True):
 
     files = glob.glob(data_dir + os.path.sep + pat)
     print(data_dir + os.path.sep + pat)
+    if eta == 0.10 or eta == 0.05 or eta == 0.18:
+        data_new_dir = root + r"\susceptibility\phi\eta=%.2f_CSRC" % eta
+        files_new = glob.glob(data_new_dir + os.path.sep + pat)
+        files += files_new
+        data_new_dir = root + r"\susceptibility\phi\eta=%.2f_BM" % eta
+        files_new = glob.glob(data_new_dir + os.path.sep + pat)
+        files += files_new
     print("total files:", len(files))
     index = ["mean", "var", "n_steps"]
     for filename in files:
@@ -208,10 +217,10 @@ def time_average_eta18_old(epsilon=None):
             data_dir = data_dir0 + os.path.sep + r"%.3f" % (eps_i / 10000)
         else:
             data_dir = data_dir0 + os.path.sep + r"0.055plus"
-        files1 = glob.glob(data_dir + os.path.sep + r"p*.180.%d.*.dat" %
-                           (eps_i))
-        files2 = glob.glob(data_dir + os.path.sep + r"p*.180.%d.*.dat" %
-                           (eps_i // 10))
+        files1 = glob.glob(data_dir + os.path.sep +
+                           r"p*.180.%d.*.dat" % (eps_i))
+        files2 = glob.glob(data_dir + os.path.sep +
+                           r"p*.180.%d.*.dat" % (eps_i // 10))
         for i, filename in enumerate(files1 + files2):
             if i < len(files1):
                 double_ncut = False
@@ -283,14 +292,22 @@ def sample_average(eta=None, eps=None):
     elif eps is not None:
         excel_file += os.path.sep + r"eps=%g.xlsx" % eps
     phi_dict, chi_dict, chi_dis_dict, n_dict, phi2_dict = {}, {}, {}, {}, {}
+    if eta == 0.18:
+        filter_dict = {
+            0.001: [19, 27, 38, 512, 724, 1024, 1448, 2048],
+            0.01: [19, 27, 38, 54, 76, 107, 152, 215, 1448, 2048],
+            0.02: [19, 27, 38, 54, 76, 107, 152, 215, 45]
+        }
     for key in data_dict:
         for L in sorted(data_dict[key].keys()):
+            if key in filter_dict and L in filter_dict[key]:
+                continue
             df = data_dict[key][L]
             phi = df["mean"].mean()
             chi = df["var"].mean() * L * L
             chi_dis = ((df["mean"]**2).mean() - phi * phi) * L * L
             n = df["mean"].size
-            phi2 = np.mean(df["mean"] ** 2)
+            phi2 = np.mean(df["mean"]**2)
             if L in phi_dict:
                 phi_dict[L][key] = phi
                 chi_dict[L][key] = chi
@@ -313,8 +330,8 @@ def sample_average(eta=None, eps=None):
 
 
 if __name__ == "__main__":
-    eta = 0.05
-    # time_average_const_eta(eta, new_data=True)
+    eta = 0.18
+    time_average_const_eta(eta, new_data=True)
     sample_average(eta=eta)
     # eps = 0.03
     # time_average_const_eps(eps)

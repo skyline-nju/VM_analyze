@@ -226,8 +226,8 @@ if __name__ == "__main__":
     # f1 = 'E:/data/random_torque/bands/Lx/snapshot/eps0/p350.0.400.200.214400.dat'
     # f2 = 'E:/data/random_torque/bands/Lx/snapshot/eps20/p350.30.440.200.7440.dat'
 
-    f1 = 'E:/data/random_torque/Phi_vs_L/eta=0.18/0.000/p2048.180.0.25984.dat'
-    f2 = 'E:/data/random_torque/Phi_vs_L/eta=0.18/0.000/p2048.180.0.20944.dat'
+    # f1 = 'E:/data/random_torque/Phi_vs_L/eta=0.18/0.000/p2048.180.0.25984.dat'
+    # f2 = 'E:/data/random_torque/Phi_vs_L/eta=0.18/0.000/p2048.180.0.20944.dat'
 
     # f1 = r"E:\data\random_torque\large_system\phi_2400_0.18_0.000_1.0_1.dat"
     # f2 = r"E:\data\random_torque\large_system\phi_4800_0.18_0.020_1.0_1.dat"
@@ -239,22 +239,24 @@ if __name__ == "__main__":
     # f2 = r"E:\data\random_potentail\l=1\order_para\phi_0.140_0.100_1024_123.dat"
     # f3 = r"E:\data\random_potentail\l=1\order_para\phi_0.320_0.100_1024_123.dat"
 
+
+    f1 = r"G:\data\vm3d\vm3d_eps=0.06_eta=0.2\data\phi_120_0.20_0.060_1.0_930006.dat"
     plt.figure(constrained_layout=True)
     ax = plt.gca()
 
-    ncut = 8000
-    plot_PDF(0.35, 0, 350, 2, "RT", seed=214400, filename=f1, ax=ax, ncut=ncut)
-    plot_PDF(
-        0.35,
-        0,
-        350,
-        2,
-        "RT",
-        seed=214400,
-        filename=f2,
-        ax=ax,
-        mk="s",
-        ncut=ncut)
+    ncut = 5000
+    plot_PDF(0.2, 0.06, 120, 3, "RT", filename=f1, ax=ax, ncut=ncut)
+    # plot_PDF(
+    #     0.35,
+    #     0,
+    #     350,
+    #     2,
+    #     "RT",
+    #     seed=214400,
+    #     filename=f2,
+    #     ax=ax,
+    #     mk="s",
+    #     ncut=ncut)
     # plot_PDF(0.35, 0, 350, 2, "RT", seed=214400, filename=f3, ax=ax, mk=">", ncut=ncut)
 
     y = np.linspace(-6, 2.5, 1000)
