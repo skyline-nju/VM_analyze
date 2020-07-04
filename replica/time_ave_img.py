@@ -43,15 +43,46 @@ def cal_defect(theta, bins=4):
     return dict_charge
 
 
-def get_snap_file(L, eps, eta, seed, seed2, disorder_t):
+def get_snap_file(L, eps, eta, seed, seed2, disorder_t, ic="ordered"):
+    if seed == 30370020:
+        t_win = 2000
+    else:
+        t_win = 200
+    if L == 1024:
+        t_win = 10000
+    elif L == 2048 or L == 4096:
+        t_win = 50000
     if disorder_t == "RT":
-        bin_dir = r"D:\data\VM2d\random_torque\time_ave_image"
-        fname = "%s\\RT_ave_%d_%g_%g_200_%d_%d.bin" % (bin_dir, L, eta, eps,
-                                                       seed, seed2)
+        folder = r"E:\data\random_torque\replica"
+        if ic == "ordered_sym":
+            bin_dir = r"%s\ini_ordered_sym" % folder
+            t_win = 10000
+            fname = "%s\\RT_ave_%d_%g_%g_%d_%d_%03d.bin" % (
+                bin_dir, L, eta, eps, t_win, seed, seed2)
+            if L == 2048:
+                t_win = 50000
+                fname = "%s\\RT_ave_%d_%g_%g_%d_%d_%d.bin" % (
+                    bin_dir, L, eta, eps, t_win, seed, seed2)
+        elif ic == "ordered":
+            new_seeds = [30370052]
+            if seed in new_seeds:
+                bin_dir = r"%s\ini_ordered_new" % folder
+                t_win = 10000
+                fname = "%s\\RT_ave_%d_%g_%g_%d_%d_%03d.bin" % (
+                    bin_dir, L, eta, eps, t_win, seed, seed2)
+        elif ic == "ordered_diag":
+            bin_dir = r"%s\ini_ordered_diag" % folder
+            t_win = 10000
+            fname = "%s\\RT_ave_%d_%g_%g_%d_%d_%03d.bin" % (
+                bin_dir, L, eta, eps, t_win, seed, seed2)
+        else:
+            bin_dir = "%s\\time_ave" % folder
+            fname = "%s\\RT_ave_%d_%g_%g_%d_%d_%d.bin" % (bin_dir, L, eta, eps,
+                                                          t_win, seed, seed2)
     else:
         bin_dir = r"D:\data\VM2d\random_field\time_ave_image"
-        fname = "%s\\RF_ave_%d_%g_%g_200_%d_%d.bin" % (bin_dir, L, eta, eps,
-                                                       seed, seed2)
+        fname = "%s\\RF_ave_%d_%g_%g_%d_%d_%d.bin" % (bin_dir, L, eta, eps,
+                                                      t_win, seed, seed2)
     return fname
 
 
@@ -61,14 +92,15 @@ def plot_defect(L,
                 seed=30370000,
                 seed2=100,
                 disorder_t="RT",
+                ic="ordered",
                 ax=None):
     if ax is None:
         ax = plt.subplot(111)
         flag_show = True
     else:
         flag_show = False
-    beg, end = 0, 10
-    fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t)
+    beg, end = 100, None
+    fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t, ic)
     vx, vy = get_time_averaged_image(fname, beg, end, "v", 128)
     sigma = 0.8
     vx2 = gaussian_filter(vx, sigma=sigma, mode="wrap")
@@ -100,13 +132,14 @@ def plot_defect_diff_ini_condi(L,
                                eps,
                                eta=0.18,
                                seed=30370000,
-                               disorder_t="RT"):
-    seed1 = 100
-    seed2 = 300
+                               disorder_t="RT",
+                               ic="ordered"):
+    seed1 = 900
+    seed2 = 1000
     fig, (ax1, ax2) = plt.subplots(
         nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
-    plot_defect(L, eps, eta, seed, seed1, disorder_t, ax1)
-    im = plot_defect(L, eps, eta, seed, seed2, disorder_t, ax2)
+    plot_defect(L, eps, eta, seed, seed1, disorder_t, ic, ax1)
+    im = plot_defect(L, eps, eta, seed, seed2, disorder_t, ic, ax2)
     if disorder_t == "RT":
         title = r"RS: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
     else:
@@ -120,19 +153,20 @@ def plot_defect_diff_ini_condi(L,
     plt.close()
 
 
-def plot_rho(L, eps, eta=0.18, seed=30370000, disorder_t="RT"):
-    seed2_arr = [100, 300]
+def plot_rho(L, eps, eta=0.18, seed=30370020, disorder_t="RT", ic="ordered"):
+    seed2_arr = [0, 270]
     fig, ax = plt.subplots(ncols=2, figsize=(10, 5), constrained_layout=True)
-    beg, end = 0, 10
+    beg, end = 0, None
     for i, seed2 in enumerate(seed2_arr):
-        fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t)
-        rho_mean = get_time_averaged_image(fname, beg, end, "rho", 128)
+        fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t, ic)
+        rho_mean = get_time_averaged_image(fname, beg, end, "rho", L // 4)
         im = ax[i].imshow(
             rho_mean, origin="lower", extent=[0, L, 0, L], vmin=0, vmax=2)
-
+    ax[0].set_title("replica 0")
+    ax[1].set_title("replica 3")
     plt.colorbar(im, ax=ax[1], extend="max")
     if disorder_t == "RT":
-        title = r"RS: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
+        title = r"RS: $L=%d, \eta=%g, \epsilon=%g$, Sample B" % (L, eta, eps)
     else:
         title = r"RF: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
     plt.suptitle(title, fontsize="x-large")
@@ -140,7 +174,14 @@ def plot_rho(L, eps, eta=0.18, seed=30370000, disorder_t="RT"):
     plt.close()
 
 
-def plot_momentum(L, eps, eta=0.18, seed=30370000, disorder_t="RT", seed2=600):
+def plot_momentum(L,
+                  eps,
+                  eta=0.18,
+                  seed=2022324,
+                  disorder_t="RT",
+                  ic="ordered",
+                  seed2=180,
+                  idx=None):
     from matplotlib.colors import hsv_to_rgb
 
     def get_rgb(theta, module, m_max=None):
@@ -159,8 +200,7 @@ def plot_momentum(L, eps, eta=0.18, seed=30370000, disorder_t="RT", seed2=600):
         HSV = np.dstack((H, S, V))
         RGB = hsv_to_rgb(HSV)
         extent = [0, 360, mmin, mmax]
-        ax.imshow(
-            RGB, origin='lower', extent=extent, aspect='auto')
+        ax.imshow(RGB, origin='lower', extent=extent, aspect='auto')
         ax.set_xlabel('orientation', fontsize="large")
         ticks = [0, 90, 180, 270, 360]
         ticklabels = [r"$0$", r"$\pi/2$", r"$\pi$", r"$3\pi/2$", r"$2\pi$"]
@@ -168,9 +208,14 @@ def plot_momentum(L, eps, eta=0.18, seed=30370000, disorder_t="RT", seed2=600):
         ax.set_xticklabels(ticklabels)
         ax.set_ylabel('module', fontsize="large")
 
-    beg, end = 0, None
-    fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t)
-    rho, vx, vy = get_time_averaged_image(fname, beg, end, "both", 128)
+    beg, end = 10, None
+    if idx is not None:
+        seed2_list = [0, 120, 180, 240, 300, 60]
+        seed2 = seed2_list[idx]
+    fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t, ic)
+    n_bins = L // 4
+
+    rho, vx, vy = get_time_averaged_image(fname, beg, end, "both", n_bins)
     fig, ax = plt.subplots(figsize=(5, 6))
 
     box = [0, L, 0, L]
@@ -184,15 +229,53 @@ def plot_momentum(L, eps, eta=0.18, seed=30370000, disorder_t="RT", seed2=600):
         title = r"RS: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
     else:
         title = r"RF: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
+    # title += ", Sample A, replica %d" % idx
+
     ax.set_title(title)
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.2)
 
     bbox = ax.get_position().get_points().flatten()
-    print(bbox)
-    cax = plt.axes([bbox[0], 0.075, bbox[2]-bbox[0], 0.1])
+    cax = plt.axes([bbox[0], 0.075, bbox[2] - bbox[0], 0.1])
     add_colorbar(cax, 0, module_max)
 
+    plt.show()
+    plt.close()
+
+
+def plot_momentum_hist(L, eps, eta=0.18, seed=20203262, disorder_t="RT"):
+    if seed == 20203262:
+        seed2_list = [120, 180, 300]
+        idx_list = [1, 2, 4]
+    elif seed == 2022324:
+        seed2_list = [0, 120]
+        idx_list = [0, 1]
+    beg, end = 10, None
+    for i, seed2 in enumerate(seed2_list):
+        fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t)
+        n_bins = L // 4
+        rho, vx, vy = get_time_averaged_image(fname, beg, end, "both", n_bins)
+        v_orient = np.arctan2(vy, vx) / np.pi
+        v_orient[v_orient < 0] += 2
+        v_module = np.sqrt(vx**2 + vy**2)
+        bins = 72
+        hist, bin_edges = np.histogram(
+            v_orient, bins, (0, 2), density=True, weights=v_module)
+        x = (bin_edges[:-1] + bin_edges[1:]) / 2
+        line, = plt.plot(
+            x, hist, "-o", label="replica %d" % idx_list[i], fillstyle="none")
+        hist, bin_edges = np.histogram(v_orient, bins, (0, 2), density=True)
+        plt.plot(x, hist, "s", fillstyle="none", c=line.get_c())
+    plt.xlabel(r"$\theta/\pi$", fontsize="large")
+    plt.ylabel("PDF", fontsize="large")
+    plt.legend()
+    if disorder_t == "RT":
+        title = r"RS: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
+    else:
+        title = r"RF: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
+    title += ", Sample B"
+    plt.title(title, fontsize="x-large")
+    plt.tight_layout()
     plt.show()
     plt.close()
 
@@ -273,7 +356,15 @@ def plot_defect_short_win(L,
 
 
 if __name__ == "__main__":
-    # plot_defect_diff_ini_condi(512, 0.03, disorder_t="RT")
+    # plot_defect_diff_ini_condi(512, 0.055, disorder_t="RT", ic="rand")
     # plot_defect_short_win(512, 0.035, 0.18, seed2=200)
-    # plot_rho(512, 0.09, disorder_t="RF")
-    plot_momentum(512, 0.08, disorder_t="RF")
+    plot_rho(
+        512,
+        0.045,
+        eta=0.18,
+        disorder_t="RT",
+        seed=25650015,
+        ic="ordered_diag")
+    # plot_momentum(
+    #     512, 0.055, eta=0.18, disorder_t="RT", seed=30370000, seed2=500, ic="rand")
+    # plot_momentum_hist(4096, 0.035, disorder_t="RT", seed=20203261)
