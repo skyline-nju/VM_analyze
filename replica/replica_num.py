@@ -131,7 +131,7 @@ def count_replicas(eta, eps, L, disorder_t="RT"):
 
 def plot_replica_num():
     os.chdir("D:\\data\\VM2d\\random_torque\\replica")
-    L = np.array([180, 256, 362, 512])
+    L = np.array([64, 90, 128, 180, 256, 362, 512])
     n = np.zeros(L.size)
     fraction = np.zeros((5, L.size))
     for i in range(L.size):
@@ -194,7 +194,8 @@ def plot_suscept():
 
 
 if __name__ == "__main__":
-    eta = 0.18
-    eps = 0.035
-    L = 512
-    count_replicas(eta, eps, L)
+    # eta = 0.18
+    # eps = 0.035
+    # L = 64
+    # count_replicas(eta, eps, L)
+    plot_replica_num()

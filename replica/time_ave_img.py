@@ -102,11 +102,11 @@ def plot_defect(L,
     beg, end = 100, None
     fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t, ic)
     vx, vy = get_time_averaged_image(fname, beg, end, "v", 128)
-    sigma = 0.8
-    vx2 = gaussian_filter(vx, sigma=sigma, mode="wrap")
-    vy2 = gaussian_filter(vy, sigma=sigma, mode="wrap")
-    theta = get_theta(vx2, vy2)
-    # theta = get_theta(vx, vy)
+    # sigma = 0.8
+    # vx2 = gaussian_filter(vx, sigma=sigma, mode="wrap")
+    # vy2 = gaussian_filter(vy, sigma=sigma, mode="wrap")
+    # theta = get_theta(vx2, vy2)
+    theta = get_theta(vx, vy)
     charge = cal_defect(theta)
     im = ax.imshow(
         theta,
@@ -134,8 +134,8 @@ def plot_defect_diff_ini_condi(L,
                                seed=30370000,
                                disorder_t="RT",
                                ic="ordered"):
-    seed1 = 900
-    seed2 = 1000
+    seed1 = 100
+    seed2 = 200
     fig, (ax1, ax2) = plt.subplots(
         nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
     plot_defect(L, eps, eta, seed, seed1, disorder_t, ic, ax1)
@@ -356,15 +356,15 @@ def plot_defect_short_win(L,
 
 
 if __name__ == "__main__":
-    # plot_defect_diff_ini_condi(512, 0.055, disorder_t="RT", ic="rand")
+    plot_defect_diff_ini_condi(512, 0.06, disorder_t="RT", ic="rand")
     # plot_defect_short_win(512, 0.035, 0.18, seed2=200)
-    plot_rho(
-        512,
-        0.045,
-        eta=0.18,
-        disorder_t="RT",
-        seed=25650015,
-        ic="ordered_diag")
+    # plot_rho(
+    #     512,
+    #     0.045,
+    #     eta=0.18,
+    #     disorder_t="RT",
+    #     seed=25650015,
+    #     ic="ordered_diag")
     # plot_momentum(
     #     512, 0.055, eta=0.18, disorder_t="RT", seed=30370000, seed2=500, ic="rand")
     # plot_momentum_hist(4096, 0.035, disorder_t="RT", seed=20203261)
