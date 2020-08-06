@@ -502,16 +502,16 @@ def plot_momentum_module_PDF(L=512, eta=0.18, seed=30370000):
 
 
 if __name__ == "__main__":
-    # L = 512
-    # eta = 0.18
-    # eps = 0.06
-    # seed = 30370000
-    # theta0 = 0
-    # t_win0 = 2000
-    # os.chdir("E:/data/random_torque/defects/L=%d_seed=%d" % (L, seed))
+    L = 512
+    eta = 0.45
+    eps = 0.0
+    seed = 30370000
+    theta0 = 0
+    t_win0 = 2000
+    os.chdir("E:/data/random_torque/defects/L=%d_seed=%d" % (L, seed))
     # # plot_time_ave_density(L, eta, eps, seed, theta0)
 
-    # plot_time_ave_density_momentum(L, eta, eps, seed, theta0)
+    plot_time_ave_density_momentum(L, eta, eps, seed, theta0)
     # get_all_time_ave(t_win0)
 
     # cal_all_EA_OP(L, eta, seed, theta0, t_win0)
@@ -523,4 +523,4 @@ if __name__ == "__main__":
 
     # varies_t_win(L, eta, eps, seed, theta0)
     # varies_tc(L, eta, eps, seed, theta0)
-    plot_momentum_module_PDF()
+    # plot_momentum_module_PDF()

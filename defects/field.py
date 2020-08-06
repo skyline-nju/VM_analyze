@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from decode import read_field, get_nframe
 import time_corr as tc
 import glob
+from matplotlib.colors import hsv_to_rgb
 # import platform
 # from scipy.ndimage import gaussian_filter
 
@@ -131,7 +132,7 @@ def get_colobar_extend(vmin, vmax):
     return ext
 
 
-def show_fields(fin):
+def show_fields(fin, t_beg=300000):
     L, eta, eps, t_win0, seed, theta0 = get_para(fin)
     frames = read_field(fin)
     for i, (rho, vx, vy) in enumerate(frames):
@@ -143,8 +144,8 @@ def show_fields(fin):
 
         fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(12, 5))
         ext = [0, L, 0, L]
-        vmin1, vmax1 = None, None
-        vmin2, vmax2 = None, None
+        vmin1, vmax1 = None, 6
+        vmin2, vmax2 = None, 10
         im1 = ax1.imshow(rho,
                          origin="lower",
                          extent=ext,
@@ -155,7 +156,12 @@ def show_fields(fin):
                          extent=ext,
                          vmin=vmin2,
                          vmax=vmax2)
-        im3 = ax3.imshow(theta, origin="lower", extent=ext, cmap="hsv")
+        im3 = ax3.imshow(theta,
+                         origin="lower",
+                         extent=ext,
+                         cmap="hsv",
+                         vmin=0,
+                         vmax=np.pi * 2)
 
         ext1 = get_colobar_extend(vmin1, vmax1)
         ext2 = get_colobar_extend(vmin2, vmax2)
@@ -167,13 +173,124 @@ def show_fields(fin):
         ax2.set_title(r"(b) module of momentum")
         ax3.set_title(r"(c) orientation of momentum")
         plt.tight_layout(rect=[-0.015, -0.08, 1.01, 0.97])
-        t = (i + 1) * t_win0 + 300000
+        t = (i + 1) * t_win0 + t_beg
         title = r"$L=%d,\eta=%g,\epsilon=%g,t=%d$" % (L, eta, eps, t)
         title = "instantaneous fields: " + title
         plt.suptitle(title, y=0.995, fontsize="x-large")
 
         # plt.show()
         plt.savefig(r"D:/data/tmp2/t=%04d.png" % i)
+        plt.close()
+
+
+def map_v_to_rgb(theta, module, m_max=None):
+    """
+    Transform orientation and magnitude of velocity into rgb.
+
+    Parameters:
+    --------
+    theta: array_like
+        Orietation of velocity field.
+    module: array_like
+        Magnitude of velocity field.
+    m_max: float, optional
+        Max magnitude to show.
+
+    Returns:
+    --------
+    RGB: array_like
+        RGB corresponding to velocity fields.
+    """
+    H = theta / 360
+    V = module
+    if m_max is not None:
+        V[V > m_max] = m_max
+    V /= m_max
+    S = np.ones_like(H)
+    HSV = np.dstack((H, S, V))
+    RGB = hsv_to_rgb(HSV)
+    return RGB
+
+
+def add_colorbar(ax, mmin, mmax, theta_min=0, theta_max=360, orientation="h"):
+    """ Add colorbar for the RGB image plotted by plt.imshow() """
+    V, H = np.mgrid[0:1:50j, 0:1:180j]
+    if orientation == "v":
+        V = V.T
+        H = H.T
+        box = [mmin, mmax, theta_min, theta_max]
+    else:
+        box = [theta_min, theta_max, mmin, mmax]
+    S = np.ones_like(V)
+    HSV = np.dstack((H, S, V))
+    RGB = hsv_to_rgb(HSV)
+    ax.imshow(RGB, origin='lower', extent=box, aspect='auto')
+    theta_ticks = [0, 45, 90, 135, 180, 225, 270, 315, 360]
+
+    if orientation == "h":
+        ax.set_xticks(theta_ticks)
+        ax.set_xticklabels([r"$%d\degree$" % i for i in theta_ticks])
+        ax.set_ylabel(r'module $\rho |v|$', fontsize="large")
+        ax.set_xlabel("orientation", fontsize="large")
+    else:
+        ax.yaxis.set_label_position('right')
+        ax.yaxis.set_ticks_position("right")
+        ax.set_yticks(theta_ticks)
+        ax.set_yticklabels([r"$%d\degree$" % i for i in theta_ticks])
+        ax.set_ylabel(r'orientation $\theta$', fontsize="large")
+        ax.set_xlabel(r"module $\rho |v|$", fontsize="large")
+
+
+def show_fields2(fin, t_beg=300000, lbox=4):
+    L, eta, eps, t_win0, seed, theta0 = get_para(fin)
+    frames = read_field(fin, lbox=lbox)
+
+    for i, (rho, vx, vy) in enumerate(frames):
+        theta = np.arctan2(vy, vx)
+        theta[theta < 0] += np.pi * 2
+        theta *= 180 / np.pi
+        module = np.sqrt(vx**2 + vy**2)
+
+        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 7.5))
+        box = [0, L, 0, L]
+        vmin1, vmax1 = None, 6
+        vmin2, vmax2 = 0, 4
+        im1 = ax1.imshow(rho,
+                         origin="lower",
+                         extent=box,
+                         vmin=vmin1,
+                         vmax=vmax1)
+        RGB = map_v_to_rgb(theta, module, m_max=vmax2)
+        ax2.imshow(RGB, extent=box, origin="lower")
+        ax1.set_title(r"(a) density")
+        ax2.set_title(r"(b) momentum")
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+        bbox1 = ax1.get_position().get_points().flatten()
+        bbox2 = ax2.get_position().get_points().flatten()
+        fig.subplots_adjust(bottom=0.24)
+        bbox1[1], bbox1[3] = 0.14, 0.04
+        bbox1[2] = bbox1[2] - bbox1[0] - 0.03
+        bbox2[1], bbox2[3] = 0.08, 0.14
+        bbox2[2] = bbox2[2] - bbox2[0]
+        cb_ax1 = fig.add_axes(bbox1)
+        cb_ax2 = fig.add_axes(bbox2)
+        ext1 = get_colobar_extend(vmin1, vmax1)
+        cb1 = fig.colorbar(im1,
+                           ax=ax1,
+                           cax=cb_ax1,
+                           orientation="horizontal",
+                           extend=ext1)
+        cb1.set_label(r"density $\rho$", fontsize="x-large")
+        add_colorbar(cb_ax2, vmin2, vmax2, 0, 360)
+
+        t = (i + 1) * t_win0 + t_beg
+        title = r"RS: $L=%d,\eta=%g,\epsilon=%g,\theta_0=%d,t=%d$" % (
+            L, eta, eps, theta0, t)
+        plt.suptitle(title, y=0.995, fontsize="x-large")
+
+        plt.show()
+        # plt.savefig(r"D:/data/tmp2/t=%04d.png" % i)
         plt.close()
 
 
@@ -187,8 +304,8 @@ if __name__ == "__main__":
     #              (L, seed, t_win0))
     # else:
     #     os.chdir("data")
-    os.chdir("E:/data/random_torque/defects/samples")
-    cal_EA_order_para(1000, 1000)
+    # os.chdir("E:/data/random_torque/defects/samples")
+    # cal_EA_order_para(1000, 1000)
     # varied_L()
 
     # eta = 0.45
@@ -199,3 +316,14 @@ if __name__ == "__main__":
     #          (seed, twin0))
     # fin = "RT_field_512_%.3f_%.3f_%d_%d_000.bin" % (eta, eps, twin0, seed)
     # show_fields(fin)
+
+    L = 4096
+    eta = 0.18
+    eps = 0.035
+    seed = 20200712
+    twin0 = 500
+    theta0 = 0
+    os.chdir("E:/data/random_torque/replica2/L=%d_wall_y" % L)
+    fin = "RT_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
+                                                    theta0)
+    show_fields2(fin, t_beg=0, lbox=8)

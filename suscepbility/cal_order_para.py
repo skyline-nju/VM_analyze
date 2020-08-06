@@ -331,7 +331,7 @@ def sample_average(eta=None, eps=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    time_average_const_eta(eta, new_data=True)
+    # time_average_const_eta(eta, new_data=True)
     sample_average(eta=eta)
     # eps = 0.03
     # time_average_const_eps(eps)

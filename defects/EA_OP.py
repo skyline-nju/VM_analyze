@@ -224,14 +224,21 @@ def varied_replica():
     plt.close()
 
 
-def finite_size_scaling(eta, eps, ncut=-25, show_corr_t=True, show_EA_OP=True):
+def finite_size_scaling(eta,
+                        eps,
+                        ncut=-25,
+                        show_corr_t=True,
+                        show_EA_OP=True,
+                        show_SA_serials=False):
     if eta == 0.18:
         L_arr = np.array([64, 128, 256, 512])
     else:
-        L_arr = np.array([64, 128, 256])
+        L_arr = np.array([32, 64, 128, 256])
     EA_OP_mean = np.zeros(L_arr.size)
     EA_OP_std = np.zeros(L_arr.size)
     EA_OP = {i: [] for i in L_arr}
+    if show_SA_serials:
+        SA_serials = {i: [] for i in L_arr}
     for i, L in enumerate(L_arr):
         files = glob.glob("samples/EA_OP/%d_%.3f_%.3f_1000_1000_*_000.npz" %
                           (L, eta, eps))
@@ -241,6 +248,11 @@ def finite_size_scaling(eta, eps, ncut=-25, show_corr_t=True, show_EA_OP=True):
             t_arr = np.arange(serials.size) * 1000
             if show_corr_t:
                 plt.plot(t_arr, serials)
+            if show_SA_serials:
+                if j == 0:
+                    SA_serials[L] = serials
+                else:
+                    SA_serials[L] += serials
             EA_OP[L].append(np.mean(serials[ncut:]))
         if show_corr_t:
             plt.yscale("log")
@@ -248,9 +260,25 @@ def finite_size_scaling(eta, eps, ncut=-25, show_corr_t=True, show_EA_OP=True):
             plt.title(r"$L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps))
             plt.show()
             plt.close()
+        if show_SA_serials:
+            SA_serials[L] /= (j + 1)
         EA_OP[L] = np.array(EA_OP[L])
         EA_OP_mean[i] = np.mean(EA_OP[L])
         EA_OP_std[i] = np.std(EA_OP[L])
+    if show_SA_serials:
+        for L in L_arr:
+            t_arr = np.arange(SA_serials[L].size) * 1000
+            plt.plot(t_arr, SA_serials[L], "-o", label="%d" % L, ms=1)
+        plt.legend(title="$L=$", fontsize="large", loc="upper right")
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.ylim(ymax=1)
+        plt.xlabel(r"$T$", fontsize="x-large")
+        plt.ylabel(r"Sample-averaged $Q(T)$", fontsize="x-large")
+        plt.title(r"$\eta=%g, \epsilon=%g$" % (eta, eps), fontsize="x-large")
+        plt.tight_layout()
+        plt.show()
+        plt.close()
     if show_EA_OP:
         for L in L_arr:
             for i in range(EA_OP[L].size):
@@ -278,24 +306,67 @@ def finite_size_scaling(eta, eps, ncut=-25, show_corr_t=True, show_EA_OP=True):
         return L_arr, EA_OP_mean, EA_OP_std
 
 
-def show_finite_size_scaling(eps, ncut=-40):
-    if eps == 0.1:
-        eta_arr = [0.05, 0.1, 0.18, 0.45]
-    elif eps == 0.06:
-        eta_arr = [0.05, 0.18, 0.45]
-    elif eps == 0.:
-        eta_arr = [0.45]
-    for eta in eta_arr:
-        L_arr, EA_OP_mean, EA_OP_std = finite_size_scaling(
-            eta, eps, ncut, False, False)
-        line, = plt.plot(L_arr, EA_OP_mean, "o", label="%.3f" % eta)
-        plt.errorbar(L_arr, EA_OP_mean, EA_OP_std, c=line.get_c())
+def show_finite_size_scaling(eps=None, eta=None, ncut=-40):
+    if eta is None:
+        if eps == 0.1:
+            eta_arr = [0.05, 0.1, 0.18, 0.45]
+        elif eps == 0.06:
+            eta_arr = [0.05, 0.18, 0.45]
+        elif eps == 0.:
+            eta_arr = [0.45]
+        for eta in eta_arr:
+            L_arr, EA_OP_mean, EA_OP_std = finite_size_scaling(
+                eta, eps, ncut, False, False)
+            line, = plt.plot(L_arr, EA_OP_mean, "o", label="%.3f" % eta)
+            plt.errorbar(L_arr, EA_OP_mean, EA_OP_std, c=line.get_c())
+        fixed_eta = False
+    elif eps is None:
+        if eta == 0.45:
+            eps_arr = [0.01, 0.06]
+        for eps in eps_arr:
+            L_arr, EA_OP_mean, EA_OP_std = finite_size_scaling(
+                eta, eps, ncut, False, False)
+            line, = plt.plot(L_arr, EA_OP_mean, "o", label="%.3f" % eps)
+            plt.errorbar(L_arr, EA_OP_mean, EA_OP_std, c=line.get_c())
+        fixed_eta = True
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$L$", fontsize="x-large")
     plt.ylabel(r"$Q_{\rm EA}$", fontsize="x-large")
-    plt.title(r"$\epsilon=%g$" % (eps), fontsize="x-large")
-    plt.legend(title=r"$\eta=$", fontsize="large")
+    if not fixed_eta:
+        plt.title(r"$\epsilon=%g$" % (eps), fontsize="x-large")
+        plt.legend(title=r"$\eta=$", fontsize="large")
+    else:
+        plt.title(r"$\eta=%g$" % eta, fontsize="x-large")
+        plt.legend(title=r"$\epsilon=$", fontsize="large")
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
+def show_EA_OP_PD(L, seed, twin0=1000):
+    if L == 512 and seed == 30370000:
+        os.chdir("E:/data/random_torque/defects/EA_OP_PD")
+    files = glob.glob("*.npz")
+    eta, eps, EA_OP = [], [], []
+    for i, fin in enumerate(files):
+        s = fin.split("_")
+        eta_i, eps_i = float(s[1]), float(s[2])
+        data = np.load(fin)
+        serials = data["time_serials"]
+        EA_OP_i = np.mean(serials[-50:])
+        if (EA_OP_i > 0):
+            eta.append(eta_i)
+            eps.append(eps_i)
+            EA_OP.append(EA_OP_i)
+    plt.scatter(eta, eps, c=EA_OP, cmap="turbo", marker="s")
+    plt.xlim(0)
+    plt.ylim(ymin=0, ymax=0.15)
+    cb = plt.colorbar()
+    cb.set_label(r"$Q_{\rm EA}$", fontsize="x-large")
+    plt.xlabel(r"$\eta$", fontsize="x-large")
+    plt.ylabel(r"$\epsilon$", fontsize="x-large")
+    plt.title(r"$L=%d, {\rm seed}=%d$" % (L, seed), fontsize="x-large")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -307,6 +378,7 @@ if __name__ == "__main__":
     # varied_seed()
     # varied_replica()
     # varied_eta(256, 0.14, 20200725)
-    finite_size_scaling(eta=0.45, eps=0., ncut=-100)
-    # show_finite_size_scaling(0.06, ncut=-50)
+    # finite_size_scaling(eta=0.45, eps=0.01, ncut=-50, show_SA_serials=True)
+    # show_finite_size_scaling(eta=0.45, ncut=-50)
     # plot_EA_OP_eta_eps()
+    show_EA_OP_PD(512, 30370000)

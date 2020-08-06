@@ -13,10 +13,10 @@ import sys
 sys.path.append("..")
 try:
     from snap import load_snap
-except:
+except ImportError:
     pass
 
-if platform.system() is not "Windows":
+if platform.system() != "Windows":
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 else:
@@ -368,7 +368,7 @@ def show_comparision(L0, eta, eps):
 
 
 if __name__ == "__main__":
-    if platform.system() is "Windows":
+    if platform.system() == "Windows":
         # os.chdir(r"D:\code\corr2d\data")
         # file = r"ciff_0.18_0_2048_2048_1024_1024_4194304_1.06_123.bin"
         # file = r"ciff_0.18_0_4096_4096_1024_1024_16777216_1.06_123.bin"

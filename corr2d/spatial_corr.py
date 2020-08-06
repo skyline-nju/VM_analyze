@@ -82,9 +82,9 @@ def cal_corr2d(num,
     return C_rho, C_v
 
 
-def output(r, c_rho, c_v, eta, eps, seed, L, l):
+def output(r, c_rho, c_v, eta, eps, seed, L, lbox):
     """ Output shperially averaged correlation function into disk. """
-    file = "cr_%g_%g_%d_%d_%d.dat" % (eta, eps, L, l, seed)
+    file = "cr_%g_%g_%d_%d_%d.dat" % (eta, eps, L, lbox, seed)
     with open(file, "w") as f:
         lines = [
             "%f\t%.8f\t%.8f\n" % (r[i], c_rho[i], c_v[i])

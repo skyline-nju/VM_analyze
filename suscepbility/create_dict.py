@@ -114,7 +114,7 @@ def create_dict_from_xlsx(filename,
             Result dict.
     """
     with pd.ExcelFile(filename) as f:
-        df = pd.read_excel(f, sheet_name=sheet_name)
+        df = pd.read_excel(f, sheet_name=sheet_name, index_col=0)
     if key_name == "eps":
         orient = "index"
         k1_min = eps_min

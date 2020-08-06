@@ -269,7 +269,7 @@ def plot_4(eta, disorder_t="RT", rescaled=True):
                 0.001, 0.005, 0.008, 0.01, 0.02, 0.03, 0.035, 0.037, 0.04,
                 0.045, 0.05, 0.06, 0.07, 0.08, 0.085
             ]
-            # eps_arr = [0.05, 0.06, 0.07, 0.08]
+            # eps_arr = [0.05, 0.06, 0.07, 0.08, 0.085]
         elif eta == 0.1:
             eps_arr = [
                 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06,
@@ -290,6 +290,7 @@ def plot_4(eta, disorder_t="RT", rescaled=True):
             ]
             # eps_arr = [0.13, 0.14, 0.15, 0.16]
 
+    # print(phi_dict.keys())
     for eps in eps_arr:
         L, phi = phi_dict[eps]
         L, chi_dis = chi_dis_dict[eps]
@@ -377,8 +378,8 @@ def plot_4(eta, disorder_t="RT", rescaled=True):
             if eta == 0.18:
                 add_line(
                     axes[0], 0, 0.1, 1, -1.2, scale="log", c="tab:green", lw=2)
-                # add_line(
-                #     axes[0], 0.3, 1, 1, -3.5, scale="log", c="tab:blue", lw=2)
+                add_line(
+                    axes[0], 0.06, 1, 1, -4, scale="log", c="tab:blue", lw=2)
                 add_line(
                     axes[1], 0.28, 1, 1, -2, scale="log", c="tab:orange", lw=2)
                 add_line(

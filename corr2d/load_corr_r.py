@@ -123,7 +123,7 @@ def time_ave(t, rho_m, phi, crho_r, cv_r, srho_k=None, sv_k=None):
             srho_k_new, sv_k_new
 
 
-def sample_ave(eta, eps, L, l, rho0=1, t_ave=True, files=None):
+def sample_ave(eta, eps, L, lbox, rho0=1, t_ave=True, files=None):
     """ Average over samples.
 
     Parameters:
@@ -157,7 +157,8 @@ def sample_ave(eta, eps, L, l, rho0=1, t_ave=True, files=None):
         Spherically averaged correlation function of velocity.
     """
     if files is None:
-        files = glob.glob("cr*_%g_%g_%g_%d_%d_*.bin" % (eta, eps, rho0, L, l))
+        files = glob.glob("cr*_%g_%g_%g_%d_%d_*.bin" %
+                          (eta, eps, rho0, L, lbox))
     t, rho_m, vx_m, vy_m, r, crho_r, cv_r = read(files[0])
     phi = np.sqrt(vx_m**2 + vy_m**2)
     for file in files[1:]:
@@ -250,7 +251,7 @@ def varied_eta(*args,
                L=8192,
                eps=0,
                rho0=1,
-               l=2,
+               lbox=2,
                start_idx=0,
                save=False,
                normed=False,
@@ -289,43 +290,41 @@ def varied_eta(*args,
     title = ""
     clist = []
     for i, eta in enumerate(args):
-        t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+        t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, lbox)
         print("phi= ", phi)
         if i == 0:
             flag_line_label = True
         else:
             flag_line_label = False
-        plot_cr(
-            t,
-            r,
-            crho_r,
-            start_idx=start_idx,
-            mean=1,
-            ax=ax1,
-            marker=mk[eta],
-            normed=normed,
-            xlog=True,
-            ylog=True,
-            flag_line_label=flag_line_label,
-            clist=clist)
+        plot_cr(t,
+                r,
+                crho_r,
+                start_idx=start_idx,
+                mean=1,
+                ax=ax1,
+                marker=mk[eta],
+                normed=normed,
+                xlog=True,
+                ylog=True,
+                flag_line_label=flag_line_label,
+                clist=clist)
         if normed is False:
             mean = 0
         else:
             mean = phi**2
-        plot_cr(
-            t,
-            r,
-            cv_r,
-            xlog=True,
-            ylog=True,
-            start_idx=start_idx,
-            ax=ax2,
-            mean=mean,
-            marker=mk[eta],
-            flag_line_label=flag_line_label,
-            threshold=hline,
-            normed=normed,
-            clist=clist)
+        plot_cr(t,
+                r,
+                cv_r,
+                xlog=True,
+                ylog=True,
+                start_idx=start_idx,
+                ax=ax2,
+                mean=mean,
+                marker=mk[eta],
+                flag_line_label=flag_line_label,
+                threshold=hline,
+                normed=normed,
+                clist=clist)
         title += " %g (%s)," % (eta, line_type[eta])
     title = title[:-1]  # remove the last comma
     ax1.legend(title=r"$t=$", fontsize="large")
@@ -372,7 +371,7 @@ def varied_L(*args,
              eta=0.18,
              eps=0,
              rho0=1,
-             l=2,
+             lbox=2,
              start_idx=0,
              normed=False,
              save=False):
@@ -403,35 +402,33 @@ def varied_L(*args,
     title = ""
     clist = []
     for i, L in enumerate(args):
-        t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+        t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, lbox)
         if i == 0:
             flag_line_label = True
         else:
             flag_line_label = False
-        plot_cr(
-            t,
-            r,
-            crho_r,
-            start_idx,
-            mean=1,
-            ax=ax1,
-            marker=mk[L],
-            ms=3,
-            flag_line_label=flag_line_label,
-            normed=normed,
-            clist=clist)
-        plot_cr(
-            t,
-            r,
-            cv_r,
-            xlog=True,
-            start_idx=start_idx,
-            ax=ax2,
-            marker=mk[L],
-            ms=3,
-            flag_line_label=flag_line_label,
-            normed=normed,
-            clist=clist)
+        plot_cr(t,
+                r,
+                crho_r,
+                start_idx,
+                mean=1,
+                ax=ax1,
+                marker=mk[L],
+                ms=3,
+                flag_line_label=flag_line_label,
+                normed=normed,
+                clist=clist)
+        plot_cr(t,
+                r,
+                cv_r,
+                xlog=True,
+                start_idx=start_idx,
+                ax=ax2,
+                marker=mk[L],
+                ms=3,
+                flag_line_label=flag_line_label,
+                normed=normed,
+                clist=clist)
         title += " %g (%s)," % (L, line_type[L])
     title = title[:-1]  # remove the last comma
     ax1.legend(title=r"$t=$", fontsize="large")
@@ -471,7 +468,7 @@ def collapse6(eta,
               eps=0,
               rho0=1,
               L=8192,
-              l=2,
+              lbox=2,
               beg_idx=2,
               normed=False,
               save=False):
@@ -497,7 +494,7 @@ def collapse6(eta,
     save: bool, optional
         Whether to save figure.
     """
-    t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+    t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, lbox)
     fig, axes = plt.subplots(ncols=3, nrows=2, figsize=(9, 6))
     if eta == 0.18:
         lc_v = dict_lc["v"][eta][eps]
@@ -505,7 +502,7 @@ def collapse6(eta,
         lc_v = dict_lc["v"][eta]
     # lc_rho = dict_lc["rho"][eta]
     lc_rho = lc_v
-    t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, l)
+    t, rho_m, phi, r, crho_r, cv_r = sample_ave(eta, eps, L, lbox)
     label_size = "x-large"
     if normed:
         ylabel1 = r"$C_\rho (r, t)/C_\rho (0, t)$"
@@ -515,19 +512,24 @@ def collapse6(eta,
         ylabel2 = r"$C_v (r, t)$"
     """ density """
     plot_cr(t, r, crho_r, beg_idx, mean=1, ax=axes[0][0], normed=normed)
-    plot_cr(
-        t, r, crho_r, beg_idx, lc_rho, mean=1, ax=axes[0][1], normed=normed)
-    plot_cr(
-        t,
-        r,
-        crho_r,
-        beg_idx,
-        lc_rho,
-        mean=1,
-        xlog=False,
-        ylog=False,
-        normed=normed,
-        ax=axes[0][2])
+    plot_cr(t,
+            r,
+            crho_r,
+            beg_idx,
+            lc_rho,
+            mean=1,
+            ax=axes[0][1],
+            normed=normed)
+    plot_cr(t,
+            r,
+            crho_r,
+            beg_idx,
+            lc_rho,
+            mean=1,
+            xlog=False,
+            ylog=False,
+            normed=normed,
+            ax=axes[0][2])
     axes[0][0].set_xlabel(r"$r$", fontsize=label_size)
     axes[0][0].set_ylabel(ylabel1, fontsize=label_size)
     axes[0][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
@@ -553,17 +555,16 @@ def collapse6(eta,
         mean = phi**2
     plot_cr(t, r, cv_r, beg_idx, mean=mean, ax=axes[1][0], normed=normed)
     plot_cr(t, r, cv_r, beg_idx, lc_v, mean=mean, ax=axes[1][1], normed=normed)
-    plot_cr(
-        t,
-        r,
-        cv_r,
-        beg_idx,
-        lc_v,
-        mean=mean,
-        xlog=False,
-        ylog=False,
-        ax=axes[1][2],
-        normed=normed)
+    plot_cr(t,
+            r,
+            cv_r,
+            beg_idx,
+            lc_v,
+            mean=mean,
+            xlog=False,
+            ylog=False,
+            ax=axes[1][2],
+            normed=normed)
     axes[1][1].set_xlabel(r"$r/\xi_v$", fontsize=label_size)
     axes[1][1].set_ylabel(ylabel2, fontsize=label_size)
     axes[1][0].set_xlabel(r"$r$", fontsize=label_size)
@@ -577,10 +578,10 @@ def collapse6(eta,
     axes[1][1].set_ylim(1e-3, 1)
     axes[1][2].set_xlim(-0.02, 0.5)
     axes[1][2].set_ylim(-0.05, 1)
-    plt.suptitle(
-        r"$L=%d,\ \eta=%g, \rho_0=%d,\ \epsilon=%g$" % (L, eta, rho0, eps),
-        fontsize="xx-large",
-        y=0.995)
+    plt.suptitle(r"$L=%d,\ \eta=%g, \rho_0=%d,\ \epsilon=%g$" %
+                 (L, eta, rho0, eps),
+                 fontsize="xx-large",
+                 y=0.995)
     plt.tight_layout(rect=[0, 0, 1, 0.98])
     if save:
         plt.savefig("collapse_%d_%g_%d.png" % (L, eta, beg_idx))
@@ -594,18 +595,16 @@ def plot_lc(save=False, L=8192):
     plt.figure(figsize=(8, 4))
     plt.subplot(121)
     p = np.polyfit(np.log10(t_specify[2:]), np.log10(dict_lc["v"][0.1][2:]), 1)
-    plt.plot(
-        t_specify,
-        dict_lc["v"][0.1],
-        "o",
-        label="$\eta=%g$, slope=%.3f" % (0.1, p[0]))
-    p = np.polyfit(
-        np.log10(t_specify[2:]), np.log10(dict_lc["v"][0.18][0][2:]), 1)
-    plt.plot(
-        t_specify,
-        dict_lc["v"][0.18][0],
-        "s",
-        label="$\eta=%g$, slope=%.3f" % (0.18, p[0]))
+    plt.plot(t_specify,
+             dict_lc["v"][0.1],
+             "o",
+             label=r"$\eta=%g$, slope=%.3f" % (0.1, p[0]))
+    p = np.polyfit(np.log10(t_specify[2:]),
+                   np.log10(dict_lc["v"][0.18][0][2:]), 1)
+    plt.plot(t_specify,
+             dict_lc["v"][0.18][0],
+             "s",
+             label=r"$\eta=%g$, slope=%.3f" % (0.18, p[0]))
     plt.xscale("log")
     plt.yscale("log")
     plt.legend(fontsize="medium")
@@ -622,8 +621,8 @@ def plot_lc(save=False, L=8192):
     plt.ylabel(r"$\xi_v/t$", fontsize="xx-large")
     add_line(plt.gca(), 0, 0.8, 1, -0.05, "slope -0.05", scale="log")
 
-    plt.suptitle(
-        r"$L=%d,\ \rho_0=%g,\ \epsilon=%g$" % (L, 1, 0), fontsize="xx-large")
+    plt.suptitle(r"$L=%d,\ \rho_0=%g,\ \epsilon=%g$" % (L, 1, 0),
+                 fontsize="xx-large")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     if save:
         plt.savefig("Lc_%d.pdf" % (L))
@@ -637,11 +636,10 @@ def plot_lc2(save=False, L=8192):
     plt.figure(figsize=(8, 4))
     plt.subplot(121)
     for eps in [0, 0.02, 0.04]:
-        plt.plot(
-            t_specify,
-            dict_lc["v"][0.18][eps],
-            "o",
-            label=r"$\epsilon=%g$" % eps)
+        plt.plot(t_specify,
+                 dict_lc["v"][0.18][eps],
+                 "o",
+                 label=r"$\epsilon=%g$" % eps)
     plt.xscale("log")
     plt.yscale("log")
     plt.legend(fontsize="medium")
@@ -651,19 +649,18 @@ def plot_lc2(save=False, L=8192):
     add_line(plt.gca(), 0.1, 0, 1, 0.95, "slope 0.95", 0.6, 0.5, scale="log")
     plt.subplot(122)
     for eps in [0, 0.02, 0.04]:
-        plt.plot(
-            t_specify,
-            dict_lc["v"][0.18][eps] / t_specify,
-            "o",
-            label=r"$\epsilon=%g$" % eps)
+        plt.plot(t_specify,
+                 dict_lc["v"][0.18][eps] / t_specify,
+                 "o",
+                 label=r"$\epsilon=%g$" % eps)
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$t$", fontsize="xx-large")
     plt.ylabel(r"$\xi_v/t$", fontsize="xx-large")
     add_line(plt.gca(), 0, 0.8, 1, -0.05, "slope -0.05", scale="log")
 
-    plt.suptitle(
-        r"$L=%d,\ \rho_0=%g,\ \eta=%g$" % (L, 1, 0.18), fontsize="xx-large")
+    plt.suptitle(r"$L=%d,\ \rho_0=%g,\ \eta=%g$" % (L, 1, 0.18),
+                 fontsize="xx-large")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     if save:
         plt.savefig("Lc_%d.pdf" % (L))
@@ -707,8 +704,10 @@ def plot_phi_vs_t():
     plt.subplot(122)
     data = np.load("phi_eta18.npz")
     for i, eps in enumerate(data["eps"]):
-        plt.plot(
-            data["t"], data["phi"][i], "o", label=r"$\epsilon=%.2f$" % eps)
+        plt.plot(data["t"],
+                 data["phi"][i],
+                 "o",
+                 label=r"$\epsilon=%.2f$" % eps)
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$t$", fontsize="x-large")
@@ -738,16 +737,14 @@ def plot_phi_vs_xi():
     plt.subplot(122)
     data = np.load("phi_eta18.npz")
     plt.plot(dict_lc["v"][0.18][0], data["phi"][0], "o", label=r"$\epsilon=0$")
-    plt.plot(
-        dict_lc["v"][0.18][0.02],
-        data["phi"][1],
-        "o",
-        label=r"$\epsilon=0.02$")
-    plt.plot(
-        dict_lc["v"][0.18][0.04],
-        data["phi"][2],
-        "o",
-        label=r"$\epsilon=0.04$")
+    plt.plot(dict_lc["v"][0.18][0.02],
+             data["phi"][1],
+             "o",
+             label=r"$\epsilon=0.02$")
+    plt.plot(dict_lc["v"][0.18][0.04],
+             data["phi"][2],
+             "o",
+             label=r"$\epsilon=0.04$")
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$\xi_v$", fontsize="x-large")
@@ -776,7 +773,7 @@ def get_crossing_point(xdata, ydata, y0, scale="lin"):
         try:
             x0 = xdata[j] - (ydata[j] - y0) * (xdata[j] - xdata[j + 1]) / (
                 ydata[j] - ydata[j + 1])
-        except:
+        except ValueError:
             return None
     if scale == "log":
         x0 = 10**x0
