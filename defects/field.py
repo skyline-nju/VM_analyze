@@ -289,8 +289,8 @@ def show_fields2(fin, t_beg=300000, lbox=4):
             L, eta, eps, theta0, t)
         plt.suptitle(title, y=0.995, fontsize="x-large")
 
-        plt.show()
-        # plt.savefig(r"D:/data/tmp2/t=%04d.png" % i)
+        # plt.show()
+        plt.savefig(r"D:/data/tmp/t=%04d.png" % i)
         plt.close()
 
 

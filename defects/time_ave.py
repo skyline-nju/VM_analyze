@@ -271,9 +271,10 @@ def plot_EA_OP_2d(L, eta, eps, seed, theta0, t_win0):
     module = np.sqrt(vx_m**2 + vy_m**2)
     im2 = ax2.imshow(module, origin="lower", extent=(0, L, 0, L))
 
-    ax1.set_title(
-        r"(a) $\langle \overline{{\bf M}}({\bf r}, t)\cdot \overline{{\bf M}}({\bf r}, t+T)\rangle_t$",
-        fontsize="x-large")
+    title = "(a) $\\langle \\overline{\\bf M}({\\bf r}, t)\
+        \\cdot \\overline{\\bf M}({\\bf r}, t+T)\\rangle_t$"
+
+    ax1.set_title(title, fontsize="x-large")
     ax2.set_title("(b) module of time-averaged momentum fields",
                   fontsize="x-large")
 
@@ -444,9 +445,9 @@ def varies_tc(L, eta, eps, seed, theta0):
             ax2.set_title(r"(b) module of momentum")
             ax3.set_title(r"(c) orientation of momentum")
             plt.tight_layout(rect=[-0.015, -0.08, 1.01, 0.97])
-            title = r"$L=%d,\eta=%g,\epsilon=%g,\Delta t=%d,t=%d,n_+=%d,n_+=%d$" % (
-                L, eta, eps, dn * 200, t, defects[1]["x"].size,
-                defects[-1]["x"].size)
+            title = "$L=%d,\\eta=%g,\\epsilon=%g,\\Delta t=%d,t=%d,\
+                n_+=%d,n_+=%d$" % (L, eta, eps, dn * 200, t,
+                                   defects[1]["x"].size, defects[-1]["x"].size)
             plt.suptitle(title, y=0.995)
             # plt.show()
             count = i - dn + 1

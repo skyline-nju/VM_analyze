@@ -134,7 +134,7 @@ def read_time_average(xlsx_dir,
             print("error when reading time-averaged data")
             sys.exit()
         my_L = int(s[2])
-        df = pd.read_excel(filename, sheet_name="Sheet1")
+        df = pd.read_excel(filename, sheet_name="Sheet1", index_col=0)
         if key not in data_dict:
             if transpos:
                 data_dict[key] = {my_L: df.T}
@@ -331,7 +331,7 @@ def sample_average(eta=None, eps=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    # time_average_const_eta(eta, new_data=True)
+    time_average_const_eta(eta, new_data=True)
     sample_average(eta=eta)
     # eps = 0.03
     # time_average_const_eps(eps)

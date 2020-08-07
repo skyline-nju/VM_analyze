@@ -684,8 +684,8 @@ def plot_chi_dis_over_chi_con_square():
 
 if __name__ == "__main__":
     # plot_1()
-    plot_4(0.18, "RT", rescaled=False)
+    # plot_4(0.18, "RT", rescaled=True)
     # plot_5(0.18, False)
     # plot_chi_peak(0.18, "RT")
-    # plot_M(0.18, "RT")
+    plot_M(0.18, "RT")
     # plot_chi_dis_over_chi_con_square()

@@ -108,20 +108,22 @@ def plot_defect(L,
     # theta = get_theta(vx2, vy2)
     theta = get_theta(vx, vy)
     charge = cal_defect(theta)
-    im = ax.imshow(
-        theta,
-        cmap="hsv",
-        origin="lower",
-        extent=[0, L, 0, L],
-        vmin=0,
-        vmax=360)
+    im = ax.imshow(theta,
+                   cmap="hsv",
+                   origin="lower",
+                   extent=[0, L, 0, L],
+                   vmin=0,
+                   vmax=360)
     ax.plot(charge[1]["col"], charge[1]["row"], "wo", fillstyle="none", mew=2)
-    ax.plot(
-        charge[-1]["col"], charge[-1]["row"], "ks", fillstyle="none", mew=2)
+    ax.plot(charge[-1]["col"],
+            charge[-1]["row"],
+            "ks",
+            fillstyle="none",
+            mew=2)
     ax.set_xticks([0, 256, 512])
     ax.set_yticks([0, 256, 512])
-    ax.set_title(
-        r"$n^+=%d, n^-=%d$" % (charge[1]["col"].size, charge[-1]["col"].size))
+    ax.set_title(r"$n^+=%d, n^-=%d$" %
+                 (charge[1]["col"].size, charge[-1]["col"].size))
     if flag_show:
         plt.show()
         plt.close()
@@ -136,8 +138,10 @@ def plot_defect_diff_ini_condi(L,
                                ic="ordered"):
     seed1 = 100
     seed2 = 200
-    fig, (ax1, ax2) = plt.subplots(
-        nrows=1, ncols=2, figsize=(10, 5), constrained_layout=True)
+    fig, (ax1, ax2) = plt.subplots(nrows=1,
+                                   ncols=2,
+                                   figsize=(10, 5),
+                                   constrained_layout=True)
     plot_defect(L, eps, eta, seed, seed1, disorder_t, ic, ax1)
     im = plot_defect(L, eps, eta, seed, seed2, disorder_t, ic, ax2)
     if disorder_t == "RT":
@@ -160,8 +164,11 @@ def plot_rho(L, eps, eta=0.18, seed=30370020, disorder_t="RT", ic="ordered"):
     for i, seed2 in enumerate(seed2_arr):
         fname = get_snap_file(L, eps, eta, seed, seed2, disorder_t, ic)
         rho_mean = get_time_averaged_image(fname, beg, end, "rho", L // 4)
-        im = ax[i].imshow(
-            rho_mean, origin="lower", extent=[0, L, 0, L], vmin=0, vmax=2)
+        im = ax[i].imshow(rho_mean,
+                          origin="lower",
+                          extent=[0, L, 0, L],
+                          vmin=0,
+                          vmax=2)
     ax[0].set_title("replica 0")
     ax[1].set_title("replica 3")
     plt.colorbar(im, ax=ax[1], extend="max")
@@ -259,11 +266,16 @@ def plot_momentum_hist(L, eps, eta=0.18, seed=20203262, disorder_t="RT"):
         v_orient[v_orient < 0] += 2
         v_module = np.sqrt(vx**2 + vy**2)
         bins = 72
-        hist, bin_edges = np.histogram(
-            v_orient, bins, (0, 2), density=True, weights=v_module)
+        hist, bin_edges = np.histogram(v_orient,
+                                       bins, (0, 2),
+                                       density=True,
+                                       weights=v_module)
         x = (bin_edges[:-1] + bin_edges[1:]) / 2
-        line, = plt.plot(
-            x, hist, "-o", label="replica %d" % idx_list[i], fillstyle="none")
+        line, = plt.plot(x,
+                         hist,
+                         "-o",
+                         label="replica %d" % idx_list[i],
+                         fillstyle="none")
         hist, bin_edges = np.histogram(v_orient, bins, (0, 2), density=True)
         plt.plot(x, hist, "s", fillstyle="none", c=line.get_c())
     plt.xlabel(r"$\theta/\pi$", fontsize="large")
@@ -309,33 +321,32 @@ def plot_defect_short_win(L,
         n_p_t = charge_t[1]["col"].size
         n_p = charge[1]["col"].size
         plt.subplots(figsize=(8, 6))
-        im = plt.imshow(
-            theta,
-            cmap="hsv",
-            origin="lower",
-            extent=[0, L, 0, L],
-            vmin=0,
-            vmax=360)
-        plt.plot(
-            charge[1]["col"], charge[1]["row"], "wo", fillstyle="none", mew=2)
-        plt.plot(
-            charge[-1]["col"],
-            charge[-1]["row"],
-            "ks",
-            fillstyle="none",
-            mew=2)
-        plt.plot(
-            charge_t[1]["col"],
-            charge_t[1]["row"],
-            "wx",
-            fillstyle="none",
-            mew=2)
-        plt.plot(
-            charge_t[-1]["col"],
-            charge_t[-1]["row"],
-            "kx",
-            fillstyle="none",
-            mew=2)
+        im = plt.imshow(theta,
+                        cmap="hsv",
+                        origin="lower",
+                        extent=[0, L, 0, L],
+                        vmin=0,
+                        vmax=360)
+        plt.plot(charge[1]["col"],
+                 charge[1]["row"],
+                 "wo",
+                 fillstyle="none",
+                 mew=2)
+        plt.plot(charge[-1]["col"],
+                 charge[-1]["row"],
+                 "ks",
+                 fillstyle="none",
+                 mew=2)
+        plt.plot(charge_t[1]["col"],
+                 charge_t[1]["row"],
+                 "wx",
+                 fillstyle="none",
+                 mew=2)
+        plt.plot(charge_t[-1]["col"],
+                 charge_t[-1]["row"],
+                 "kx",
+                 fillstyle="none",
+                 mew=2)
         plt.xticks([0, 256, 512])
         plt.yticks([0, 256, 512])
         plt.title(r"$\Delta t=200, t=%d, n^{+/-}_t=%d$" % (t, n_p_t))
@@ -344,10 +355,9 @@ def plot_defect_short_win(L,
         cb.set_ticks(cb_ticks)
         cb.set_ticklabels([r"$%d\degree$" % i for i in cb_ticks])
         plt.tight_layout(rect=[0, -0.03, 1, 0.98])
-        plt.suptitle(
-            r"RS: $L=%d, \eta=%g, \epsilon=%g, n^{+/-}=%d$" % (L, eta, eps,
-                                                               n_p),
-            y=0.995)
+        plt.suptitle(r"RS: $L=%d, \eta=%g, \epsilon=%g, n^{+/-}=%d$" %
+                     (L, eta, eps, n_p),
+                     y=0.995)
         plt.show()
         plt.close()
         n_sum += n_p_t
@@ -365,6 +375,11 @@ if __name__ == "__main__":
     #     disorder_t="RT",
     #     seed=25650015,
     #     ic="ordered_diag")
-    # plot_momentum(
-    #     512, 0.055, eta=0.18, disorder_t="RT", seed=30370000, seed2=500, ic="rand")
+    # plot_momentum(512,
+    #               0.055,
+    #               eta=0.18,
+    #               disorder_t="RT",
+    #               seed=30370000,
+    #               seed2=500,
+    #               ic="rand")
     # plot_momentum_hist(4096, 0.035, disorder_t="RT", seed=20203261)

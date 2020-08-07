@@ -50,7 +50,7 @@ def show_gamma90_varied_beta(rho=1.5, v=0.2, eta=0.02, L=128):
     plt.title(r"$L=%d, \eta=%.2f, \rho_0=%g, \gamma=\pi/2$" % (L, eta, rho))
     plt.tight_layout()
     plt.show()
-    plt.close()  
+    plt.close()
 
 
 def show_gamma90_varied_L(rho=3, v=0.2, eta=0.02, beta=1):
@@ -66,10 +66,11 @@ def show_gamma90_varied_L(rho=3, v=0.2, eta=0.02, beta=1):
     plt.legend(title=r"$\L=$")
     plt.xlabel(r"$t$")
     plt.ylabel("orientation of mean velocities")
-    plt.title(r"$\beta=%g, \eta=%.2f, \rho_0=%g, \gamma=\pi/2$" % (beta, eta, rho))
+    plt.title(r"$\beta=%g, \eta=%.2f, \rho_0=%g, \gamma=\pi/2$" %
+              (beta, eta, rho))
     plt.tight_layout()
     plt.show()
-    plt.close()  
+    plt.close()
 
 
 if __name__ == "__main__":

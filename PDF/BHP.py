@@ -27,7 +27,9 @@ def read_samples(eta, eps, L, d=2, disorder_type="RT"):
         else:
             os.chdir(r"E:\data\random_field\normalize\scaling\time_average")
             file_pat = r"%.3f_%.4f_%d.xlsx"
-        df = pd.read_excel(file_pat % (eta, eps, L), sheet_name="Sheet1")
+        df = pd.read_excel(file_pat % (eta, eps, L),
+                           sheet_name="Sheet1",
+                           index_col=0)
         phi_arr = df["mean"]
     else:
         if disorder_type == "RT":
@@ -47,28 +49,32 @@ def read_time_serials(eta,
                       disorder_type="RT",
                       ncut=5000,
                       fin=None):
-    print("ncut =", ncut)
-    if fin is None:
+    def get_filename():
         if d == 2:
             if disorder_type == "RT":
+                folder = "E:/data/random_torque/Phi_vs_L"
                 if eta == 0.1:
-                    dest = r"E:\data\random_torque\Phi_vs_L\eta=0.10\serials"
+                    folder = "%s/eta=0.10/serials" % folder
                 elif eta == 0.18:
-                    dest = r"E:\data\random_torque\Phi_vs_L\eta=0.18\%.3f" % eps
-                print(dest)
-                os.chdir(dest)
-                filename = "p%d.%d.%d.%d.dat" % (L, int(eta * 1000),
-                                                 int(eps * 10000), seed)
+                    folder = "%s/eta=0.18/%.3f" % (folder, eps)
+                filename = "%s/p%d.%g.%g.%d.dat" % (folder, L, eta * 1000,
+                                                    eps * 1000, seed)
             elif disorder_type == "RF":
-                os.chdir(r"E:\data\random_field\normalize_new\scaling\serials")
-                filename = "phi_rf_%d_%.2f_%.2f_%d.dat" % (L, eta, eps, seed)
+                folder = "E:/data/random_field/normalize_new/scaling/serials"
+                filename = "%s/phi_rf_%d_%.2f_%.2f_%d.dat" % (folder, L, eta,
+                                                              eps, seed)
         elif d == 3:
             if disorder_type == "RT":
-                os.chdir(r"E:\data\vm3d\order_para")
-                filename = "phi_%d_%.2f_%.3f_1.0_%d.dat" % (L, eta, eps, seed)
+                folder = "E:/data/vm3d/order_para"
+                filename = "%s/phi_%d_%.2f_%.3f_1.0_%d.dat" % (folder, L, eta,
+                                                               eps, seed)
+        return filename
+
+    if fin is None:
+        filename = get_filename()
     else:
         filename = fin
-    print(filename)
+    print(filename, ", ncut =", ncut)
     with open(filename, "r") as f:
         lines = f.readlines()[ncut:]
         phi_arr = np.array([float(i.split("\t")[0]) for i in lines])
@@ -97,8 +103,14 @@ def plot_PDF(eta,
         else:
             phi_arr = read_time_serials(eta, eps, L, seed, d, disorder_type)
     else:
-        phi_arr = read_time_serials(
-            eta, eps, L, seed, d, disorder_type, ncut=ncut, fin=filename)
+        phi_arr = read_time_serials(eta,
+                                    eps,
+                                    L,
+                                    seed,
+                                    d,
+                                    disorder_type,
+                                    ncut=ncut,
+                                    fin=filename)
     phi_mean = np.mean(phi_arr)
     phi_std = np.std(phi_arr)
     hist, bin_edges = np.histogram(phi_arr, bins=bins, density=True)
@@ -118,8 +130,10 @@ def plot_PDF(eta,
 
 
 def plot_PDF_mult_samples():
-    fig, (ax1, ax2, ax3) = plt.subplots(
-        nrows=1, ncols=3, figsize=(10, 4), sharey=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1,
+                                        ncols=3,
+                                        figsize=(10, 4),
+                                        sharey=True)
     y = np.linspace(-6, 2.5, 1000)
     f = BHP_approx(y)
     ax1.plot(y, f)
@@ -164,8 +178,10 @@ def plot_PDF_mult_samples():
 
 
 def plot_PDF_single_samples():
-    fig, (ax1, ax2, ax3) = plt.subplots(
-        nrows=1, ncols=3, figsize=(10, 4), sharey=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1,
+                                        ncols=3,
+                                        figsize=(10, 4),
+                                        sharey=True)
     y = np.linspace(-5.5, 2.5, 1000)
     f = BHP_approx(y)
     ax1.plot(y, f)
@@ -223,24 +239,29 @@ if __name__ == "__main__":
     # plt.show()
     # plt.close()
     ''' distribution for the case of bands '''
-    # f1 = 'E:/data/random_torque/bands/Lx/snapshot/eps0/p350.0.400.200.214400.dat'
-    # f2 = 'E:/data/random_torque/bands/Lx/snapshot/eps20/p350.30.440.200.7440.dat'
+    # folder = "E:/data/random_torque/bands/Lx/snapshot"
+    # f1 = f'{folder}/eps0/p350.0.400.200.214400.dat'
+    # f2 = f'{folder}/eps20/p350.30.440.200.7440.dat'
 
-    # f1 = 'E:/data/random_torque/Phi_vs_L/eta=0.18/0.000/p2048.180.0.25984.dat'
-    # f2 = 'E:/data/random_torque/Phi_vs_L/eta=0.18/0.000/p2048.180.0.20944.dat'
+    # folder = "E:/data/random_torque/phi_vs_L/eta=0.18/0.000"
+    # f1 = f'{folder}/p2048.180.0.25984.dat'
+    # f2 = f'{folder}/p2048.180.0.20944.dat'
 
-    # f1 = r"E:\data\random_torque\large_system\phi_2400_0.18_0.000_1.0_1.dat"
-    # f2 = r"E:\data\random_torque\large_system\phi_4800_0.18_0.020_1.0_1.dat"
+    # folder = "E:/data/random_torque/large_system"
+    # f1 = f"{folder}/phi_2400_0.18_0.000_1.0_1.dat"
+    # f2 = f"{folder}/phi_4800_0.18_0.020_1.0_1.dat"
 
-    # f1 = r"E:\data\random_torque\statistic\2048\serials\s_0.180_0.000_2048_1257.dat"
-    # f2 = r"E:\data\random_torque\statistic\2048\serials\s_0.180_0.010_2048_229.dat"
+    # folder = "E:/data/random_torque/statistic/2048/serials"
+    # f1 = f"{folder}/s_0.180_0.000_2048_1257.dat"
+    # f2 = f"{folder}/s_0.180_0.010_2048_229.dat"
 
-    # f1 = r"E:\data\random_potentail\l=1\order_para\phi_0.060_0.100_1024_123.dat"
-    # f2 = r"E:\data\random_potentail\l=1\order_para\phi_0.140_0.100_1024_123.dat"
-    # f3 = r"E:\data\random_potentail\l=1\order_para\phi_0.320_0.100_1024_123.dat"
+    # folder = "E:/data/random_potential/l=1/order_para"
+    # f1 = f"{folder}/phi_0.060_0.100_1024_123.dat"
+    # f2 = f"{folder}/phi_0.140_0.100_1024_123.dat"
+    # f3 = f"{folder}/phi_0.320_0.100_1024_123.dat"
 
-
-    f1 = r"G:\data\vm3d\vm3d_eps=0.06_eta=0.2\data\phi_120_0.20_0.060_1.0_930006.dat"
+    folder = "G:/data/vm3d/vm3d_eps=0.06_eta=0.2/data"
+    f1 = f"{folder}/phi_120_0.20_0.060_1.0_930006.dat"
     plt.figure(constrained_layout=True)
     ax = plt.gca()
 
@@ -257,7 +278,16 @@ if __name__ == "__main__":
     #     ax=ax,
     #     mk="s",
     #     ncut=ncut)
-    # plot_PDF(0.35, 0, 350, 2, "RT", seed=214400, filename=f3, ax=ax, mk=">", ncut=ncut)
+    # plot_PDF(0.35,
+    #          0,
+    #          350,
+    #          2,
+    #          "RT",
+    #          seed=214400,
+    #          filename=f3,
+    #          ax=ax,
+    #          mk=">",
+    #          ncut=ncut)
 
     y = np.linspace(-6, 2.5, 1000)
     f = BHP_approx(y)

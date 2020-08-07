@@ -26,7 +26,7 @@ import platform
 import matplotlib
 
 
-if platform.system() is not "Windows":
+if platform.system() != "Windows":
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 else:

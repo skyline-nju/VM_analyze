@@ -52,4 +52,3 @@ if __name__ == "__main__":
         ax.set_ylim(0, 40)
         plt.show()
         plt.close()
-

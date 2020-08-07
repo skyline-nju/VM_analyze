@@ -16,8 +16,10 @@ def plot_serials(L,
                  out_dir=None,
                  beg=None,
                  end=None):
-    fig, axes = plt.subplots(
-        nrows=2, ncols=1, sharex=True, constrained_layout=True)
+    fig, axes = plt.subplots(nrows=2,
+                             ncols=1,
+                             sharex=True,
+                             constrained_layout=True)
     phi_mean = np.mean(phi_arr[ncut0:])
     phi_var = np.var(phi_arr[ncut0:])
     theta = untangle(theta_arr)
@@ -26,10 +28,9 @@ def plot_serials(L,
 
     x = np.arange(phi_arr.size)
     axes[0].plot(x, phi_arr, label="mean=%f, var=%.3e" % (phi_mean, phi_var))
-    axes[1].plot(
-        x,
-        theta / np.pi,
-        label="mean=%.3f, var=%.3e" % (theta_mean, theta_var))
+    axes[1].plot(x,
+                 theta / np.pi,
+                 label="mean=%.3f, var=%.3e" % (theta_mean, theta_var))
     axes[0].axvline(ncut0, c="tab:red")
     axes[1].axvline(ncut0, c="tab:red")
     axes[0].set_ylabel(r"$m$")
@@ -49,16 +50,15 @@ def plot_serials(L,
             phi_var = np.var(phi_arr[beg:end])
             theta_mean = np.mean(theta[beg:end])
             theta_var = np.var(theta[beg:end])
-            axes[0].axvspan(
-                beg,
-                end,
-                alpha=0.4,
-                label="mean=%f, var=%.3e" % (phi_mean, phi_var))
-            axes[1].axvspan(
-                beg,
-                end,
-                alpha=0.4,
-                label="mean=%.3f, var=%.3e" % (theta_mean, theta_var))
+            axes[0].axvspan(beg,
+                            end,
+                            alpha=0.4,
+                            label="mean=%f, var=%.3e" % (phi_mean, phi_var))
+            axes[1].axvspan(beg,
+                            end,
+                            alpha=0.4,
+                            label="mean=%.3f, var=%.3e" %
+                            (theta_mean, theta_var))
         axes[0].legend()
         axes[1].legend()
         plt.savefig("%s\\%g_%g_%d_%s.png" % (out_dir, eta, eps, L, seed))
@@ -119,8 +119,8 @@ def cal_phi_chi(L, eps, eta=0.18, disorder_t="RF"):
             else:
                 phi_mean, phi_var, theta_mean, theta_var = plot_serials(
                     L, eps, eta, seed, disorder_t, phi, theta, ncut0)
-                str_in = input(
-                    "%d/%d: please set beg, end: " % (i, len(files)))
+                str_in = input("%d/%d: please set beg, end: " %
+                               (i, len(files)))
                 if str_in == "":
                     beg, end = ncut0, phi.size
                     state = 0
@@ -173,8 +173,10 @@ def read_data(fin):
     with open(fin, "r") as f:
         lines = f.readlines()
         n = len(lines)
+        state = np.zeros(n, int)
         data = np.zeros((n, 8))
         for i, line in enumerate(lines):
+            state[i] = int(line.split("\t")[0])
             A = np.array([float(i) for i in line.rstrip("\n").split("\t")[2:]])
             if A.size == 8:
                 data[i] = A
@@ -186,7 +188,7 @@ def read_data(fin):
             elif A.size == 3:
                 data[i, :4] = np.array([A[0], A[1], 0, A[2]])
                 data[i, 4:] = data[i, :4]
-    return data.T
+    return state, data.T
 
 
 def get_chi_M(eps, eta=0.18, disorder_t="RF"):
@@ -202,11 +204,12 @@ def get_chi_M(eps, eta=0.18, disorder_t="RF"):
     chi_dis, chi_con, M = np.zeros((3, L.size))
     for i in range(L.size):
         fin = "%s\\%g_%g_%d.dat" % (dest_dir, eta, eps, L[i])
-        phi_mean, phi_var, theta_mean, theta_var,\
-            phi_mean2, phi_var2, theta_mean2, theta_var2 = read_data(fin)
-        chi_dis[i] = np.var(phi_mean2) * L[i] ** 2
-        chi_con[i] = np.mean(phi_var2) * L[i] ** 2
-        M[i] = np.mean(phi_mean2)
+        state, (phi_mean, phi_var, theta_mean, theta_var, phi_mean2, phi_var2,
+                theta_mean2, theta_var2) = read_data(fin)
+        mask = state != 2
+        chi_dis[i] = np.var(phi_mean2[mask]) * L[i]**2
+        chi_con[i] = np.mean(phi_var2[mask]) * L[i]**2
+        M[i] = np.mean(phi_mean2[mask])
     return L, chi_dis, chi_con, M
 
 
@@ -234,36 +237,10 @@ def get_nonsteady_rates(eps, eta=0.18, disorder_t="RT"):
 
 
 if __name__ == "__main__":
-    # for L in [2048]:
-    #     eta = 0.18
-    #     eps = 0.08
-    #     # cal_phi_chi(L, eps, eta)
-    #     phi_mean, phi_var, theta_mean, theta_var,\
-    #         phi_mean2, phi_var2, theta_mean2, theta_var2 \
-    #         = read_time_ave_phi(L, eps, eta)
-    #     # plt.plot(theta_var, phi_mean, "o", label="%f" % (np.mean(phi_mean)))
-    #     # plt.plot(
-    #     #     theta_var2, phi_mean2, "s", label="%f" % (np.mean(phi_mean2)))
-    #     # # plt.yscale("log")
-    #     # plt.xscale("log")
-    #     # plt.legend()
-    #     # plt.show()
-    #     # plt.close()
-
-    #     # print(np.mean(phi_mean), np.mean(phi_mean2))
-    #     # mask = phi_mean >= 0.67
-    #     # print(np.mean(phi_mean), np.mean(phi_mean[mask]))
-
-    #     bins = np.linspace(0.7, 0.8, 32)
-    #     plt.hist(phi_mean2, bins, density=True, alpha=0.5, label=r"$L=%d$" % L)
-    # plt.yscale("log")
-    # plt.legend()
-    # plt.show()
-
     disorder_t = "RT"
-    L = 724
-    eps = 0.03
-    # cal_phi_chi(L, eps, 0.18, disorder_t)
+    L = 2896
+    eps = 0.035
+    cal_phi_chi(L, eps, 0.18, disorder_t)
 
     # if disorder_t == "RF":
     #     dest_dir = "D:\\data\\VM2d\\random_field\\phi_chi"
@@ -276,9 +253,9 @@ if __name__ == "__main__":
     # print(np.mean(phi_var), np.mean(phi_var2))
     # print(np.var(phi_mean), np.var(phi_mean2))
 
-    L, r = get_nonsteady_rates(eps)
-    for i in range(L.size):
-        print(L[i], r[i])
+    # L, r = get_nonsteady_rates(eps)
+    # for i in range(L.size):
+    #     print(L[i], r[i])
     # plt.loglog(L, r, "o")
     # plt.show()
     # plt.close()

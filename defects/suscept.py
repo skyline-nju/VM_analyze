@@ -74,7 +74,8 @@ if __name__ == "__main__":
     #     cal_phi(L, eta, eps)
     plot_suscept(eta, eps, L_arr)
 
-    # fin = "E:/data/random_torque/defects/eta=0.45/order_para/32_0.450_0.000.npz"
+    folder = "E:/data/random_torque/defects"
+    fin = "%s/defects/eta=0.45/order_para/32_0.450_0.000.npz" % folder
     # data = np.load(fin)
     # for key in data.keys():
     #     print(key)

@@ -189,10 +189,8 @@ def plot_phi_theta(L,
     ax2.set_ylabel(r"$m$")
     ax2.set_xlabel(r"$t$")
     # ax1.legend()
-    # ax2.legend(
-    #     loc="lower right",
-    #     ncol=4,
-    #     title=r"$\langle m\rangle, \langle m^2\rangle - \langle m\rangle^2=$")
+    title = r"$\langle m\rangle, \langle m^2\rangle - \langle m\rangle^2=$"
+    ax2.legend(loc="lower right", ncol=4, title=title)
     plt.tight_layout(rect=[-0.01, -0.025, 1.01, 0.98])
     if disorder_t == "RT":
         title = r"RS: $L=%d, \eta=%g, \epsilon=%g$" % (L, eta, eps)
@@ -206,8 +204,7 @@ def plot_phi_theta(L,
 
 def plot_theta(L, eps, eta=0.18, disorder_t="RT", seed=30370000, ic="rand"):
     files = get_matched_files(L, eps, eta, disorder_t, seed, ic)
-    # fig, ax = plt.subplots(figsize=(9, 3), constrained_layout=True, projection="polar")
-    fig = plt.figure(figsize=(5, 5), constrained_layout=True)
+    plt.figure(figsize=(5, 5), constrained_layout=True)
     ax = plt.subplot(111, projection="polar")
     beg = 0
     for i, f in enumerate(files):

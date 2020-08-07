@@ -12,7 +12,7 @@ def read_time_ave(data_dir, eta):
         s = os.path.basename(filename).replace(".xlsx", "").split("_")
         eps = float(s[1])
         L = int(s[2])
-        df = pd.read_excel(filename, sheet_name="Sheet1")
+        df = pd.read_excel(filename, sheet_name="Sheet1", index_col=0)
         m_t_s = df["mean"].mean()
         var_s = df["var"].mean()
         m_t_square_s = (df["mean"] ** 2).mean()

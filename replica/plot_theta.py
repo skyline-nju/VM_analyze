@@ -177,11 +177,11 @@ if __name__ == "__main__":
     # disorder = "RP"
     # plot_theta_varied_eps(L, eta, seed, wall=wall, disorder_t=disorder)
 
-    L = 2048
+    L = 4096
     eta = 0.18
-    eps = 0.0
+    eps = 0.035
     wall = "y"
-    ncut = 2000
-    seed = 20200713
+    ncut = 500
+    seed = 20200712
     disorder = "RT"
     plot_phi_theta3(L, eta, eps, seed, ncut, wall)

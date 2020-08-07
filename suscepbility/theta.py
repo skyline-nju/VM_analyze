@@ -89,8 +89,10 @@ def read_theta_var(L, eps, eta=0.18, disorder_t="RF"):
 def plot_theta_var(L, eps, eta=0.18, disorder_t="RF"):
     theta_var, phi_mean, phi_var, seed = read_theta_var(
         L, eps, eta, disorder_t)
-    fig, (ax1, ax2) = plt.subplots(
-        nrows=1, ncols=2, constrained_layout=True, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(nrows=1,
+                                   ncols=2,
+                                   constrained_layout=True,
+                                   sharex=True)
     ax1.plot(theta_var, phi_mean, "o")
     ax2.plot(theta_var, phi_var, "o")
     ax1.set_xscale("log")
@@ -100,13 +102,12 @@ def plot_theta_var(L, eps, eta=0.18, disorder_t="RF"):
 
 def plot_theta_var_all(eps, eta=0.18, disorder_t="RF", y="phi_var"):
     L = np.array([32, 46, 64, 90, 128, 180, 256, 362, 512, 724, 1024, 1448])
-    fig, axes = plt.subplots(
-        nrows=3,
-        ncols=4,
-        figsize=(12, 8),
-        constrained_layout=True,
-        sharex=True,
-        sharey=True)
+    fig, axes = plt.subplots(nrows=3,
+                             ncols=4,
+                             figsize=(12, 8),
+                             constrained_layout=True,
+                             sharex=True,
+                             sharey=True)
     for i, ax in enumerate(axes.flat):
         try:
             theta_var, phi_mean, phi_var, seed = read_theta_var(
@@ -168,8 +169,10 @@ def plot_scaling(eps, eta=0.18, disorder_t="RF"):
     L_arr, phi, chi_con, chi_dis, phi2, chi_con2, chi_dis2 \
         = get_phi_chi(eps, eta, disorder_t, "full")
 
-    fig, (ax1, ax2, ax3) = plt.subplots(
-        nrows=1, ncols=3, sharex=True, constrained_layout=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1,
+                                        ncols=3,
+                                        sharex=True,
+                                        constrained_layout=True)
     ax1.plot(L_arr, chi_dis / L_arr**2, "-o")
     ax1.plot(L_arr, chi_dis2 / L_arr**2, "-s")
 
@@ -237,24 +240,25 @@ if __name__ == "__main__":
 
     seed = 1016
     eps_arr = [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08]
-    fig, (ax1, ax2) = plt.subplots(
-        ncols=2, figsize=(8, 6), constrained_layout=True, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(ncols=2,
+                                   figsize=(8, 6),
+                                   constrained_layout=True,
+                                   sharex=True)
     for eps in eps_arr:
         f1 = "p_1024_0.180_%.3f_1.000_%d.dat" % (eps, seed)
         phi, theta = read_phi_theta("%s\\%s" % (folder, f1))
         theta_new = untangle(theta)
         x = np.arange(theta.size) * 100
-        line, = ax1.plot(x, theta_new/np.pi, label="%g" % eps)
+        line, = ax1.plot(x, theta_new / np.pi, label="%g" % eps)
         if eps <= 0.04:
-            ax2.plot(x, theta_new/np.pi, label="%g" % eps, c = line.get_c())
+            ax2.plot(x, theta_new / np.pi, label="%g" % eps, c=line.get_c())
     ax1.legend(title=r"$\epsilon=$")
     ax1.set_xlabel(r"$t$", fontsize="x-large")
     ax1.set_ylabel(r"$\theta$", fontsize="x-large")
     ax2.set_xlabel(r"$t$", fontsize="x-large")
     ax2.legend(title=r"$\epsilon=$", loc="best")
 
-    plt.suptitle(
-        r"RS: $L=%d, \eta=%g,$ seed=%d" % (1024, 0.18, seed),
-        fontsize="x-large")
+    plt.suptitle(r"RS: $L=%d, \eta=%g,$ seed=%d" % (1024, 0.18, seed),
+                 fontsize="x-large")
     plt.show()
     plt.close()
