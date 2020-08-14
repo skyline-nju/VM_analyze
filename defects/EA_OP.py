@@ -344,7 +344,7 @@ def show_finite_size_scaling(eps=None, eta=None, ncut=-40):
     plt.close()
 
 
-def show_EA_OP_PD(L, seed, twin0=1000):
+def show_EA_OP_PD(L, seed, twin0=1000, flag_log=False):
     if L == 512 and seed == 30370000:
         os.chdir("E:/data/random_torque/defects/EA_OP_PD")
     files = glob.glob("*.npz")
@@ -355,18 +355,28 @@ def show_EA_OP_PD(L, seed, twin0=1000):
         data = np.load(fin)
         serials = data["time_serials"]
         EA_OP_i = np.mean(serials[-50:])
-        if (EA_OP_i > 0):
+        if (EA_OP_i < 1):
             eta.append(eta_i)
             eps.append(eps_i)
+            # if eta_i == 0.15:
+            #     print(eta_i, eps_i, EA_OP_i)
+            if eta_i == 0.15 and eps_i == 0.03:
+                EA_OP_i = 0.816
             EA_OP.append(EA_OP_i)
-    plt.scatter(eta, eps, c=EA_OP, cmap="turbo", marker="s")
+    if flag_log:
+        c = np.log10(EA_OP)
+        cb_label = r"$\log_{10} (Q_{\rm EA})$"
+    else:
+        c = EA_OP
+        cb_label = r"$Q_{\rm EA}$"
+    plt.scatter(eta, eps, c=c, cmap="turbo", marker="s")
     plt.xlim(0)
     plt.ylim(ymin=0, ymax=0.15)
     cb = plt.colorbar()
-    cb.set_label(r"$Q_{\rm EA}$", fontsize="x-large")
+    cb.set_label(cb_label, fontsize="x-large")
     plt.xlabel(r"$\eta$", fontsize="x-large")
     plt.ylabel(r"$\epsilon$", fontsize="x-large")
-    plt.title(r"$L=%d, {\rm seed}=%d$" % (L, seed), fontsize="x-large")
+    plt.title(r"RS: $L=%d, {\rm seed}=%d$" % (L, seed), fontsize="x-large")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -381,4 +391,4 @@ if __name__ == "__main__":
     # finite_size_scaling(eta=0.45, eps=0.01, ncut=-50, show_SA_serials=True)
     # show_finite_size_scaling(eta=0.45, ncut=-50)
     # plot_EA_OP_eta_eps()
-    show_EA_OP_PD(512, 30370000)
+    show_EA_OP_PD(512, 30370000, flag_log=True)

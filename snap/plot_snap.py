@@ -5,10 +5,9 @@
 import os
 import numpy as np
 import glob
-import load_snap
 import platform
 import matplotlib
-if platform.system() is not "Windows":
+if platform.system() != "Windows":
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.colors import hsv_to_rgb
@@ -39,6 +38,7 @@ def map_v_to_rgb(theta, module, m_max=None):
     V = module
     if m_max is not None:
         V[V > m_max] = m_max
+    V /= m_max
     S = np.ones_like(H)
     HSV = np.dstack((H, S, V))
     RGB = hsv_to_rgb(HSV)
@@ -101,9 +101,10 @@ def add_cb_sin2theta(ax, Hue):
 
 
 def plot_sin2theta(bin_file):
+    from load_snap import CoarseGrainSnap
     para = get_para(bin_file)
     domain = [0, para["L"], 0, para["L"]]
-    snap = load_snap.CoarseGrainSnap(bin_file)
+    snap = CoarseGrainSnap(bin_file)
     frames = snap.gene_frames()
     for frame in frames:
         t, vxm, vym, num, vx, vy = frame
@@ -265,8 +266,9 @@ def plot_serial_snap(file, save=False, rescale=False):
     rescale: bool, optional
         If true, xlim, ylim increase linearly with incresing time.
     """
+    from load_snap import CoarseGrainSnap
     t_list = [400, 800, 1600, 3200]
-    snap = load_snap.CoarseGrainSnap(file)
+    snap = CoarseGrainSnap(file)
     frames = snap.gene_frames()
     s = file.replace(".bin", "").split("_")
     eta = float(s[1])

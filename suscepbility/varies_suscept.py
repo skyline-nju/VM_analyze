@@ -585,6 +585,9 @@ def plot_M(eta, disorder_t="RT"):
         line, = ax1.plot(L, phi, "-o", label="$%g$" % eps, fillstyle="none")
         ax2.plot(
             L, phi, "-o", c=line.get_c(), label="$%g$" % eps, fillstyle="none")
+        if eps == 0.035:
+            for i in range(L.size):
+                print(L[i], phi[i])
     ax1.set_xscale("log")
     ax1.set_yscale("log")
     ax2.set_xscale("log")

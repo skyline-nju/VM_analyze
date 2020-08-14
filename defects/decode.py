@@ -8,7 +8,7 @@ def get_nframe(fname, lbox=4):
         f.seek(0, 2)
         filesize = f.tell()
         basename = os.path.basename(fname)
-        if "RT_ave" in basename or "RT_f" in basename:
+        if "RT_ave" in basename or "RT_f" in basename or "field" in basename:
             L = int(basename.split("_")[2])
             n = L * L // (lbox * lbox)
             framesize = n * 12
@@ -54,14 +54,36 @@ def read_time_ave_bin(fname, beg=0, end=None, which="both", lbox=4):
                 yield vx_mean.reshape(ny, nx), vy_mean.reshape(ny, nx)
 
 
+def get_para_field(fin):
+    s = os.path.basename(fin).rstrip(".bin").split("_")
+    para = {}
+    if len(s) == 8:
+        para["Lx"] = int(s[2])
+        para["Ly"] = para["Lx"]
+        para["eta"] = float(s[3])
+        para["eps"] = float(s[4])
+        para["t_win0"] = int(s[5])
+        para["seed"] = int(s[6])
+        para["theta0"] = int(s[7])
+    else:
+        para["Lx"] = int(s[2])
+        para["Ly"] = int(s[3])
+        para["eta"] = float(s[4])
+        para["eps"] = float(s[5])
+        para["t_win0"] = int(s[6])
+        para["seed"] = int(s[7])
+        para["theta0"] = int(s[8])
+    return para
+
+
 def read_field(fname, beg=0, end=None, sep=1, lbox=4):
     """ Read coarse-grained density and momentum fields """
     with open(fname, "rb") as f:
         f.seek(0, 2)
         filesize = f.tell()
-        L = int(os.path.basename(fname).split("_")[2])
-        nx, ny = L // lbox, L // lbox
-        n = L * L // (lbox * lbox)
+        para = get_para_field(fname)
+        nx, ny = para["Lx"] // lbox, para["Ly"] // lbox
+        n = nx * ny
         framesize = n * 12
         f.seek(beg * framesize)
         if end is None:
@@ -88,3 +110,12 @@ def cal_order_para(L, eta, eps, seed, theta0, ncut=4000):
         phi_arr = np.array([float(i.split("\t")[0]) for i in lines[ncut:]])
         phi_mean = np.mean(phi_arr)
     return phi_mean
+
+
+def read_snap(fin):
+    L = int(os.path.basename(fin).lstrip("s").split(".")[0])
+    N = L * L
+    with open(fin, "rb") as f:
+        x, y, theta = np.array(struct.unpack("%df" % (N * 3),
+                                             f.read())).reshape(N, 3).T
+    return x, y, theta

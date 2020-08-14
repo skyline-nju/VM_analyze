@@ -4,43 +4,52 @@ import matplotlib.pyplot as plt
 from decode import read_field, get_nframe
 import time_corr as tc
 import glob
-from matplotlib.colors import hsv_to_rgb
-# import platform
-# from scipy.ndimage import gaussian_filter
+import sys
+sys.path.append("..")
+try:
+    from snap.plot_snap import map_v_to_rgb, add_colorbar
+except ModuleNotFoundError:
+    print("failed to import map_v_to_rgb, add_colorbar")
+    exit()
 
 
 def get_para(fin):
     s = os.path.basename(fin).rstrip(".bin").split("_")
-    L = int(s[2])
-    eta = float(s[3])
-    eps = float(s[4])
-    t_win0 = int(s[5])
-    seed = int(s[6])
-    theta0 = int(s[7])
-    return L, eta, eps, t_win0, seed, theta0
+    para = {}
+    if len(s) == 8:
+        para["Lx"] = int(s[2])
+        para["Ly"] = para["Lx"]
+        para["eta"] = float(s[3])
+        para["eps"] = float(s[4])
+        para["t_win0"] = int(s[5])
+        para["seed"] = int(s[6])
+        para["theta0"] = int(s[7])
+    else:
+        para["Lx"] = int(s[2])
+        para["Ly"] = int(s[3])
+        para["eta"] = float(s[4])
+        para["eps"] = float(s[5])
+        para["t_win0"] = int(s[6])
+        para["seed"] = int(s[7])
+        para["theta0"] = int(s[8])
+    return para
 
 
-def get_momentum_serials(L=512,
-                         eta=0.18,
-                         eps=0.05,
-                         seed=30370000,
-                         theta0=0,
-                         t_win=200,
-                         t_win0=200,
-                         frame_beg=500,
-                         fin=None,
-                         lbox=4):
+def get_momentum_serials(para, t_win=200, frame_beg=500, fin=None, lbox=4):
     if fin is None:
         fin = "field_%d/RT_feild_%d_%.3f_%.3f_%d_%d_%03d.bin" % (
-            t_win0, L, eta, eps, t_win0, seed, theta0)
+            para["t_win0"], para["Lx"], para["eta"], para["eps"],
+            para["t_win0"], para["seed"], para["theta0"])
     else:
-        L, eta, eps, t_win0, seed, theta0 = get_para(fin)
+        para = get_para(fin)
+    para["t_win"] = t_win
     max_frame = get_nframe(fin, lbox=lbox)
     print("max frame =", max_frame)
-    frame_sep = t_win // t_win0
+    frame_sep = t_win // para["t_win0"]
     n_frame = (max_frame - frame_beg + 1) // frame_sep
     print("n_frame =", n_frame, "sep =", frame_sep)
-    vx, vy = np.zeros((2, n_frame, L // lbox, L // lbox), np.float32)
+    ncols, nrows = para["Lx"] // lbox, para["Ly"] // lbox
+    vx, vy = np.zeros((2, n_frame, nrows, ncols), np.float32)
     frames = read_field(fin, frame_beg, None, frame_sep, lbox)
     for i, (rho_t, vx_t, vy_t) in enumerate(frames):
         vx[i] = vx_t
@@ -133,7 +142,7 @@ def get_colobar_extend(vmin, vmax):
 
 
 def show_fields(fin, t_beg=300000):
-    L, eta, eps, t_win0, seed, theta0 = get_para(fin)
+    para = get_para(fin)
     frames = read_field(fin)
     for i, (rho, vx, vy) in enumerate(frames):
         # vx = gaussian_filter(vx, sigma=1)
@@ -173,8 +182,8 @@ def show_fields(fin, t_beg=300000):
         ax2.set_title(r"(b) module of momentum")
         ax3.set_title(r"(c) orientation of momentum")
         plt.tight_layout(rect=[-0.015, -0.08, 1.01, 0.97])
-        t = (i + 1) * t_win0 + t_beg
-        title = r"$L=%d,\eta=%g,\epsilon=%g,t=%d$" % (L, eta, eps, t)
+        para["t"] = (i + 1) * para["t_win0"] + t_beg
+        title = "$L={Lx},\\eta={eta:g},\epsilon={eps:g},t={t}$".format(**para)
         title = "instantaneous fields: " + title
         plt.suptitle(title, y=0.995, fontsize="x-large")
 
@@ -183,76 +192,27 @@ def show_fields(fin, t_beg=300000):
         plt.close()
 
 
-def map_v_to_rgb(theta, module, m_max=None):
-    """
-    Transform orientation and magnitude of velocity into rgb.
-
-    Parameters:
-    --------
-    theta: array_like
-        Orietation of velocity field.
-    module: array_like
-        Magnitude of velocity field.
-    m_max: float, optional
-        Max magnitude to show.
-
-    Returns:
-    --------
-    RGB: array_like
-        RGB corresponding to velocity fields.
-    """
-    H = theta / 360
-    V = module
-    if m_max is not None:
-        V[V > m_max] = m_max
-    V /= m_max
-    S = np.ones_like(H)
-    HSV = np.dstack((H, S, V))
-    RGB = hsv_to_rgb(HSV)
-    return RGB
-
-
-def add_colorbar(ax, mmin, mmax, theta_min=0, theta_max=360, orientation="h"):
-    """ Add colorbar for the RGB image plotted by plt.imshow() """
-    V, H = np.mgrid[0:1:50j, 0:1:180j]
-    if orientation == "v":
-        V = V.T
-        H = H.T
-        box = [mmin, mmax, theta_min, theta_max]
-    else:
-        box = [theta_min, theta_max, mmin, mmax]
-    S = np.ones_like(V)
-    HSV = np.dstack((H, S, V))
-    RGB = hsv_to_rgb(HSV)
-    ax.imshow(RGB, origin='lower', extent=box, aspect='auto')
-    theta_ticks = [0, 45, 90, 135, 180, 225, 270, 315, 360]
-
-    if orientation == "h":
-        ax.set_xticks(theta_ticks)
-        ax.set_xticklabels([r"$%d\degree$" % i for i in theta_ticks])
-        ax.set_ylabel(r'module $\rho |v|$', fontsize="large")
-        ax.set_xlabel("orientation", fontsize="large")
-    else:
-        ax.yaxis.set_label_position('right')
-        ax.yaxis.set_ticks_position("right")
-        ax.set_yticks(theta_ticks)
-        ax.set_yticklabels([r"$%d\degree$" % i for i in theta_ticks])
-        ax.set_ylabel(r'orientation $\theta$', fontsize="large")
-        ax.set_xlabel(r"module $\rho |v|$", fontsize="large")
-
-
-def show_fields2(fin, t_beg=300000, lbox=4):
-    L, eta, eps, t_win0, seed, theta0 = get_para(fin)
+def show_fields2(fin, t_beg=300000, lbox=4, flag_save=False, disorder="RS"):
+    para = get_para(fin)
     frames = read_field(fin, lbox=lbox)
 
+    if flag_save:
+        folder = "D:/data/tmp/%s" % (os.path.basename(fin).rstrip(".bin"))
+        if not os.path.exists(folder):
+            os.mkdir(folder)
     for i, (rho, vx, vy) in enumerate(frames):
+        if flag_save:
+            outfile = "%s/t=%04d.png" % (folder, i)
+            if os.path.exists(outfile):
+                print(f"skip frame {i}")
+                continue
         theta = np.arctan2(vy, vx)
         theta[theta < 0] += np.pi * 2
         theta *= 180 / np.pi
         module = np.sqrt(vx**2 + vy**2)
 
         fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 7.5))
-        box = [0, L, 0, L]
+        box = [0, para["Lx"], 0, para["Ly"]]
         vmin1, vmax1 = None, 6
         vmin2, vmax2 = 0, 4
         im1 = ax1.imshow(rho,
@@ -284,13 +244,49 @@ def show_fields2(fin, t_beg=300000, lbox=4):
         cb1.set_label(r"density $\rho$", fontsize="x-large")
         add_colorbar(cb_ax2, vmin2, vmax2, 0, 360)
 
-        t = (i + 1) * t_win0 + t_beg
-        title = r"RS: $L=%d,\eta=%g,\epsilon=%g,\theta_0=%d,t=%d$" % (
-            L, eta, eps, theta0, t)
+        t = (i + 1) * para["t_win0"] + t_beg
+        title = r"%s: $L=%d,\eta=%g,\epsilon=%g,\theta_0=%d,t=%d$" % (
+            disorder, para["Lx"], para["eta"], para["eps"], para["theta0"], t)
         plt.suptitle(title, y=0.995, fontsize="x-large")
 
-        # plt.show()
-        plt.savefig(r"D:/data/tmp/t=%04d.png" % i)
+        if flag_save:
+            plt.savefig(outfile)
+            print(f"save frame {i}")
+        else:
+            plt.show()
+        plt.close()
+
+
+def show_fields_rect(fin, t_beg=0, lbox=8, flag_save=False, disorder="RS"):
+    para = get_para(fin)
+    frames = read_field(fin, lbox=lbox)
+
+    for i, (rho, vx, vy) in enumerate(frames):
+        theta = np.arctan2(vy, vx)
+        theta[theta < 0] += np.pi * 2
+        theta *= 180 / np.pi
+        module = np.sqrt(vx**2 + vy**2)
+        fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(19, 4), sharex=True)
+        box = [0, para["Lx"], 0, para["Ly"]]
+        vmin1, vmax1 = None, 6
+        vmax2 = 4
+        ax1.imshow(rho, origin="lower", extent=box, vmin=vmin1, vmax=vmax1)
+        RGB = map_v_to_rgb(theta, module, m_max=vmax2)
+        ax2.imshow(RGB, extent=box, origin="lower")
+        ax1.set_title(r"(a) density")
+        ax2.set_title(r"(b) momentum")
+        ax1.set_yticklabels([])
+        ax2.set_yticklabels([])
+        t = (i + 1) * para["t_win0"] + t_beg
+        title = r"%s: $L_x=%d,L_y=%d,\eta=%g,\epsilon=%g,\theta_0=%d,t=%d$" % (
+            disorder, para["Lx"], para["Ly"], para["eta"], para["eps"],
+            para["theta0"], t)
+        plt.tight_layout()
+        plt.suptitle(title, y=0.995, fontsize="x-large")
+        if flag_save:
+            plt.savefig(r"D:/data/tmp/t=%04d.png" % i)
+        else:
+            plt.show()
         plt.close()
 
 
@@ -317,13 +313,47 @@ if __name__ == "__main__":
     # fin = "RT_field_512_%.3f_%.3f_%d_%d_000.bin" % (eta, eps, twin0, seed)
     # show_fields(fin)
 
-    L = 4096
+    L = 8192
     eta = 0.18
     eps = 0.035
     seed = 20200712
     twin0 = 500
     theta0 = 0
-    os.chdir("E:/data/random_torque/replica2/L=%d_wall_y" % L)
+    os.chdir("E:/data/random_torque/replica2/L=%d" % L)
     fin = "RT_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
                                                     theta0)
-    show_fields2(fin, t_beg=0, lbox=8)
+    show_fields2(fin, t_beg=0, lbox=8, flag_save=True)
+
+    # Lx = 16384
+    # Ly = 1024
+    # eta = 0.18
+    # eps = 0.035
+    # seed = 20200712
+    # twin0 = 500
+    # theta0 = 180
+    # os.chdir("E:/data/random_torque/replica2/Rect_wall_y/")
+    # fin = "RT_field_%d_%d_%.3f_%.3f_%d_%d_%03d.bin" % (Lx, Ly, eta, eps, twin0,
+    #                                                    seed, theta0)
+    # show_fields_rect(fin, flag_save=True)
+
+    # L = 2048
+    # eta = 0.18
+    # eps = 0.09
+    # seed = 20200712
+    # twin0 = 500
+    # theta0 = 90
+    # os.chdir("E:/data/random_field/normalize_new/replica")
+    # fin = "RF_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
+    #                                                 theta0)
+    # show_fields2(fin, t_beg=0, lbox=8, flag_save=True, disorder="RF")
+
+    # L = 1024
+    # eta = 0
+    # eps = 0.2
+    # seed = 30370000
+    # twin0 = 1000
+    # theta0 = 0
+    # os.chdir("E:/data/random_potential/replicas/field")
+    # fin = "RP_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
+    #                                                 theta0)
+    # show_fields2(fin, t_beg=0, lbox=4, flag_save=True, disorder="RC")
