@@ -12,7 +12,8 @@ def add_line(ax,
              fontsize="x-large",
              scale="lin",
              c="#7f7f7f",
-             lw=None):
+             lw=None,
+             deg=None):
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
     if scale == "lin":
@@ -23,9 +24,10 @@ def add_line(ax,
     y = slope_new * (x - x_beg) + y_beg
     ax.plot(x, y, "-.", transform=ax.transAxes, color=c, lw=lw)
     if label is not None:
-        width = ax.bbox.width
-        height = ax.bbox.height
-        deg = np.arctan(slope_new * height / width) * 180 / np.pi
+        if deg is None:
+            width = ax.bbox.width
+            height = ax.bbox.height
+            deg = np.arctan(slope_new * height / width) * 180 / np.pi
         dx = x_end - x_beg
         if xl is None:
             xl = x_beg + dx * 0.3
