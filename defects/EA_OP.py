@@ -344,10 +344,27 @@ def show_finite_size_scaling(eps=None, eta=None, ncut=-40):
     plt.close()
 
 
-def show_EA_OP_PD(L, seed, twin0=1000, flag_log=False):
-    if L == 512 and seed == 30370000:
-        os.chdir("E:/data/random_torque/defects/EA_OP_PD")
-    files = glob.glob("*.npz")
+def read_line(fin):
+    if not os.path.exists(fin):
+        fin = "D:/OneDrive/quenchedVM/paper/fig/fig1/%s" % fin
+    with open(fin, "r") as f:
+        lines = f.readlines()
+        x, y = np.zeros((2, len(lines)))
+        for i, line in enumerate(lines):
+            s = line.rstrip("\n").split()
+            x[i] = float(s[0])
+            y[i] = float(s[1])
+    return x, y
+
+
+def show_EA_OP_PD(L, seed, twin0=1000, flag_log=False, disorder="RS"):
+    if disorder == "RS":
+        if L == 512 and seed == 30370000:
+            os.chdir("E:/data/random_torque/defects/EA_OP_PD")
+        files = glob.glob("512_*.npz")
+    else:
+        os.chdir("E:/data/random_potential/replicas/EA_OP_PD")
+        files = glob.glob("512_*_000.npz")
     eta, eps, EA_OP = [], [], []
     for i, fin in enumerate(files):
         s = fin.split("_")
@@ -356,12 +373,20 @@ def show_EA_OP_PD(L, seed, twin0=1000, flag_log=False):
         serials = data["time_serials"]
         EA_OP_i = np.mean(serials[-50:])
         if (EA_OP_i < 1):
+            if EA_OP_i < 0:
+                EA_OP_i = -EA_OP_i
             eta.append(eta_i)
             eps.append(eps_i)
             # if eta_i == 0.15:
             #     print(eta_i, eps_i, EA_OP_i)
-            if eta_i == 0.15 and eps_i == 0.03:
-                EA_OP_i = 0.816
+            if disorder == "RS":
+                if eta_i == 0.15 and eps_i == 0.03:
+                    EA_OP_i = 0.816
+                elif eta_i == 0.12 and eps_i == 0.03:
+                    EA_OP_i = 0.8
+            else:
+                if eta_i == 0.2 and eps_i == 0.06:
+                    EA_OP_i = 0.5
             EA_OP.append(EA_OP_i)
     if flag_log:
         c = np.log10(EA_OP)
@@ -370,13 +395,49 @@ def show_EA_OP_PD(L, seed, twin0=1000, flag_log=False):
         c = EA_OP
         cb_label = r"$Q_{\rm EA}$"
     plt.scatter(eta, eps, c=c, cmap="turbo", marker="s")
-    plt.xlim(0)
-    plt.ylim(ymin=0, ymax=0.15)
+
     cb = plt.colorbar()
     cb.set_label(cb_label, fontsize="x-large")
+
+    if disorder == "RS":
+        plt.xlim(0)
+        plt.ylim(ymin=0, ymax=0.14)
+        x1, y1 = read_line("p4_line1.dat")
+        mask1 = x1 <= 0.34
+        mask2 = x1 >= 0.34
+        plt.plot(x1[mask1], y1[mask1], "-", c="k", ms=3, lw=1.5)
+        plt.plot(x1[mask2], y1[mask2], "-", c="k", ms=3, lw=1.5)
+        x2, y2 = read_line("p4_line2.dat")
+        plt.plot(x2, y2, c="k", lw=1.5)
+        x3 = [0, 0.05, 0.1, 0.15, 0.18, 0.2, 0.23]
+        y3 = [0, 0.001, 0.003, 0.005, 0.0065, 0.008, 0.01]
+        plt.plot(x3, y3, "--", lw=1.5)
+        plt.plot([0, 0.22], [0, 0], "r-", lw=5)
+    else:
+        from scipy.interpolate import UnivariateSpline
+        plt.xlim(0)
+        plt.ylim(0, 0.62)
+        x = [0, 0.05, 0.1, 0.15, 0.2]
+        y = [0, 0.02, 0.04, 0.08, 0.1]
+        plt.plot(x, y, "--")
+        x1 = np.array([0, 0.05, 0.1, 0.15, 0.2, 0.25])
+        y1 = np.array([0.45, 0.4, 0.3, 0.2, 0.1, 0])
+        x2 = np.linspace(0, 0.4, 9)
+        y2 = np.array([0.68, 0.65, 0.55, 0.45, 0.35, 0.3, 0.2, 0.1, 0])
+
+        s1 = UnivariateSpline(x1, y1)
+        x1_new = np.linspace(x1.min(), x1.max(), 500)
+        y1_new = s1(x1_new)
+        s2 = UnivariateSpline(x2, y2)
+        x3_new = np.linspace(x1.max(), x2.max(), 500)
+        x2_new = np.append(x1_new, x3_new)
+        y2_new = s2(x2_new)
+        plt.plot(x1_new, y1_new, c="k", lw=1)
+        plt.plot(x2_new, y2_new, c="k", lw=1)
     plt.xlabel(r"$\eta$", fontsize="x-large")
     plt.ylabel(r"$\epsilon$", fontsize="x-large")
-    plt.title(r"RS: $L=%d, {\rm seed}=%d$" % (L, seed), fontsize="x-large")
+    plt.title(r"%s: $L=%d, {\rm seed}=%d$" % (disorder, L, seed),
+              fontsize="x-large")
     plt.tight_layout()
     plt.show()
     plt.close()
@@ -391,4 +452,4 @@ if __name__ == "__main__":
     # finite_size_scaling(eta=0.45, eps=0.01, ncut=-50, show_SA_serials=True)
     # show_finite_size_scaling(eta=0.45, ncut=-50)
     # plot_EA_OP_eta_eps()
-    show_EA_OP_PD(512, 30370000, flag_log=True)
+    show_EA_OP_PD(512, 30370000, flag_log=True, disorder="RC")

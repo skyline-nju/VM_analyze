@@ -14,20 +14,52 @@ except ImportError:
     print("error when import add_line")
 
 
-def get_seeds(eta, eps, L, disorder_t="RT"):
+def get_serials_files(eta, eps, L, disorder_t="RT", seed=None, theta0=None):
     if disorder_t == "RT":
         folder = r"E:\data\random_torque\replica\serials"
+        if seed is None:
+            pat = "p%d.%g.%g.*.dat" % (L, eta * 1000, eps * 1000)
+        else:
+            pat = "p%d.%g.%g.%d.*.dat" % (L, eta * 1000, eps * 1000, seed)
+    elif disorder_t == "RC":
+        folder = r"E:\data\random_potential\replicas\serials2"
+        if seed is None:
+            pat = "phi_RP_%d_%g_%g_*.dat" % (L, eta, eps)
+        else:
+            pat = "phi_RP_%d_%g_%g_%d_*.dat" % (L, eta, eps, seed)
+    if seed is not None and theta0 is not None:
+        if disorder_t == "RT":
+            f = "%s/p%d.%g.%g.%d.%03d.dat" % (folder, L, eta * 1000,
+                                              eps * 1000, seed, theta0)
+        elif disorder_t == "RC":
+            f = "%s/phi_RP_%d_%g_%g_%d_%03d.dat" % (folder, L, eta, eps, seed,
+                                                    theta0)
+        return f
     else:
-        pass
-    pat = "p%d.%g.%g.*.dat" % (L, eta * 1000, eps * 1000)
-    files = glob.glob("%s\\%s" % (folder, pat))
+        files = glob.glob(r"%s\%s" % (folder, pat))
+        return files
+
+
+def get_seeds(eta, eps, L, disorder_t="RT"):
+    files = get_serials_files(eta, eps, L, disorder_t)
     seeds = []
     for file in files:
-        seed = int(os.path.basename(file).split(".")[3])
+        if disorder_t == "RT":
+            seed = int(os.path.basename(file).split(".")[3])
+        elif disorder_t == "RC":
+            seed = int(os.path.basename(file).split("_")[5])
         if seed not in seeds:
             seeds.append(seed)
     print("find %d samples" % len(seeds))
     return sorted(seeds)
+
+
+def get_theta0(fname, disorder_t):
+    if disorder_t == "RT":
+        theta0 = int(os.path.basename(fname).split(".")[4])
+    elif disorder_t == "RC":
+        theta0 = int(os.path.basename(fname).rstrip(".dat").split("_")[6])
+    return theta0
 
 
 def get_mean_var(eta, eps, L, seed, disorder_t="RT", ncut=15000):
@@ -47,23 +79,15 @@ def get_mean_var(eta, eps, L, seed, disorder_t="RT", ncut=15000):
 
 
 def plot_replicas(eta, eps, L, seed, disorder_t="RT", ncut=15000):
-    if disorder_t == "RT":
-        folder = r"E:\data\random_torque\replica\serials"
-    else:
-        pass
-    pat = "p%d.%g.%g.%d.*.dat" % (L, eta * 1000, eps * 1000, seed)
-    files = glob.glob("%s\\%s" % (folder, pat))
-    theta0 = []
-    for file in files:
-        theta0.append(int(os.path.basename(file).split(".")[4]))
+    files = get_serials_files(eta, eps, L, disorder_t, seed)
+    theta0 = [get_theta0(f, disorder_t) for f in files]
     fig = plt.figure(figsize=(8, 6))
     ax1 = fig.add_subplot(211, polar=False)
     ax2 = fig.add_subplot(212, polar=True)
     mean_arr = []
     var_arr = []
     for theta_i in sorted(theta0):
-        file = "%s\\p%d.%g.%g.%d.%03d.dat" % (folder, L, eta * 1000,
-                                              eps * 1000, seed, theta_i)
+        file = get_serials_files(eta, eps, L, disorder_t, seed, theta_i)
         beg = 0
         phi, theta = read_phi_theta(file, beg)
         x = (np.arange(phi.size) + beg + 1) * 100
@@ -94,15 +118,18 @@ def count_replicas(eta, eps, L, disorder_t="RT"):
     if disorder_t == "RT":
         outfile = r"D:\data\VM2d\random_torque\replica\%d_%g_%g.dat" % (L, eta,
                                                                         eps)
-        try:
-            f = open(outfile, "r")
-            lines = f.readlines()
-            for line in lines:
-                seeds_old.append(int(line.split("\t")[0]))
-            f.close()
-        except FileNotFoundError:
-            pass
-    seeds = get_seeds(eta, eps, L)
+    elif disorder_t == "RC":
+        outfile = r"D:\data\VM2d\random_potential\replica\%d_%g_%g.dat" % (
+            L, eta, eps)
+    try:
+        f = open(outfile, "r")
+        lines = f.readlines()
+        for line in lines:
+            seeds_old.append(int(line.split("\t")[0]))
+        f.close()
+    except FileNotFoundError:
+        pass
+    seeds = get_seeds(eta, eps, L, disorder_t)
     if os.path.exists(outfile):
         f = open(outfile, "a")
     else:
@@ -111,8 +138,8 @@ def count_replicas(eta, eps, L, disorder_t="RT"):
         if seed in seeds_old:
             continue
         mean_arr, var_arr = plot_replicas(eta, eps, L, seed, disorder_t)
-        str_in = input(
-            "%d/%d: please record replica number: " % (i, len(seeds)))
+        str_in = input("%d/%d: please record replica number: " %
+                       (i, len(seeds)))
         if str_in[0] == "q":
             break
         elif str_in[0].isdigit():
@@ -129,9 +156,157 @@ def count_replicas(eta, eps, L, disorder_t="RT"):
     f.close()
 
 
-def plot_replica_num():
+def plot_replica_num(disorder="RT"):
+    if disorder == "RT":
+        eta = 0.18
+        eps = 0.035
+        os.chdir("D:/data/VM2d/random_torque/replica")
+        L = np.array([32, 46, 64, 90, 128, 180, 256, 362, 512, 724])
+    elif disorder == "RC":
+        eta = 0
+        eps = 0.2
+        os.chdir("D:/data/VM2d/random_potential/replica")
+        L = np.array([32, 64, 128, 256, 512])
+    n = np.zeros(L.size)
+    fraction = np.zeros((5, L.size))
+    for i in range(L.size):
+        fin = "%d_%g_%g.dat" % (L[i], eta, eps)
+        count = 0
+        with open(fin, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                k = int(line.split("\t")[1])
+                if k > 0:
+                    count += 1
+                    n[i] += k
+                fraction[k][i] += 1
+            n[i] /= count
+            for k in range(5):
+                fraction[k][i] /= len(lines)
+    fig, (ax1, ax2) = plt.subplots(ncols=2,
+                                   figsize=(8, 4),
+                                   constrained_layout=True)
+    ax1.plot(L, n, "o")
+    ax1.set_ylabel(r"$\langle n\rangle$")
+    ax1.set_xlabel(r"$L$")
+    for k in range(5):
+        if k == 0:
+            label = "nonsteady"
+            for j in range(L.size):
+                print(L[j], fraction[k][j])
+        else:
+            label = r"$n=%d$" % k
+        mask = fraction[k] > 0
+        ax2.loglog(L[mask], fraction[k][mask], "-o", fillstyle="none", label=label)
+    ax2.legend()
+    ax2.set_xlabel(r"$L$")
+    ax2.set_ylabel("Probability")
+    plt.show()
+    plt.close()
+
+
+def plot_suscept():
     os.chdir("D:\\data\\VM2d\\random_torque\\replica")
-    L = np.array([64, 90, 128, 180, 256, 362, 512])
+    L = np.array([32, 46, 64, 90, 128, 180, 256, 362, 512, 724])
+    chi = np.zeros(L.size)
+    for i in range(L.size):
+        fin = "%d_%g_%g.dat" % (L[i], 0.18, 0.035)
+        count = 0
+        with open(fin, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                k = int(line.split("\t")[1])
+                if k == 2:
+                    s = line.rstrip("\n").split("\t")
+                    phi_arr = []
+                    if len(s) == 10:
+                        n = 6
+                    elif len(s) == 18:
+                        n = 10
+                    for j in range(2, n):
+                        phi_arr.append(float(s[j]))
+                    phi_arr = np.array(phi_arr)
+                    phi_arr_new = np.array([phi_arr.max(), phi_arr.min()])
+                    chi[i] += np.var(phi_arr_new)
+                    count += 1
+        chi[i] /= count
+        print(L[i], chi[i])
+
+
+def plot_suscept2():
+    os.chdir("D:\\data\\VM2d\\random_torque\\replica")
+    L = np.array([32, 46, 64, 90, 128, 180, 256, 362, 512, 724])
+    chi = np.zeros(L.size)
+    for i in range(L.size):
+        fin = "%d_%g_%g.dat" % (L[i], 0.18, 0.035)
+        count = 0
+        phi_mean = []
+        with open(fin, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                s = line.rstrip("\n").split("\t")
+                # phi_arr = []
+                if len(s) == 10:
+                    n = 6
+                elif len(s) == 18:
+                    n = 10
+                for j in range(2, n):
+                    phi_mean.append(float(s[j]))
+                # phi_arr = np.array(phi_arr)
+                # phi_mean.append(phi_arr.max())
+        # chi[i] /= count
+        phi_mean = np.array(phi_mean)
+        chi[i] = np.var(phi_mean)
+        print(L[i], chi[i])
+
+
+def plot_suscept3(disorder="RT"):
+    if disorder == "RT":
+        eta = 0.18
+        eps = 0.035
+        os.chdir("D:/data/VM2d/random_torque/replica")
+        L = np.array([32, 46, 64, 90, 128, 180, 256, 362, 512, 724])
+    elif disorder == "RC":
+        eta = 0
+        eps = 0.2
+        os.chdir("D:/data/VM2d/random_potential/replica")
+        L = np.array([32, 64, 128, 256, 512])
+    chi = np.zeros(L.size)
+
+    for i in range(L.size):
+        fin = "%d_%g_%g.dat" % (L[i], eta, eps)
+        phi_arr = []
+        with open(fin, "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                s = line.rstrip("\n").split("\t")
+                if len(s) == 10:
+                    n = 6
+                elif len(s) == 18:
+                    n = 10
+                # j = np.random.randint(2, n, size=1)[0]
+                phi_arr.append(np.mean(np.array([float(s[j]) for j in range(2, n)])))
+                # for j in range(2, n):
+                #     phi_arr.append(float(s[j]))
+        # count = 0
+        # phi_arr = np.array(phi_arr)
+        # for j in range(phi_arr.size // 2):
+        #     chi[i] += np.var(phi_arr[j*2: (j+1)*2])
+        #     count += 1
+        # chi[i] /= count
+        phi_arr = np.array(phi_arr)
+        chi[i] = np.var(phi_arr)
+        print(L[i], chi[i])
+
+
+def plot_Fig2gh():
+    fig, (ax1, ax2) = plt.subplots(1,
+                                   2,
+                                   constrained_layout=True,
+                                   figsize=(8, 4))
+
+    os.chdir("D:\\data\\VM2d\\random_torque\\replica")
+    L = np.array([32, 46, 64, 90, 128, 180, 256, 362, 512, 724])
     n = np.zeros(L.size)
     fraction = np.zeros((5, L.size))
     for i in range(L.size):
@@ -148,54 +323,35 @@ def plot_replica_num():
             n[i] /= count
             for k in range(5):
                 fraction[k][i] /= len(lines)
-    fig, (ax1, ax2) = plt.subplots(
-        ncols=2, figsize=(8, 4), constrained_layout=True)
-    ax1.plot(L, n, "o")
-    ax1.set_ylabel(r"$\langle n\rangle$")
-    ax1.set_xlabel(r"$L$")
+
     for k in range(5):
         if k == 0:
             label = "nonsteady"
-            for j in range(L.size):
-                print(L[j], fraction[k][j])
         else:
             label = r"$n=%d$" % k
-        ax2.loglog(L, fraction[k], "-o", fillstyle="none", label=label)
+        ax2.plot(L, fraction[k], "-o", fillstyle="none", label=label)
     ax2.legend()
+    ax2.set_xscale("log")
+    ax2.set_yscale("log")
     ax2.set_xlabel(r"$L$")
-    ax2.set_ylabel("Probability")
+    ax2.set_ylabel("Fraction")
+    ax1.set_xlabel(r"$L$")
+    ax1.set_ylabel("Fraction")
     plt.show()
     plt.close()
-
-
-def plot_suscept():
-    os.chdir("D:\\data\\VM2d\\random_torque\\replica")
-    L = np.array([180, 256, 362, 512])
-    chi = np.zeros(L.size)
-    for i in range(L.size):
-        fin = "%d_%g_%g.dat" % (L[i], 0.18, 0.035)
-        count = 0
-        with open(fin, "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                k = int(line.split("\t")[1])
-                if k == 2:
-                    s = line.rstrip("\n").split("\t")
-                    phi_arr = np.array(
-                        [float(s[2]),
-                         float(s[3]),
-                         float(s[4]),
-                         float(s[5])])
-                    phi_arr_new = np.array([phi_arr.max(), phi_arr.min()])
-                    chi[i] += np.var(phi_arr_new)
-                    count += 1
-        chi[i] /= count
-        print(L[i], chi[i])
 
 
 if __name__ == "__main__":
     # eta = 0.18
     # eps = 0.035
-    # L = 64
+    # L = 32
+    # plot_replica_num("RC")
     # count_replicas(eta, eps, L)
-    plot_replica_num()
+    # plot_suscept3("RT")
+
+    L = 90
+    eta = 0
+    eps = 0.2
+    count_replicas(eta, eps, L, "RC")
+
+    # plot_Fig2gh()

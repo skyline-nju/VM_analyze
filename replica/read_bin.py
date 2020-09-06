@@ -3,12 +3,15 @@ import struct
 import os
 
 
-def read_bin(fname, beg=0, end=None, which="both"):
+def read_bin(fname, beg=0, end=None, which="both", lbox=4):
     with open(fname, "rb") as f:
         f.seek(0, 2)
         filesize = f.tell()
         L = int(os.path.basename(fname).split("_")[2])
-        n = L * L // (4 * 4)
+        ncols = L // lbox
+        nrows = L // lbox
+        box_area = lbox * lbox
+        n = ncols * nrows
         framesize = n * 12
         f.seek(beg * framesize)
         if end is None:
@@ -19,28 +22,35 @@ def read_bin(fname, beg=0, end=None, which="both"):
             while f.tell() < file_end:
                 buf = f.read(framesize)
                 data = struct.unpack("%df" % (n * 3), buf)
-                n_mean, vx_mean, vy_mean = np.array(data).reshape(3, n) / 16
-                yield n_mean.reshape(L // 4, L // 4), vx_mean.reshape(
-                    L // 4, L // 4), vy_mean.reshape(L // 4, L // 4)
+                n_mean, vx_mean, vy_mean = np.array(data).reshape(3,
+                                                                  n) / box_area
+                yield n_mean.reshape(nrows, ncols), vx_mean.reshape(
+                    nrows, ncols), vy_mean.reshape(nrows, ncols)
         elif which == "rho":
             while f.tell() < file_end:
                 buf = f.read(n * 4)
                 f.seek(n * 8, 1)
                 data = struct.unpack("%df" % (n), buf)
-                n_mean = np.array(data).reshape(L // 4, L // 4) / 16
+                n_mean = np.array(data).reshape(nrows, ncols) / box_area
             yield n_mean
         elif which == "v":
             while f.tell() < file_end:
                 f.seek(n * 4, 1)
                 buf = f.read(n * 8)
                 data = struct.unpack("%df" % (n * 2), buf)
-                vx_mean, vy_mean = np.array(data).reshape(2, n) / 16
-                yield vx_mean.reshape(L // 4, L // 4), vy_mean.reshape(
-                    L // 4, L // 4)
+                vx_mean, vy_mean = np.array(data).reshape(2, n) / box_area
+                yield vx_mean.reshape(nrows,
+                                      ncols), vy_mean.reshape(nrows, ncols)
 
 
-def get_time_averaged_image(fname, beg=0, end=None, which="both", N=128):
-    frames = read_bin(fname, beg, end, which)
+def get_time_averaged_image(fname,
+                            beg=0,
+                            end=None,
+                            which="both",
+                            N=128,
+                            lbox=4):
+    print("n=", N)
+    frames = read_bin(fname, beg, end, which, lbox)
     count = 0
     if which == "both":
         rho_mean, vx_mean, vy_mean = np.zeros((3, N, N))

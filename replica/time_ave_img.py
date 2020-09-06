@@ -1,5 +1,7 @@
 import numpy as np
+import os
 import matplotlib.pyplot as plt
+from matplotlib.colors import hsv_to_rgb
 from scipy.ndimage import gaussian_filter
 from read_bin import get_time_averaged_image, read_bin
 
@@ -181,6 +183,34 @@ def plot_rho(L, eps, eta=0.18, seed=30370020, disorder_t="RT", ic="ordered"):
     plt.close()
 
 
+def get_rgb(theta, module, m_max=None, rescale=False):
+    H = theta / 360
+    V = module
+    if m_max is not None:
+        V[V > m_max] = m_max
+        if rescale:
+            V /= m_max
+    S = np.ones_like(H)
+    HSV = np.dstack((H, S, V))
+    RGB = hsv_to_rgb(HSV)
+    return RGB
+
+
+def add_colorbar(ax, mmin, mmax):
+    V, H = np.mgrid[0:1:50j, 0:1:180j]
+    S = np.ones_like(V)
+    HSV = np.dstack((H, S, V))
+    RGB = hsv_to_rgb(HSV)
+    extent = [0, 360, mmin, mmax]
+    ax.imshow(RGB, origin='lower', extent=extent, aspect='auto')
+    ax.set_xlabel('orientation', fontsize="large")
+    ticks = [0, 90, 180, 270, 360]
+    ticklabels = [r"$0$", r"$\pi/2$", r"$\pi$", r"$3\pi/2$", r"$2\pi$"]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(ticklabels)
+    ax.set_ylabel('module', fontsize="large")
+
+
 def plot_momentum(L,
                   eps,
                   eta=0.18,
@@ -189,32 +219,6 @@ def plot_momentum(L,
                   ic="ordered",
                   seed2=180,
                   idx=None):
-    from matplotlib.colors import hsv_to_rgb
-
-    def get_rgb(theta, module, m_max=None):
-        H = theta / 360
-        V = module
-        if m_max is not None:
-            V[V > m_max] = m_max
-        S = np.ones_like(H)
-        HSV = np.dstack((H, S, V))
-        RGB = hsv_to_rgb(HSV)
-        return RGB
-
-    def add_colorbar(ax, mmin, mmax):
-        V, H = np.mgrid[0:1:50j, 0:1:180j]
-        S = np.ones_like(V)
-        HSV = np.dstack((H, S, V))
-        RGB = hsv_to_rgb(HSV)
-        extent = [0, 360, mmin, mmax]
-        ax.imshow(RGB, origin='lower', extent=extent, aspect='auto')
-        ax.set_xlabel('orientation', fontsize="large")
-        ticks = [0, 90, 180, 270, 360]
-        ticklabels = [r"$0$", r"$\pi/2$", r"$\pi$", r"$3\pi/2$", r"$2\pi$"]
-        ax.set_xticks(ticks)
-        ax.set_xticklabels(ticklabels)
-        ax.set_ylabel('module', fontsize="large")
-
     beg, end = 10, None
     if idx is not None:
         seed2_list = [0, 120, 180, 240, 300, 60]
@@ -365,8 +369,93 @@ def plot_defect_short_win(L,
     print(n_sum / count, n_p)
 
 
+def plot_Fig2cdef():
+    def one_panel(ax, fin, box, n_bins, frame_beg, module_max=4):
+        rho, vx, vy = get_time_averaged_image(fin, frame_beg, None, "both",
+                                              n_bins)
+        v_orient = np.arctan2(vy, vx) / np.pi * 180
+        v_orient[v_orient < 0] += 360
+        v_module = np.sqrt(vx**2 + vy**2)
+        RGB = get_rgb(v_orient, v_module, m_max=module_max)
+        ax.imshow(RGB, extent=box, origin="lower")
+
+    fig, axes = plt.subplots(2, 2, figsize=(8, 8))
+
+    os.chdir("E:/data/random_potential/replicas/serials")
+    L = 2048
+    eta = 0
+    eps = 0.3
+    seed = 20200001
+    box = [0, L, 0, L]
+    n_bins = L // 4
+    theta0 = 0
+    fin = "RP_ave_%d_%.3f_%.3f_2000_%d_%03d.bin" % (L, eta, eps, seed, theta0)
+    one_panel(axes[0][0], fin, box, n_bins, 20)
+
+    theta0 = 90
+    fin = "RP_ave_%d_%.3f_%.3f_2000_%d_%03d.bin" % (L, eta, eps, seed, theta0)
+    one_panel(axes[1][0], fin, box, n_bins, 20)
+
+    os.chdir("E:/data/random_torque/replica/time_ave")
+    L = 2048
+    eta = 0.18
+    eps = 0.035
+    seed = 2022324
+    theta0 = 0
+    box = [0, L, 0, L]
+    n_bins = L // 4
+    fin = "RT_ave_%d_%g_%g_50000_%d_%d.bin" % (L, eta, eps, seed, theta0)
+    one_panel(axes[0][1], fin, box, n_bins, 5)
+
+    theta0 = 60
+    fin = "RT_ave_%d_%g_%g_50000_%d_%d.bin" % (L, eta, eps, seed, theta0)
+    one_panel(axes[1][1], fin, box, n_bins, 5)
+
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
+def plot_Fig3b(L, eta, eps, seed, theta0, twin0):
+    def one_panel(ax, fin, box, n_bins, frame_beg, module_max=4):
+        rho, vx, vy = get_time_averaged_image(fin, frame_beg, None, "both",
+                                              n_bins, 4)
+        print("rho_m", np.mean(rho))
+        v_orient = np.arctan2(vy, vx) / np.pi * 180
+        v_orient[v_orient < 0] += 360
+        v_module = np.sqrt(vx**2 + vy**2)
+        RGB = get_rgb(v_orient, v_module, m_max=module_max, rescale=False)
+        ax.imshow(RGB, extent=box, origin="lower")
+
+    os.chdir("E:/data/random_torque/replica2/L=%d" % L)
+    fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
+    # L = 2048
+    # eta = 0.18
+    # eps = 0.05
+    # seed = 20200712
+    # theta0 = 0
+    box = [0, L, 0, L]
+    if L == 8192:
+        n_bins = L // 8
+    elif L == 256:
+        n_bins = L // 4
+    else:
+        n_bins = L // 4
+
+    if L == 2048:
+        fin = "RT_ave_%d_%.3f_%.3f_%d_%03d_400000_10000.bin" % (L, eta, eps,
+                                                                seed, theta0)
+    else:
+        fin = "RT_ave_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
+                                                      theta0)
+    one_panel(ax, fin, box, n_bins, 0, 4)
+
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
-    plot_defect_diff_ini_condi(512, 0.06, disorder_t="RT", ic="rand")
+    # plot_defect_diff_ini_condi(512, 0.06, disorder_t="RT", ic="rand")
     # plot_defect_short_win(512, 0.035, 0.18, seed2=200)
     # plot_rho(
     #     512,
@@ -376,10 +465,13 @@ if __name__ == "__main__":
     #     seed=25650015,
     #     ic="ordered_diag")
     # plot_momentum(512,
-    #               0.055,
+    #               0.035,
     #               eta=0.18,
     #               disorder_t="RT",
     #               seed=30370000,
     #               seed2=500,
     #               ic="rand")
     # plot_momentum_hist(4096, 0.035, disorder_t="RT", seed=20203261)
+    # plot_Fig2cdef()
+    seed = 30370000
+    plot_Fig3b(256, 0.18, 0.035, seed, 0, 10000)

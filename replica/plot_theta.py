@@ -202,9 +202,9 @@ def plot_phi_theta3(Lx,
     ax1.set_ylabel(r"$\phi$")
     ax2.set_ylabel(r"$\theta/\pi$")
     ax3.set_ylabel(r"$t$")
-    # ax1.set_xscale("log")
-    # ax1.set_yscale("log")
-    ax1.legend(title=r"$\theta_0,\langle\phi\rangle, \sigma_\phi=$")
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+    ax1.legend(title=r"$\theta_0,\langle\phi\rangle, \sigma_\phi=$", ncol=2)
     if Ly is None:
         title = f"RS: $L={Lx}, \\eta={eta:g}, \\epsilon={eps:g}$"
     else:
@@ -219,34 +219,135 @@ def plot_phi_theta3(Lx,
     plt.close()
 
 
-if __name__ == "__main__":
-    # L = 1024
-    # eta = 0.
-    # seed = 30370000
-    # wall = None
-    # ncut = 10000
-    # disorder = "RP"
-    # plot_theta_varied_eps(L, eta, seed, disorder, wall, start=0)
+def plot_Fig2ab():
+    plt.figure(figsize=(8, 4), constrained_layout=True)
+    ax1 = plt.subplot(121, projection="polar")
+    ax2 = plt.subplot(122, projection="polar")
 
-    L = 4096
+    wall = None
+
+    L = 2048
+    eta = 0
+    eps = 0.3
+    seed = 20200001
+    disorder = "RP"
+    dest_dir = get_dest_dir(disorder, L, None, wall)
+    os.chdir(dest_dir)
+    theta0_arr = get_theta0(L, eta, seed, eps, disorder, None)
+    for theta0 in theta0_arr:
+        fin = get_filename(L, eta, eps, seed, theta0, disorder, None)
+        phi, theta = read_phi_theta(fin, 0)
+        x = (np.arange(phi.size) + 1) * 100
+        theta = untangle(theta)
+        ax1.plot(theta, x)
+    
+    os.chdir("E:/data/random_torque/Phi_vs_L/eta=0.18/0.000")
+    # seed = [422, 2010, 7436, 19176, 20944, 32381]
+    seed = [20520]
+    for s in seed:
+        fin = "p512.180.0.%d.dat" % s
+        phi, theta = read_phi_theta(fin, 0)
+        x = (np.arange(phi.size) + 1) * 100
+        theta = untangle(theta)
+        ax1.plot(theta, x, ":", c="grey")
+
     eta = 0.18
     eps = 0.035
-    wall = None
-    ncut = 2000
-    seed = 20200712
+    seed = 2022324
     disorder = "RT"
-    plot_phi_theta3(L, eta, eps, seed, ncut, wall)
+    dest_dir = get_dest_dir(disorder, L, None, wall)
+    os.chdir(dest_dir)
+    theta0_arr = get_theta0(L, eta, seed, eps, disorder, None)
+    for theta0 in theta0_arr:
+        fin = get_filename(L, eta, eps, seed, theta0, disorder, None)
+        phi, theta = read_phi_theta(fin, 0)
+        x = (np.arange(phi.size) + 1) * 100
+        theta = untangle(theta)
+        ax2.plot(theta, x)
 
-    # Lx = 16384
-    # Ly = 1024
+    plt.show()
+    plt.close()
+
+
+def plot_Fig3a():
+    L = 2048
+    eta = 0.18
+    eps = 0.055
+    seed = 20200712
+    os.chdir("E:/data/random_torque/replica2/L=2048")
+    theta0_arr = [0, 180]
+    # ax = plt.subplot(111, polar=False)
+    # for theta0 in theta0_arr:
+    #     fin = "p%d.%g.%g.%d.%03d.dat" % (L, eta * 1000, eps * 1000, seed,
+    #                                      theta0)
+    #     phi, theta = read_phi_theta(fin, 0)
+    #     x = (np.arange(phi.size) + 1) * 100
+    #     theta = untangle(theta)
+    #     ax.plot(x, theta)
+    # plt.xlabel(r"$t$")
+    # plt.ylabel(r"$\theta$")
+    # plt.show()
+    # plt.close()
+
+    for theta0 in theta0_arr:
+        fin = "p%d.%g.%g.%d.%03d.dat" % (L, eta * 1000, eps * 1000, seed,
+                                         theta0)
+        phi, theta = read_phi_theta(fin, 0)
+        theta = theta[1000:]
+        theta /= np.pi
+        density, edges = np.histogram(theta,
+                                      bins=60,
+                                      density=True,
+                                      range=(-1, 1))
+        x = 0.5 * (edges[:-1] + edges[1:])
+        plt.plot(x, density)
+
+        # fin = "p%d.%g.%g.%d.%03d.dat" % (L, eta * 1000, 35, seed, theta0)
+        # phi, theta = read_phi_theta(fin, 0)
+        # theta = theta[3000:]
+        # theta /= np.pi
+        # density, edges = np.histogram(theta,
+        #                               bins=60,
+        #                               density=True,
+        #                               range=(-1, 1))
+        # x = 0.5 * (edges[:-1] + edges[1:])
+        # plt.plot(x, density, ":")
+    # plt.yscale("log")
+    plt.xlabel(r"$\theta/\pi$")
+    plt.ylabel("PDF")
+    plt.show()
+    plt.close()
+
+
+if __name__ == "__main__":
+    L = 256
+    eta = 0.18
+    seed = 20151
+    wall = None
+    ncut = 10000
+    disorder = "RT"
+    plot_theta_varied_eps(L, eta, seed, disorder, wall, start=0)
+
+    # L = 8192
     # eta = 0.18
     # eps = 0.035
-    # wall = "y"
+    # wall = None
+    # ncut = 10000
     # seed = 20200712
+    # # seed = 20200712
+    # disorder = "RT"
+    # plot_phi_theta3(L, eta, eps, seed, ncut, wall, disorder=disorder)
+
+    # Lx = 512
+    # Ly = None
+    # eta = 0.18
+    # eps = 0.03
+    # wall = "none"
+    # seed = 30370000
     # disorder = "RT"
     # plot_phi_theta3(Lx, eta, eps, seed, 1000, wall, Ly)
 
-    # L = 2048
+    # L = 8192
     # eta = 0.18
     # eps = 0.09
     # wall = None
@@ -255,11 +356,14 @@ if __name__ == "__main__":
     # disorder = "RF"
     # plot_phi_theta3(L, eta, eps, seed, ncut, wall, disorder=disorder)
 
-    # L = 1024
+    # L = 2048
     # eta = 0
-    # eps = 0.2
+    # eps = 0.3
     # wall = None
     # ncut = 3000
-    # seed = 30370000
+    # seed = 20200001
     # disorder = "RP"
     # plot_phi_theta3(L, eta, eps, seed, ncut, wall, disorder=disorder)
+
+    # plot_Fig3a()
+    # plot_Fig2ab()

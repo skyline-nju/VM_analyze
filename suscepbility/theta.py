@@ -15,11 +15,19 @@ def read_theta(fname, ncut=3000):
 def read_phi_theta(fname, ncut=3000):
     f = open(fname, "r")
     lines = f.readlines()[ncut:]
-    phi, theta = np.zeros((2, len(lines)))
+    # phi, theta = np.zeros((2, len(lines)))
+    phi, theta = [], []
     for i, line in enumerate(lines):
-        s = line.rstrip("\n").split("\t")
-        phi[i], theta[i] = float(s[0]), float(s[1])
+        try:
+            s = line.rstrip("\n").split("\t")
+            phi.append(float(s[0]))
+            theta.append(float(s[1]))
+            # phi[i], theta[i] = float(s[0]), float(s[1])
+        except ValueError:
+            print(fname)
     f.close()
+    phi = np.array(phi)
+    theta = np.array(theta)
     return phi, theta
 
 

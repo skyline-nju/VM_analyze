@@ -183,7 +183,7 @@ def show_fields(fin, t_beg=300000):
         ax3.set_title(r"(c) orientation of momentum")
         plt.tight_layout(rect=[-0.015, -0.08, 1.01, 0.97])
         para["t"] = (i + 1) * para["t_win0"] + t_beg
-        title = "$L={Lx},\\eta={eta:g},\epsilon={eps:g},t={t}$".format(**para)
+        title = "$L={Lx},\\eta={eta:g},\\epsilon={eps:g},t={t}$".format(**para)
         title = "instantaneous fields: " + title
         plt.suptitle(title, y=0.995, fontsize="x-large")
 
@@ -313,9 +313,9 @@ if __name__ == "__main__":
     # fin = "RT_field_512_%.3f_%.3f_%d_%d_000.bin" % (eta, eps, twin0, seed)
     # show_fields(fin)
 
-    L = 8192
+    L = 4096
     eta = 0.18
-    eps = 0.035
+    eps = 0.045
     seed = 20200712
     twin0 = 500
     theta0 = 0
@@ -332,28 +332,39 @@ if __name__ == "__main__":
     # twin0 = 500
     # theta0 = 180
     # os.chdir("E:/data/random_torque/replica2/Rect_wall_y/")
-    # fin = "RT_field_%d_%d_%.3f_%.3f_%d_%d_%03d.bin" % (Lx, Ly, eta, eps, twin0,
-    #                                                    seed, theta0)
-    # show_fields_rect(fin, flag_save=True)
+    # fin = "RT_field_%d_%d_%.3f_%.3f_%d_%d_%03d.bin" \
+    #     % (Lx, Ly, eta, eps, twin0, seed, theta0)
+    # # show_fields_rect(fin, flag_save=True)
 
-    # L = 2048
+    # L = 8192
     # eta = 0.18
     # eps = 0.09
     # seed = 20200712
     # twin0 = 500
-    # theta0 = 90
+    # theta0 = 0
     # os.chdir("E:/data/random_field/normalize_new/replica")
     # fin = "RF_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
     #                                                 theta0)
     # show_fields2(fin, t_beg=0, lbox=8, flag_save=True, disorder="RF")
 
-    # L = 1024
+    # L = 2048
     # eta = 0
-    # eps = 0.2
-    # seed = 30370000
-    # twin0 = 1000
+    # eps = 0.3
+    # seed = 20200001
+    # twin0 = 500
     # theta0 = 0
-    # os.chdir("E:/data/random_potential/replicas/field")
+    # os.chdir("E:/data/random_potential/replicas/serials")
     # fin = "RP_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
     #                                                 theta0)
     # show_fields2(fin, t_beg=0, lbox=4, flag_save=True, disorder="RC")
+
+    # L = 512
+    # eta = 0.18
+    # eps = 0.03
+    # seed = 20200825
+    # twin0 = 500
+    # theta0 = 0
+    # os.chdir("E:/data/random_torque/replica2/L=%d" % L)
+    # fin = "RT_field_%d_%.3f_%.3f_%d_%d_%03d.bin" % (L, eta, eps, twin0, seed,
+    #                                                 theta0)
+    # show_fields2(fin, t_beg=0, lbox=4, flag_save=True)

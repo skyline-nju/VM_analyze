@@ -264,7 +264,8 @@ def plot_pow_fit(ax, eps, xi,
         popt, perr = fit_pow(eps, xi)
         if nu0 is None:
             nu0 = popt[-1]
-        x = np.linspace(eps.min(), eps.max(), 100)
+        x = np.linspace(eps.min(), eps.max()+0.005, 100)  # FIG. 5
+        # x = np.linspace(eps.min(), eps.max(), 100)
         y = np.exp(popt[1] - nu0 * np.log(x - popt[0]))
     else:
         popt, perr = fit_pow2(xi, eps, eps_err=eps_err, nu0=nu0)
@@ -288,7 +289,11 @@ def plot_pow_fit(ax, eps, xi,
     else:
         label = r"$\xi=%.3f \times (\epsilon-%.4f)^{-%.3f}$" % (
             popt[1], popt[0], nu0)
-        ax.plot(x, y, "--", label=label)
+        # ax.plot(x, y, "-", label=label, c="tab:blue")
+        ax.plot(y, x, "-", label=label, c="tab:blue")  # FIG. 5
+
+        # ax.axhline(0.0456, linestyle="--")
+        # ax.legend()
     # popt, perr = fit_pow(eps, xi)
     # x = np.linspace(eps.min(), eps.max(), 100)
     # y = np.exp(popt[1] - popt[2] * np.log(x - popt[0]))

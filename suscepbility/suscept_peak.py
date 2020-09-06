@@ -147,24 +147,24 @@ def find_peak(eta, chi_dict, ax=None, mode="con", disorder_t="RT"):
         if ax is not None:
             x = np.linspace(eps_arr.min(), eps_arr.max(), 1000)
             y = np.exp(np.polyval(c, x))
-            line, = ax.plot(eps_arr, chi_arr, "o", label=r"$%d$" % L)
+            line, = ax.plot(eps_arr, chi_arr, "o", label=r"$%d$" % L, ms=5, fillstyle="none")
             if ax is not None:
                 ax.plot(x, y, color=line.get_color())
     if ax is not None:
         ax.plot(eps_p, chi_p, "ks--", fillstyle='none')
         ax.errorbar(eps_p, chi_p, yerr=chi_err, xerr=eps_err, fmt='none')
         ax.set_yscale("log")
-        ax.legend(loc="upper right", title=r"$L=$")
-        if disorder_t == "RT":
-            ax.set_xlim(right=0.09)
-        ax.set_xlabel(r"$\epsilon$", fontsize="xx-large")
+        # ax.legend(loc="upper right", title=r"$L=$")
+        # if disorder_t == "RT":
+        #     ax.set_xlim(right=0.09)
+        # ax.set_xlabel(r"$\epsilon$", fontsize="xx-large")
         if mode == "con":
             yl = r"$L^2\left [\langle m^2\rangle-\langle m\rangle^2\right ]$"
         elif mode == "dis":
             yl = r"$L^2\left([\langle m\rangle^2]-[\langle m\rangle]^2\right)$"
         else:
             yl = r"$L^2\left([\langle m^2\rangle]-[\langle m\rangle]^2\right)$"
-        ax.set_ylabel(yl, fontsize="xx-large")
+        # ax.set_ylabel(yl, fontsize="xx-large")
     return eps_p, chi_p, eps_err, chi_err
 
 
@@ -622,7 +622,7 @@ def fit_w_fixed_nu(mode="con", first=3, last=None):
 
 if __name__ == "__main__":
     eta = 0.18
-    plot_3_panels(eta, save_fig=False, mode="mix", disorder_t="RF")
+    plot_3_panels(eta, save_fig=False, mode="mix", disorder_t="RT")
     # fit_w_fixed_nu()
     # collapse_suscept(eta)
     # plot_chi_mix(eta)
